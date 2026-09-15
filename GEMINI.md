@@ -68,6 +68,29 @@ Every chapter written in this project **MUST** follow this structured learning s
 - **Chapter Scope Isolation (Strictly Zero Unintended Modifications)**:
   - When authoring, revising, or debugging a chapter, modify **strictly** that chapter's dedicated files (`NN-topic-name/index.md` and `NN-topic-name/index.html`).
   - Do NOT modify, refactor, or touch other existing chapters, global curriculum files, homepages, or unrelated repository files unless explicitly instructed by the user. Keep work laser-focused.
+- **Math Formula Formatting & KaTeX Compatibility (Strict Delimiter Isolation)**:
+  - **Isolated Display Math Delimiters (`$$`)**:
+    - Every multi-line or display LaTeX formula **MUST** place the opening `$$` and closing `$$` delimiters on their own isolated lines, surrounded by blank lines:
+      ```markdown
+      $$
+      \mathbf{E} = \begin{bmatrix}
+      ...
+      \end{bmatrix}
+      $$
+      ```
+    - **NEVER** place LaTeX formula content on the same line as `$$` (e.g., avoid `$$\mathbf{E} = ...$$` or `$$\begin{aligned}...$$`).
+    - *Why this is mandatory*: When `$$` shares a line with LaTeX code, `marked.js` treats the block as standard inline markdown rather than a block math token. `marked`'s inline tokenizer then misinterprets LaTeX underscores (`_`) as markdown italic tags (`<em>`), mangling subscripts (e.g. `\mathbf{x}_1^\top \dots \mathbf{x}_2^\top` becomes `<em>...</em>`) and escaping `&` into `&amp;`, which fatally breaks KaTeX parsing in the browser.
+  - **KaTeX Extension Configuration**:
+    - Always configure `marked-katex-extension` with `nonStandard: true` in `index.html`:
+      ```javascript
+      marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
+      ```
+      This ensures non-standard or edge-case multi-line delimiters are safely intercepted before markdown parsing runs.
+  - **Vector and Transpose Dimensional Rigor**:
+    - Maintain strict dimensional compatibility in linear algebra equations:
+      - If embedding matrix is $\mathbf{E} \in \mathbb{R}^{|V| \times d}$, row lookup must be expressed as $\mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E} \in \mathbb{R}^{1 \times d}$.
+      - If using column-vector orientation $\mathbf{x}_i \in \mathbb{R}^{d \times 1}$, lookup is $\mathbf{x}_i = \mathbf{E}^\top \mathbf{e}_i$.
+      - Never equate a row vector to a column vector without explicit transpose notation.
 - **Local Portability & Fallback**:
   - Supports live editing via local HTTP server (`python3 -m http.server 8000`).
   - Includes embedded fallback markdown in `index.html` so direct opening via `file://` renders without browser CORS blocks.
