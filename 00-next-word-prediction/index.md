@@ -143,6 +143,32 @@ $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
   </tbody>
 </table>
 
+<br>
+
+<details>
+<summary><strong>Symbol Glossary (Definition List)</strong></summary>
+
+<dl>
+  <dt><strong>Vocabulary Set ($V$)</strong></dt>
+  <dd>The finite set of all unique words, subwords, or characters recognized by the tokenizer.</dd>
+  
+  <dt><strong>Vocabulary Cardinality ($|V|$)</strong></dt>
+  <dd>The total count of tokens in $V$. Modern LLMs typically range from 32,000 to 128,000 tokens.</dd>
+  
+  <dt><strong>Sequential Index ($t$)</strong></dt>
+  <dd>The discrete time step or token position along the sequence axis ($t \in \{1, 2, \dots, T\}$).</dd>
+  
+  <dt><strong>Target Token ($w_t$)</strong></dt>
+  <dd>The specific word chosen or predicted at sequence position $t$.</dd>
+  
+  <dt><strong>Prefix History / Context ($w_{<t}$)</strong></dt>
+  <dd>The ordered tuple of all tokens preceding step $t$: $(w_1, w_2, \dots, w_{t-1})$.</dd>
+  
+  <dt><strong>Conditional Probability ($P(w_t \mid w_{<t})$)</strong></dt>
+  <dd>A real scalar between $0.0$ and $1.0$ satisfying $\sum_{w \in V} P(w \mid w_{<t}) = 1.0$.</dd>
+</dl>
+</details>
+
 ---
 
 ## Step 4: Where Does This Formula Come From?
