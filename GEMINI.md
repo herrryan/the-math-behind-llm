@@ -65,6 +65,9 @@ Every chapter written in this project **MUST** follow this structured learning s
   - Each chapter lives in its own dedicated subfolder: `NN-topic-name/` (e.g., `00-next-word-prediction/`, `01-vectors-and-spaces/`).
   - Source content is written in Markdown: `NN-topic-name/index.md`.
   - The viewer is `NN-topic-name/index.html`.
+- **Chapter Scope Isolation (Strictly Zero Unintended Modifications)**:
+  - When authoring, revising, or debugging a chapter, modify **strictly** that chapter's dedicated files (`NN-topic-name/index.md` and `NN-topic-name/index.html`).
+  - Do NOT modify, refactor, or touch other existing chapters, global curriculum files, homepages, or unrelated repository files unless explicitly instructed by the user. Keep work laser-focused.
 - **Local Portability & Fallback**:
   - Supports live editing via local HTTP server (`python3 -m http.server 8000`).
   - Includes embedded fallback markdown in `index.html` so direct opening via `file://` renders without browser CORS blocks.
