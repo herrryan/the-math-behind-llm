@@ -401,7 +401,7 @@ We will explore this logarithmic superpower in depth when we train models with *
 
 ---
 
-<nav>
+<nav aria-label="Chapter Navigation">
   <p>
     <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
     <strong>Next Chapter:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings) &rarr;</a>

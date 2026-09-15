@@ -34,14 +34,6 @@
     <p><em>Loading chapter content...</em></p>
   </main>
 
-  <hr>
-  <nav>
-    <p>
-      <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
-      <strong>Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map &rarr;</a>
-    </p>
-  </nav>
-
   <footer>
     <hr>
     <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • Dynamic Markdown &amp; KaTeX • Zero Build Step.</p>
@@ -453,12 +445,13 @@ We will explore this logarithmic superpower in depth when we train models with *
 
 ---
 
-<nav>
+<nav aria-label="Chapter Navigation">
   <p>
     <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
     <strong>Next Chapter:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings) &rarr;</a>
   </p>
 </nav>
+
   </script>
 
   <script>
@@ -503,7 +496,7 @@ We will explore this logarithmic superpower in depth when we train models with *
 
       // 1. Configure marked with KaTeX
       if (typeof markedKatex !== "undefined") {
-        marked.use(markedKatex({ throwOnError: false }));
+        marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
       }
 
       // 2. Configure marked with custom blockquote renderer for callouts
