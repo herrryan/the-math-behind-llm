@@ -1,5 +1,20 @@
 # Chapter 00: The Next-Word Guessing Game
 
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. Intuition</a> &bull; 
+    <a href="#step-2">2. Bridging Question</a> &bull; 
+    <a href="#step-3">3. Exact Math</a> &bull; 
+    <a href="#step-4">4. Origin</a> &bull; 
+    <a href="#step-5">5. Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+
+<hr>
+
+<a id="step-1"></a>
 > [!INTUITION] 3-Year-Old Intuition: The Animal Mystery Box
 > Imagine you and your best friend are playing a game with a mystery box.
 > 
@@ -16,7 +31,7 @@
 
 ---
 
-## Step 2: The Bridging Question (From Whispers to Numbers)
+<h2 id="step-2">Step 2: The Bridging Question (From Whispers to Numbers)</h2>
 
 How does a computer play this guessing game mathematically?
 
@@ -26,7 +41,7 @@ Instead, a computer needs a **mathematical ruler**. It must assign a precise num
 
 ---
 
-## Step 3: The Exact Math & Formulas
+<h2 id="step-3">Step 3: The Exact Math &amp; Formulas</h2>
 
 ### 1. The Vocabulary Box ($V$)
 
@@ -171,7 +186,7 @@ $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
 
 ---
 
-## Step 4: Where Does This Formula Come From?
+<h2 id="step-4">Step 4: Where Does This Formula Come From?</h2>
 
 Why do all modern LLMs formulate language generation as a chain of conditional probabilities rather than predicting the whole sentence at once?
 
@@ -198,7 +213,7 @@ $$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
 
 ---
 
-## Step 5: Concrete Toy Example (Step-by-Step Arithmetic)
+<h2 id="step-5">Step 5: Concrete Toy Example (Step-by-Step Arithmetic)</h2>
 
 Let's walk through the exact arithmetic using our tiny toy language:
 
@@ -301,7 +316,7 @@ The full sentence has an overall probability of <mark><strong>0.054</strong></ma
 
 ---
 
-## Step 6: Core Takeaway
+<h2 id="step-6">Step 6: Core Takeaway</h2>
 
 > [!TIP] Core Takeaway
 > A Large Language Model has no magical human consciousness. At its core, it is a **probabilistic guessing machine**:
