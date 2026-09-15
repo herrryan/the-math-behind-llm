@@ -39,18 +39,21 @@ Every chapter written in this project **MUST** follow this structured learning s
 
 ## 🛑 3. Strict Technical Guardrails
 
-- **Zero JavaScript Rule**:
-  - The website **MUST NOT** include any JavaScript (`<script>`, inline JS, event listeners, or external script bundles).
-  - All styling, navigation, callout boxes, responsive layouts, and math formatting must rely strictly on semantic HTML5 and CSS (`style.css`).
+- **Math Rendering via KaTeX**:
+  - Math is authored in standard LaTeX format (`$...$` for inline, `$$...$$` for block math).
+  - Formulas are rendered in the browser using KaTeX via its official auto-render CDN.
+- **Pure Semantic HTML (Zero Custom CSS)**:
+  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<footer>`).
+  - No custom CSS stylesheets are used.
 - **Chapter Organization**:
   - Each chapter lives in its own dedicated subfolder: `NN-topic-name/` (e.g., `00-next-word-prediction/`, `01-vectors-and-spaces/`).
   - Source content is written in Markdown: `NN-topic-name/index.md`.
   - Rendered output is pure HTML: `NN-topic-name/index.html`.
 - **Zero-Dependency Site Generator**:
-  - HTML generation must be handled by `build.py` using **only the Python standard library** (no external packages or virtual environments required).
+  - HTML generation is handled by `build.py` using **only the Python standard library** (no external packages or virtual environments required).
   - Whenever Markdown content is added or modified, `python3 build.py` must be executed to ensure the HTML remains in sync.
-- **Offline & Local Portability**:
-  - All asset links (`style.css`, navigation buttons, relative paths) must work locally via the `file://` protocol without requiring a local web server.
+- **Local Portability**:
+  - All navigation and relative paths must work locally via the `file://` protocol.
 
 ---
 

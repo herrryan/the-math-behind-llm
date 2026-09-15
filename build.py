@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 """
-Simple static site generator for 'The Math Behind LLMs'
-Converts Markdown content in chapter folders to pure HTML without any JavaScript.
-Zero external dependencies (uses standard Python library).
+Static site generator for 'The Math Behind LLMs'
+Converts Markdown content into clean, semantic HTML with KaTeX for mathematical formulas.
+Zero custom CSS — pure browser-native semantic styling.
+Zero external build dependencies (uses standard Python library).
 """
 
 import os
 import re
 import html
 from pathlib import Path
-from mathml import latex_to_mathml
 
 ROOT_DIR = Path(__file__).parent.resolve()
 
 def parse_markdown(text):
     """
-    Converts simple markdown to semantic HTML.
+    Converts markdown to pure semantic HTML.
     Supports:
-    - Headers (# through ####)
+    - Headers (# through ######)
     - Bold (**text**), Italic (*text*)
-    - Block math ($$ math $$) and inline math ($ math $)
-    - Blockquotes (including special callout tags like [!INTUITION], [!MATH], [!ORIGIN], [!EXAMPLE])
+    - Block math ($$ math $$) and inline math ($ math $) via KaTeX
+    - Callouts ([!INTUITION], [!MATH], etc.) rendered as native <fieldset><legend>
     - Unordered & ordered lists
     - Code blocks (```lang ... ```)
     - Inline code (`code`)
-    - Tables (| col1 | col2 |)
+    - Tables (| col1 | col2 |) with native border attributes
     - Horizontal rules (---)
     - Links [text](url)
     - Paragraphs
@@ -85,23 +85,20 @@ def parse_markdown(text):
         s = re.sub(r'`(.*?)`', r'<code>\1</code>', s)
         s = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', s)
 
-        # 5. Restore display math as valid MathML
+        # 5. Restore display math intact for KaTeX
         for idx, raw in enumerate(disp_math):
-            m_html = latex_to_mathml(raw, display=True)
-            s = s.replace(f"___MATH_DISP_{idx}___", m_html)
+            s = s.replace(f"___MATH_DISP_{idx}___", f"$${raw}$$")
 
-        # 6. Restore inline math as valid MathML
+        # 6. Restore inline math intact for KaTeX
         for idx, raw in enumerate(inl_math):
-            m_html = latex_to_mathml(raw, display=False)
-            s = s.replace(f"___MATH_INL_{idx}___", m_html)
+            s = s.replace(f"___MATH_INL_{idx}___", f"${raw}$")
 
         return s
 
     def render_table(rows):
         if not rows:
             return ""
-        out = ['<div class="table-container"><table>']
-        # First row is header
+        out = ['<table border="1" cellpadding="6" cellspacing="0">']
         header = rows[0]
         out.append("<thead><tr>")
         for cell in header:
@@ -110,22 +107,17 @@ def parse_markdown(text):
         
         out.append("<tbody>")
         for row in rows[1:]:
-            # Skip separator row (e.g. ---|---)
             if all(re.match(r'^:?-+:?$', c.strip()) for c in row):
                 continue
             out.append("<tr>")
             for cell in row:
                 out.append(f"<td>{format_inline(cell.strip())}</td>")
             out.append("</tr>")
-        out.append("</tbody></table></div>")
+        out.append("</tbody></table>")
         return "\n".join(out)
 
     def render_blockquote(lines):
         full_text = "\n".join(lines).strip()
-        callout_type = "quote"
-        title = ""
-        
-        # Check for custom callout markers
         callout_match = re.match(r'^\[!(INTUITION|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\](?:\s+(.*))?', full_text, re.IGNORECASE)
         if callout_match:
             ctype = callout_match.group(1).upper()
@@ -133,21 +125,20 @@ def parse_markdown(text):
             content = full_text[callout_match.end():].strip()
             
             titles = {
-                "INTUITION": ("🧸 3-Year-Old Intuition", "callout-intuition"),
-                "MATH": ("📐 The Exact Math", "callout-math"),
-                "ORIGIN": ("🔍 Where Does This Formula Come From?", "callout-origin"),
-                "EXAMPLE": ("🔢 Concrete Toy Example", "callout-example"),
-                "TIP": ("💡 Core Takeaway", "callout-tip"),
-                "NOTE": ("📝 Note", "callout-note"),
-                "WARNING": ("⚠️ Common Pitfall", "callout-warning")
+                "INTUITION": "🧸 3-Year-Old Intuition",
+                "MATH": "📐 The Exact Math",
+                "ORIGIN": "🔍 Where Does This Formula Come From?",
+                "EXAMPLE": "🔢 Concrete Toy Example",
+                "TIP": "💡 Core Takeaway",
+                "NOTE": "📝 Note",
+                "WARNING": "⚠️ Common Pitfall"
             }
-            default_title, css_class = titles.get(ctype, ("Note", "callout-note"))
+            default_title = titles.get(ctype, "Note")
             box_title = format_inline(custom_title) if custom_title else default_title
             
-            # Format lines inside callout
             inner_paras = [format_inline(p.strip()) for p in content.split("\n\n") if p.strip()]
             inner_html = "".join(f"<p>{p}</p>" for p in inner_paras)
-            return f'<div class="callout {css_class}"><div class="callout-header">{box_title}</div><div class="callout-body">{inner_html}</div></div>'
+            return f'<fieldset><legend><strong>{box_title}</strong></legend>{inner_html}</fieldset>'
         else:
             paras = [format_inline(p.strip()) for p in full_text.split("\n\n") if p.strip()]
             inner_html = "".join(f"<p>{p}</p>" for p in paras)
@@ -193,16 +184,16 @@ def parse_markdown(text):
                 math_lines.append(lines[i])
                 i += 1
             if i < len(lines) and lines[i].strip() == "$$":
-                i += 1  # Skip closing $$
+                i += 1
             raw_math = "\n".join(math_lines).strip()
-            html_out.append(latex_to_mathml(raw_math, display=True))
+            html_out.append(f"<p>$${raw_math}$$</p>")
             continue
 
         # Standalone single-line block math $$ ... $$
         if line.strip().startswith("$$") and line.strip().endswith("$$") and len(line.strip()) > 2:
             html_out.extend(close_blocks())
             raw_math = line.strip()[2:-2].strip()
-            html_out.append(latex_to_mathml(raw_math, display=True))
+            html_out.append(f"<p>$${raw_math}$$</p>")
             i += 1
             continue
 
@@ -245,25 +236,24 @@ def parse_markdown(text):
             table_rows = []
             in_table = False
 
-        # List handling with indentation stack
-        ul_match = re.match(r'^(\s*)[\*\-]\s+(.*)$', line)
+        # Lists
+        ul_match = re.match(r'^(\s*)([-*+])\s+(.*)$', line)
         ol_match = re.match(r'^(\s*)(\d+)\.\s+(.*)$', line)
-
-        if ul_match or ol_match:
-            if in_blockquote or in_table:
+        list_match = ul_match or ol_match
+        
+        if list_match:
+            if in_table or in_blockquote:
                 html_out.extend(close_blocks())
-
-            indent = len(ul_match.group(1)) if ul_match else len(ol_match.group(1))
+            
+            indent = len(list_match.group(1))
             l_type = "ul" if ul_match else "ol"
-            item_content = ul_match.group(2) if ul_match else ol_match.group(3)
+            item_content = list_match.group(3)
 
-            # If we're not currently in a list, start one
             if not in_list:
                 in_list = True
                 list_stack = [(l_type, indent)]
                 html_out.append(f"<{l_type}>")
             else:
-                # Check indentation level relative to stack
                 curr_type, curr_indent = list_stack[-1]
                 if indent > curr_indent:
                     list_stack.append((l_type, indent))
@@ -282,13 +272,12 @@ def parse_markdown(text):
             i += 1
             continue
         elif in_list and (line.startswith("  ") or line.startswith("\t")):
-            # Continuation of previous list item or block math inside list
             stripped = line.strip()
             if stripped.startswith("$$") and stripped.endswith("$$"):
                 math_inner = format_inline(stripped)
-                html_out.append(f"<div class=\"math-display-list\">{math_inner}</div>")
+                html_out.append(f"<p>{math_inner}</p>")
             else:
-                html_out.append(f"<div class=\"list-detail\">{format_inline(stripped)}</div>")
+                html_out.append(f"<p>{format_inline(stripped)}</p>")
             i += 1
             continue
         elif in_list:
@@ -297,7 +286,7 @@ def parse_markdown(text):
                 html_out.append(f"</{top_type}>")
             in_list = False
 
-        # Regular line or blank line
+        # Blank line
         if not line.strip():
             html_out.extend(close_blocks())
             i += 1
@@ -306,7 +295,7 @@ def parse_markdown(text):
         # Normal Paragraph
         html_out.extend(close_blocks())
         para_lines = [line]
-        while i + 1 < len(lines) and lines[i+1].strip() and not lines[i+1].startswith(('#', '>', '```', '|', '*', '-', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.')):
+        while i + 1 < len(lines) and lines[i+1].strip() and not lines[i+1].startswith(('#', '>', '```', '|', '*', '-', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '$$')):
             i += 1
             para_lines.append(lines[i])
         
@@ -320,19 +309,18 @@ def parse_markdown(text):
 
 def build_page_template(title, content_html, rel_root=".", prev_chap=None, next_chap=None, chapter_num=None):
     """
-    Renders pure HTML without any JavaScript.
+    Renders pure semantic HTML with KaTeX for mathematical notation.
+    Zero custom CSS files.
     """
-    nav_html = []
-    nav_html.append(f'<a href="{rel_root}/index.html" class="nav-btn">🏠 Home / Curriculum</a>')
+    nav_links = [f'<a href="{rel_root}/index.html">🏠 Home / Curriculum</a>']
     if prev_chap:
-        nav_html.append(f'<a href="{rel_root}/{prev_chap["dir"]}/index.html" class="nav-btn">← {prev_chap["title"]}</a>')
+        nav_links.append(f'<a href="{rel_root}/{prev_chap["dir"]}/index.html">← Previous: {prev_chap["title"]}</a>')
     if next_chap:
-        nav_html.append(f'<a href="{rel_root}/{next_chap["dir"]}/index.html" class="nav-btn nav-btn-primary">{next_chap["title"]} →</a>')
+        nav_links.append(f'<a href="{rel_root}/{next_chap["dir"]}/index.html">Next: {next_chap["title"]} →</a>')
     
-    top_nav = f'<nav class="top-nav">{"".join(nav_html)}</nav>'
-    bottom_nav = f'<nav class="bottom-nav">{"".join(nav_html)}</nav>'
-    
-    chap_tag = f'<div class="chapter-badge">Chapter {chapter_num}</div>' if chapter_num is not None else ''
+    top_nav = f'<nav><p>{" &nbsp;|&nbsp; ".join(nav_links)}</p></nav>'
+    bottom_nav = f'<nav><p>{" &nbsp;|&nbsp; ".join(nav_links)}</p></nav>'
+    chap_badge = f'<p><strong>Chapter {chapter_num}</strong></p>' if chapter_num is not None else ''
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -340,31 +328,41 @@ def build_page_template(title, content_html, rel_root=".", prev_chap=None, next_
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{html.escape(title)} - The Math Behind LLMs</title>
-  <link rel="stylesheet" href="{rel_root}/style.css">
+  <!-- KaTeX for math formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body, {{
+            delimiters: [
+              {{left: '$$', right: '$$', display: true}},
+              {{left: '$', right: '$', display: false}}
+            ],
+            throwOnError: false
+          }});"></script>
 </head>
 <body>
-  <div class="page-container">
-    <header class="site-header">
-      <div class="site-brand">
-        <a href="{rel_root}/index.html">The Math Behind Large Language Models</a>
-      </div>
-      <p class="site-tagline">Intuitive, Rigorous, Pure HTML — Zero JavaScript</p>
-    </header>
+  <header>
+    <h1><a href="{rel_root}/index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
 
-    {top_nav}
+  {top_nav}
+  <hr>
 
-    <main class="content">
-      {chap_tag}
-      {content_html}
-    </main>
+  <main>
+    {chap_badge}
+    {content_html}
+  </main>
 
-    {bottom_nav}
+  <hr>
+  {bottom_nav}
 
-    <footer class="site-footer">
-      <p><strong>The Math Behind LLMs</strong> • Built with pure semantic HTML & CSS.</p>
-      <p class="footer-subtext">No JavaScript • No external tracking • Grounded in physical intuition and rigorous math.</p>
-    </footer>
-  </div>
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Built with pure semantic HTML and KaTeX.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
 </body>
 </html>
 """
@@ -373,7 +371,6 @@ def scan_and_build():
     """
     Scans for chapter directories and generates HTML files.
     """
-    # Look for chapter folders: e.g. 00-xxx, 01-xxx, or chapter-xx
     chapter_dirs = []
     for item in sorted(ROOT_DIR.iterdir()):
         if item.is_dir() and (re.match(r'^\d{2}-', item.name) or item.name.startswith("chapter-")):
@@ -387,7 +384,6 @@ def scan_and_build():
         first_h1 = re.search(r'^#\s+(.*)$', md_text, re.MULTILINE)
         title = first_h1.group(1).strip() if first_h1 else cdir.name
         
-        # Check chapter number from folder name
         m = re.match(r'^(\d+)', cdir.name)
         cnum = int(m.group(1)) if m else None
         
@@ -417,7 +413,7 @@ def scan_and_build():
         out_file.write_text(full_html, encoding="utf-8")
         print(f"Generated: {out_file.relative_to(ROOT_DIR)}")
 
-    # Render root index.html if curriculum.md or index.md exists at root
+    # Render root index.html
     root_md = ROOT_DIR / "curriculum.md"
     if not root_md.exists():
         root_md = ROOT_DIR / "README.md"
@@ -428,7 +424,6 @@ def scan_and_build():
         title = first_h1.group(1).strip() if first_h1 else "The Math Behind LLMs - Curriculum"
         body_html = parse_markdown(md_text)
         
-        # Link to first chapter if available
         first_c = chapters_meta[0] if chapters_meta else None
         full_html = build_page_template(
             title=title,

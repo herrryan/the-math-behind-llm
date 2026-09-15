@@ -4,27 +4,36 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Math Behind Large Language Models: A Master Curriculum - The Math Behind LLMs</title>
-  <link rel="stylesheet" href="./style.css">
+  <!-- KaTeX for math formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+          onload="renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });"></script>
 </head>
 <body>
-  <div class="page-container">
-    <header class="site-header">
-      <div class="site-brand">
-        <a href="./index.html">The Math Behind Large Language Models</a>
-      </div>
-      <p class="site-tagline">Intuitive, Rigorous, Pure HTML — Zero JavaScript</p>
-    </header>
+  <header>
+    <h1><a href="./index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
 
-    <nav class="top-nav"><a href="./index.html" class="nav-btn">🏠 Home / Curriculum</a><a href="./00-next-word-prediction/index.html" class="nav-btn nav-btn-primary">Chapter 00: The Next-Word Guessing Game →</a></nav>
+  <nav><p><a href="./index.html">🏠 Home / Curriculum</a> &nbsp;|&nbsp; <a href="./00-next-word-prediction/index.html">Next: Chapter 00: The Next-Word Guessing Game →</a></p></nav>
+  <hr>
 
-    <main class="content">
-      
-      <h1 id="the-math-behind-large-language-models-a-master-curriculum">The Math Behind Large Language Models: A Master Curriculum</h1>
-<div class="callout callout-intuition"><div class="callout-header">How to Think About This Entire Guide</div><div class="callout-body"><p>Imagine an LLM is a giant musical music box. Inside the music box are billions of tiny wooden knobs and gears. If you whisper three words into the funnel (&quot;The cat sat...&quot;), the gears spin smoothly and out pops a tiny slip of paper with the next word: (&quot;on&quot;).</p><p>Mathematics is simply the blueprint of those knobs and gears. It tells us how the box turns words into numbers, how it remembers who did what, and how it adjusts its knobs so it stops making silly mistakes.</p></div></div>
+  <main>
+    
+    <h1 id="the-math-behind-large-language-models-a-master-curriculum">The Math Behind Large Language Models: A Master Curriculum</h1>
+<fieldset><legend><strong>How to Think About This Entire Guide</strong></legend><p>Imagine an LLM is a giant musical music box. Inside the music box are billions of tiny wooden knobs and gears. If you whisper three words into the funnel (&quot;The cat sat...&quot;), the gears spin smoothly and out pops a tiny slip of paper with the next word: (&quot;on&quot;).</p><p>Mathematics is simply the blueprint of those knobs and gears. It tells us how the box turns words into numbers, how it remembers who did what, and how it adjusts its knobs so it stops making silly mistakes.</p></fieldset>
 <hr>
 <h2 id="the-teaching-philosophy-the-5-step-pedagogy">🧭 The Teaching Philosophy: The 5-Step Pedagogy</h2>
 <p>Every single chapter in this course follows an unshakeable 5-step learning ladder:</p>
-<div class="table-container"><table>
+<table border="1" cellpadding="6" cellspacing="0">
 <thead><tr>
 <th>Step</th>
 <th>Section Title</th>
@@ -56,7 +65,7 @@
 <td><strong>🔢 Concrete Toy Example</strong></td>
 <td>Step-by-step arithmetic with tiny numbers (vectors of 2 or 3 numbers), showing you every addition and multiplication.</td>
 </tr>
-</tbody></table></div>
+</tbody></table>
 <hr>
 <h2 id="complete-curriculum-overview">📚 Complete Curriculum Overview</h2>
 <p>Below is the complete roadmap of 19 chapters across 9 intuitive modules, covering the entire journey from raw words to deep alignment.</p>
@@ -70,7 +79,7 @@
 <li><a href="00-next-word-prediction/index.html">Chapter 00: The Next-Word Guessing Game</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Guessing the hidden animal in the box using clues one by one.</li>
-<li><strong>The Math</strong>: Discrete probability distributions <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>P</mi><mo>(</mo><msub><mi>w</mi><mi>t</mi></msub><mo>∣</mo><msub><mi>w</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mi>w</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>)</mo></math>, vocabulary space <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>V</mi></math>, and the chain rule of joint probability.</li>
+<li><strong>The Math</strong>: Discrete probability distributions $P(w_t \mid w_1, \dots, w_{t-1})$, vocabulary space $V$, and the chain rule of joint probability.</li>
 <li><strong>Formula Origin</strong>: Andrei Markov (1913) &amp; Claude Shannon (1948) modeling sequences as conditional probability chains.</li>
 </ul>
 </ul>
@@ -81,7 +90,7 @@
 <li><a href="01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A giant playground map where similar toys sit in neighboring sandboxes.</li>
-<li><strong>The Math</strong>: Vector coordinates <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="bold">x</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mi>d</mi></msup></math>, one-hot vectors <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi mathvariant="bold">e</mi><mi>i</mi></msub></math>, and the embedding lookup matrix <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="bold">E</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mo>|</mo><mi>V</mi><mo>|</mo><mo>×</mo><mi>d</mi></mrow></msup></math>.</li>
+<li><strong>The Math</strong>: Vector coordinates $\mathbf{x} \in \mathbb{R}^d$, one-hot vectors $\mathbf{e}_i$, and the embedding lookup matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d}$.</li>
 <li><strong>Formula Origin</strong>: Distributional Semantics (&quot;You shall know a word by the company it keeps&quot; - J.R. Firth, 1957) and Word2Vec (Mikolov et al., 2013).</li>
 </ul>
 </ul>
@@ -89,7 +98,7 @@
 <li><a href="02-dot-product-and-similarity/index.html">Chapter 02: Measuring Closeness (Dot Product &amp; Cosine Similarity)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Do two toy arrows point towards the same treasure?</li>
-<li><strong>The Math</strong>: Dot product <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="bold">u</mi><mo>⋅</mo><mi mathvariant="bold">v</mi><mo>=</mo><munderover><mo movablelimits="true">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>d</mi></munderover><msub><mi>u</mi><mi>i</mi></msub><msub><mi>v</mi><mi>i</mi></msub></math>, vector length (Euclidean <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>L</mi><mn>2</mn></msub></math> norm <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mo>‖</mo><mi mathvariant="bold">u</mi><mo>‖</mo><mo>=</mo><msqrt><mrow><mrow><mo movablelimits="true">∑</mo><msubsup><mi>u</mi><mi>i</mi><mn>2</mn></msubsup></mrow></mrow></msqrt></math>), and Cosine similarity <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>cos</mi><mo>(</mo><mi>θ</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mrow><mi mathvariant="bold">u</mi><mo>⋅</mo><mi mathvariant="bold">v</mi></mrow></mrow><mrow><mrow><mo>‖</mo><mi mathvariant="bold">u</mi><mo>‖</mo><mo>‖</mo><mi mathvariant="bold">v</mi><mo>‖</mo></mrow></mrow></mfrac></math>.</li>
+<li><strong>The Math</strong>: Dot product $\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^d u_i v_i$, vector length (Euclidean $L_2$ norm $\|\mathbf{u}\| = \sqrt{\sum u_i^2}$), and Cosine similarity $\cos(\theta) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}$.</li>
 <li><strong>Formula Origin</strong>: Vector projections from 19th-century Euclidean geometry used as the fundamental affinity metric in modern machine learning.</li>
 </ul>
 </ul>
@@ -100,7 +109,7 @@
 <li><a href="03-matrix-multiplication/index.html">Chapter 03: The Magic Stretching Box (Matrix Multiplication)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A Play-Doh press that stretches, squashes, and turns shapes in space.</li>
-<li><strong>The Math</strong>: Linear transformation <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="bold">y</mi><mo>=</mo><mi mathvariant="bold">W</mi><mi mathvariant="bold">x</mi><mo>+</mo><mi mathvariant="bold">b</mi></math>, matrix dimension compatibility <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mo>(</mo><mi>m</mi><mo>×</mo><mi>k</mi><mo>)</mo><mo>×</mo><mo>(</mo><mi>k</mi><mo>×</mo><mi>n</mi><mo>)</mo><mo>→</mo><mo>(</mo><mi>m</mi><mo>×</mo><mi>n</mi><mo>)</mo></math>.</li>
+<li><strong>The Math</strong>: Linear transformation $\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}$, matrix dimension compatibility $(m \times k) \times (k \times n) \to (m \times n)$.</li>
 <li><strong>Formula Origin</strong>: Linear combinations of basis vectors; why matrix multiplication is the fastest operation on modern GPUs.</li>
 </ul>
 </ul>
@@ -108,7 +117,7 @@
 <li><a href="04-activation-functions/index.html">Chapter 04: The One-Way Gate (Activation Functions: ReLU, GELU, SwiGLU)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A secret one-way valve; why stacking flat sheets of glass never creates a curved magnifying lens.</li>
-<li><strong>The Math</strong>: The collapse of linear cascades <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi mathvariant="bold">W</mi><mn>2</mn></msub><mo>(</mo><msub><mi mathvariant="bold">W</mi><mn>1</mn></msub><mi mathvariant="bold">x</mi><mo>)</mo><mo>=</mo><msub><mi mathvariant="bold">W</mi><mtext>comb</mtext></msub><mi mathvariant="bold">x</mi></math>. Non-linear remedies: ReLU <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>max</mi><mo>(</mo><mn>0</mn><mo>,</mo><mi>x</mi><mo>)</mo></math>, GELU <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>x</mi><mi>Φ</mi><mo>(</mo><mi>x</mi><mo>)</mo></math>, and SwiGLU <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>Swish</mtext><mo>(</mo><mi mathvariant="bold">x</mi><mi mathvariant="bold">W</mi><mo>)</mo><mo>⊙</mo><mo>(</mo><mi mathvariant="bold">x</mi><mi mathvariant="bold">V</mi><mo>)</mo></math>.</li>
+<li><strong>The Math</strong>: The collapse of linear cascades $\mathbf{W}_2(\mathbf{W}_1 \mathbf{x}) = \mathbf{W}_{\text{comb}} \mathbf{x}$. Non-linear remedies: ReLU $\max(0, x)$, GELU $x \Phi(x)$, and SwiGLU $\text{Swish}(\mathbf{x}\mathbf{W}) \odot (\mathbf{x}\mathbf{V})$.</li>
 <li><strong>Formula Origin</strong>: Biological neuron thresholding (McCulloch-Pitts 1943) to modern probabilistic gating (Hendrycks &amp; Gimpel 2016, Shazeer 2020).</li>
 </ul>
 </ul>
@@ -119,7 +128,7 @@
 <li><a href="05-queries-keys-values/index.html">Chapter 05: The Library Clue Hunt (Queries, Keys, and Values)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: You hold a clue card (Query), library shelves have category labels (Keys), and inside each book is the actual treasure story (Value).</li>
-<li><strong>The Math</strong>: Projection matrices <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi mathvariant="bold">W</mi><mi>Q</mi></msub><mo>,</mo><msub><mi mathvariant="bold">W</mi><mi>K</mi></msub><mo>,</mo><msub><mi mathvariant="bold">W</mi><mi>V</mi></msub><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>d</mi><mo>×</mo><msub><mi>d</mi><mi>k</mi></msub></mrow></msup></math> and transformed matrices <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="bold">Q</mi><mo>=</mo><mi mathvariant="bold">X</mi><msub><mi mathvariant="bold">W</mi><mi>Q</mi></msub><mo>,</mo><mi mathvariant="bold">K</mi><mo>=</mo><mi mathvariant="bold">X</mi><msub><mi mathvariant="bold">W</mi><mi>K</mi></msub><mo>,</mo><mi mathvariant="bold">V</mi><mo>=</mo><mi mathvariant="bold">X</mi><msub><mi mathvariant="bold">W</mi><mi>V</mi></msub></math>.</li>
+<li><strong>The Math</strong>: Projection matrices $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d \times d_k}$ and transformed matrices $\mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \mathbf{K} = \mathbf{X}\mathbf{W}_K, \mathbf{V} = \mathbf{X}\mathbf{W}_V$.</li>
 <li><strong>Formula Origin</strong>: Information retrieval systems (database query-key matching) made differentiable for neural networks.</li>
 </ul>
 </ul>
@@ -127,24 +136,24 @@
 <li><a href="06-softmax-function/index.html">Chapter 06: The Fair Voting Booth (The Softmax Function)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Turning loud shouting matches into percentages of a pizza that sum up to exactly 100%.</li>
-<li><strong>The Math</strong>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>softmax</mtext><mo>(</mo><msub><mi>z</mi><mi>i</mi></msub><mo>)</mo><mo>=</mo><mfrac><mrow><msup><mi>e</mi><msub><mi>z</mi><mi>i</mi></msub></msup></mrow><mrow><mrow><munderover><mo movablelimits="true">∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><msup><mi>e</mi><msub><mi>z</mi><mi>j</mi></msub></msup></mrow></mrow></mfrac></math>.</li>
+<li><strong>The Math</strong>: $\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}$.</li>
 <li><strong>Formula Origin</strong>: Ludwig Boltzmann&#x27;s statistical physics (1868) for particle energy distributions, adapted by Luce (1959) for choice probabilities.</li>
 </ul>
 </ul>
 <ul>
-<li><a href="07-attention-formula/index.html">Chapter 07: The Attention Formula &amp; Why We Divide by <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msqrt><mrow><msub><mi>d</mi><mi>k</mi></msub></mrow></msqrt></math></a></li>
+<li><a href="07-attention-formula/index.html">Chapter 07: The Attention Formula &amp; Why We Divide by $\sqrt{d_k}$</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Why whispering in a crowded hall needs a volume damper to prevent the loudest child from drowning out everyone else.</li>
-<li><strong>The Math</strong>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>Attention</mtext><mo>(</mo><mi mathvariant="bold">Q</mi><mo>,</mo><mi mathvariant="bold">K</mi><mo>,</mo><mi mathvariant="bold">V</mi><mo>)</mo><mo>=</mo><mtext>softmax</mtext><mrow><mo>(</mo><mrow><mfrac><mrow><mrow><mi mathvariant="bold">Q</mi><msup><mi mathvariant="bold">K</mi><mi>T</mi></msup></mrow></mrow><mrow><msqrt><mrow><msub><mi>d</mi><mi>k</mi></msub></mrow></msqrt></mrow></mfrac></mrow><mo>)</mo></mrow><mi mathvariant="bold">V</mi></math>.</li>
-<li><strong>Formula Origin</strong>: Vaswani et al. (2017). Proof of variance growth: if components have unit variance, their dot product has variance <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>d</mi><mi>k</mi></msub></math>; dividing by <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msqrt><mrow><msub><mi>d</mi><mi>k</mi></msub></mrow></msqrt></math> keeps variance at 1 and stops softmax gradients from dying.</li>
+<li><strong>The Math</strong>: $\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}$.</li>
+<li><strong>Formula Origin</strong>: Vaswani et al. (2017). Proof of variance growth: if components have unit variance, their dot product has variance $d_k$; dividing by $\sqrt{d_k}$ keeps variance at 1 and stops softmax gradients from dying.</li>
 </ul>
 </ul>
 <ul>
 <li><a href="08-causal-masking/index.html">Chapter 08: Blindfolds on Future Words (Causal Masking)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Taking a reading quiz without being allowed to peek at the answer key on the next page.</li>
-<li><strong>The Math</strong>: Attention mask <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="bold">M</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>T</mi><mo>×</mo><mi>T</mi></mrow></msup></math> where <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>M</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mo>-</mo><mo>∞</mo></math> for <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>j</mi><mo>&gt;</mo><mi>i</mi></math>. Since <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msup><mi>e</mi><mrow><mo>-</mo><mo>∞</mo></mrow></msup><mo>=</mo><mn>0</mn></math>, attention weights to future tokens strictly vanish.</li>
-<li><strong>Formula Origin</strong>: Autoregressive modeling constraint: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>P</mi><mo>(</mo><msub><mi>w</mi><mi>t</mi></msub><mo>∣</mo><msub><mi>w</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo>)</mo></math> must depend only on observed history.</li>
+<li><strong>The Math</strong>: Attention mask $\mathbf{M} \in \mathbb{R}^{T \times T}$ where $M_{ij} = -\infty$ for $j > i$. Since $e^{-\infty} = 0$, attention weights to future tokens strictly vanish.</li>
+<li><strong>Formula Origin</strong>: Autoregressive modeling constraint: $P(w_t \mid w_{<t})$ must depend only on observed history.</li>
 </ul>
 </ul>
 <hr>
@@ -154,7 +163,7 @@
 <li><a href="09-positional-encodings/index.html">Chapter 09: Where in the Sentence Am I? (Positional Encodings &amp; RoPE)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Number tags on runner shirts and clock hands turning at different speeds.</li>
-<li><strong>The Math</strong>: Sinusoidal encodings <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>sin</mi><mo>(</mo><mtext>pos</mtext><mo>/</mo><msup><mn>10000</mn><mrow><mn>2</mn><mi>i</mi><mo>/</mo><mi>d</mi></mrow></msup><mo>)</mo></math> and Rotary Position Embedding (RoPE) 2D rotation blocks <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi mathvariant="bold">R</mi><mrow><mi>Θ</mi><mo>,</mo><mi>m</mi></mrow></msub></math>.</li>
+<li><strong>The Math</strong>: Sinusoidal encodings $\sin(\text{pos}/10000^{2i/d})$ and Rotary Position Embedding (RoPE) 2D rotation blocks $\mathbf{R}_{\Theta, m}$.</li>
 <li><strong>Formula Origin</strong>: Fourier basis encodings (Vaswani et al. 2017) and complex number geometry for relative distance preservation (Su et al. 2021).</li>
 </ul>
 </ul>
@@ -162,7 +171,7 @@
 <li><a href="10-multi-head-attention/index.html">Chapter 10: Looking Through Different Glasses (Multi-Head Attention)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A team of detectives reading the same text: one tracks grammar, one tracks feelings, one tracks timestamps.</li>
-<li><strong>The Math</strong>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>MHA</mtext><mo>(</mo><mi mathvariant="bold">Q</mi><mo>,</mo><mi mathvariant="bold">K</mi><mo>,</mo><mi mathvariant="bold">V</mi><mo>)</mo><mo>=</mo><mtext>Concat</mtext><mo>(</mo><msub><mtext>head</mtext><mn>1</mn></msub><mo>,</mo><mo>…</mo><mo>,</mo><msub><mtext>head</mtext><mi>h</mi></msub><mo>)</mo><msub><mi mathvariant="bold">W</mi><mi>O</mi></msub></math> with sub-space dimension <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>d</mi><mi>k</mi></msub><mo>=</mo><msub><mi>d</mi><mtext>model</mtext></msub><mo>/</mo><mi>h</mi></math>.</li>
+<li><strong>The Math</strong>: $\text{MHA}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\mathbf{W}_O$ with sub-space dimension $d_k = d_{\text{model}} / h$.</li>
 <li><strong>Formula Origin</strong>: Ensemble subspace projections without increasing total computation cost.</li>
 </ul>
 </ul>
@@ -173,7 +182,7 @@
 <li><a href="11-residual-connections/index.html">Chapter 11: The Shortcut Bridge (Residual Connections)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: An express highway alongside a scenic mountain trail so you never get stuck.</li>
-<li><strong>The Math</strong>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi mathvariant="bold">x</mi><mtext>out</mtext></msub><mo>=</mo><msub><mi mathvariant="bold">x</mi><mtext>in</mtext></msub><mo>+</mo><mi mathvariant="script">F</mi><mo>(</mo><msub><mi mathvariant="bold">x</mi><mtext>in</mtext></msub><mo>)</mo></math>. Gradient flow: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mfrac><mrow><mrow><mo>∂</mo><mi mathvariant="script">L</mi></mrow></mrow><mrow><mrow><mo>∂</mo><msub><mi mathvariant="bold">x</mi><mtext>in</mtext></msub></mrow></mrow></mfrac><mo>=</mo><mfrac><mrow><mrow><mo>∂</mo><mi mathvariant="script">L</mi></mrow></mrow><mrow><mrow><mo>∂</mo><msub><mi mathvariant="bold">x</mi><mtext>out</mtext></msub></mrow></mrow></mfrac><mrow><mo>(</mo><mrow><mi mathvariant="bold">I</mi><mo>+</mo><mfrac><mrow><mrow><mo>∂</mo><mi mathvariant="script">F</mi></mrow></mrow><mrow><mrow><mo>∂</mo><msub><mi mathvariant="bold">x</mi><mtext>in</mtext></msub></mrow></mrow></mfrac></mrow><mo>)</mo></mrow></math>.</li>
+<li><strong>The Math</strong>: $\mathbf{x}_{\text{out}} = \mathbf{x}_{\text{in}} + \mathcal{F}(\mathbf{x}_{\text{in}})$. Gradient flow: $\frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{in}}} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{out}}} \left(\mathbf{I} + \frac{\partial \mathcal{F}}{\partial \mathbf{x}_{\text{in}}}\right)$.</li>
 <li><strong>Formula Origin</strong>: ResNet (He et al., 2015) solving the vanishing gradient dilemma in deep networks.</li>
 </ul>
 </ul>
@@ -181,7 +190,7 @@
 <li><a href="12-layer-norm-and-rmsnorm/index.html">Chapter 12: Keeping Everyone Calm (LayerNorm &amp; RMSNorm)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A volume knob in a concert hall that keeps sound at a pleasant listening level so no speaker blows up.</li>
-<li><strong>The Math</strong>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>LayerNorm</mtext><mo>(</mo><mi mathvariant="bold">x</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mrow><mi mathvariant="bold">x</mi><mo>-</mo><mi>μ</mi></mrow></mrow><mrow><msqrt><mrow><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo>+</mo><mi>ϵ</mi></mrow></mrow></msqrt></mrow></mfrac><mo>⊙</mo><mi mathvariant="bold">γ</mi><mo>+</mo><mi mathvariant="bold">β</mi></math> and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>RMSNorm</mtext><mo>(</mo><mi mathvariant="bold">x</mi><mo>)</mo><mo>=</mo><mfrac><mrow><mi mathvariant="bold">x</mi></mrow><mrow><msqrt><mrow><mrow><mfrac><mrow><mn>1</mn></mrow><mrow><mi>d</mi></mrow></mfrac><mo movablelimits="true">∑</mo><msubsup><mi>x</mi><mi>i</mi><mn>2</mn></msubsup><mo>+</mo><mi>ϵ</mi></mrow></mrow></msqrt></mrow></mfrac><mo>⊙</mo><mi mathvariant="bold">γ</mi></math>.</li>
+<li><strong>The Math</strong>: $\text{LayerNorm}(\mathbf{x}) = \frac{\mathbf{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \boldsymbol{\gamma} + \boldsymbol{\beta}$ and $\text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum x_i^2 + \epsilon}} \odot \boldsymbol{\gamma}$.</li>
 <li><strong>Formula Origin</strong>: Ba, Kiros, &amp; Hinton (2016) and Zhang &amp; Sennrich (2019) proving scale invariance improves training stability.</li>
 </ul>
 </ul>
@@ -189,7 +198,7 @@
 <li><a href="13-feed-forward-networks/index.html">Chapter 13: The Thinking Chamber (Feed-Forward Networks)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Sitting quietly in your room to digest what you just heard and store facts into memory.</li>
-<li><strong>The Math</strong>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>FFN</mtext><mo>(</mo><mi mathvariant="bold">x</mi><mo>)</mo><mo>=</mo><mi>σ</mi><mo>(</mo><mi mathvariant="bold">x</mi><msub><mi mathvariant="bold">W</mi><mn>1</mn></msub><mo>+</mo><msub><mi mathvariant="bold">b</mi><mn>1</mn></msub><mo>)</mo><msub><mi mathvariant="bold">W</mi><mn>2</mn></msub><mo>+</mo><msub><mi mathvariant="bold">b</mi><mn>2</mn></msub></math>. Projection from <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>d</mi><mtext>model</mtext></msub><mo>→</mo><mn>4</mn><msub><mi>d</mi><mtext>model</mtext></msub><mo>→</mo><msub><mi>d</mi><mtext>model</mtext></msub></math>.</li>
+<li><strong>The Math</strong>: $\text{FFN}(\mathbf{x}) = \sigma(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1)\mathbf{W}_2 + \mathbf{b}_2$. Projection from $d_{\text{model}} \to 4d_{\text{model}} \to d_{\text{model}}$.</li>
 <li><strong>Formula Origin</strong>: Universal approximation theorem; key-value factual memory storage in MLP weights.</li>
 </ul>
 </ul>
@@ -200,7 +209,7 @@
 <li><a href="14-cross-entropy-loss/index.html">Chapter 14: How Wrong Was I? (Cross-Entropy Loss &amp; Perplexity)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: The penalty points you get during a guessing game when your guess was far off.</li>
-<li><strong>The Math</strong>: Cross-entropy <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="script">L</mi><mo>=</mo><mo>-</mo><munderover><mo movablelimits="true">∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mrow><mo>|</mo><mi>V</mi><mo>|</mo></mrow></munderover><msub><mi>y</mi><mi>i</mi></msub><mi>log</mi><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mo>-</mo><mi>log</mi><msub><mi>p</mi><mtext>correct</mtext></msub></math> and Perplexity <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mtext>PPL</mtext><mo>=</mo><msup><mi>e</mi><mi mathvariant="script">L</mi></msup></math>.</li>
+<li><strong>The Math</strong>: Cross-entropy $\mathcal{L} = -\sum_{i=1}^{|V|} y_i \log p_i = -\log p_{\text{correct}}$ and Perplexity $\text{PPL} = e^{\mathcal{L}}$.</li>
 <li><strong>Formula Origin</strong>: Information theory (Shannon entropy 1948) and Kullback-Leibler (KL) divergence minimization.</li>
 </ul>
 </ul>
@@ -208,7 +217,7 @@
 <li><a href="15-gradients-and-backpropagation/index.html">Chapter 15: Walking Down the Mountain (Gradients &amp; Backpropagation)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Feeling the steepness of the slope with your toes while walking down a foggy mountain.</li>
-<li><strong>The Math</strong>: Multivariable gradients <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mo>∇</mo><mi>θ</mi></msub><mi mathvariant="script">L</mi></math>, chain rule <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mfrac><mrow><mrow><mo>∂</mo><mi mathvariant="script">L</mi></mrow></mrow><mrow><mrow><mo>∂</mo><mi mathvariant="bold">W</mi></mrow></mrow></mfrac><mo>=</mo><mfrac><mrow><mrow><mo>∂</mo><mi mathvariant="script">L</mi></mrow></mrow><mrow><mrow><mo>∂</mo><mi mathvariant="bold">y</mi></mrow></mrow></mfrac><mfrac><mrow><mrow><mo>∂</mo><mi mathvariant="bold">y</mi></mrow></mrow><mrow><mrow><mo>∂</mo><mi mathvariant="bold">W</mi></mrow></mrow></mfrac></math>, gradient descent step <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>θ</mi><mo>←</mo><mi>θ</mi><mo>-</mo><mi>η</mi><msub><mo>∇</mo><mi>θ</mi></msub><mi mathvariant="script">L</mi></math>.</li>
+<li><strong>The Math</strong>: Multivariable gradients $\nabla_\theta \mathcal{L}$, chain rule $\frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \frac{\partial \mathbf{y}}{\partial \mathbf{W}}$, gradient descent step $\theta \leftarrow \theta - \eta \nabla_\theta \mathcal{L}$.</li>
 <li><strong>Formula Origin</strong>: Calculus (Leibniz &amp; Newton) meets algorithmic reverse-mode automatic differentiation (Rumelhart, Hinton, &amp; Williams 1986).</li>
 </ul>
 </ul>
@@ -216,7 +225,7 @@
 <li><a href="16-adam-optimizer/index.html">Chapter 16: The Smart Walker (Momentum and the Adam Optimizer)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A heavy bowling ball rolling downhill (momentum) wearing shoes that adjust their grip depending on mud vs rocks (adaptive learning rates).</li>
-<li><strong>The Math</strong>: First moment <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>m</mi><mi>t</mi></msub><mo>=</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>m</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>+</mo><mo>(</mo><mn>1</mn><mo>-</mo><msub><mi>β</mi><mn>1</mn></msub><mo>)</mo><msub><mi>g</mi><mi>t</mi></msub></math>, second moment <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>v</mi><mi>t</mi></msub><mo>=</mo><msub><mi>β</mi><mn>2</mn></msub><msub><mi>v</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>+</mo><mo>(</mo><mn>1</mn><mo>-</mo><msub><mi>β</mi><mn>2</mn></msub><mo>)</mo><msubsup><mi>g</mi><mi>t</mi><mn>2</mn></msubsup></math>, bias-corrected updates <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>θ</mi><mi>t</mi></msub><mo>=</mo><msub><mi>θ</mi><mrow><mi>t</mi><mo>-</mo><mn>1</mn></mrow></msub><mo>-</mo><mfrac><mrow><mi>η</mi></mrow><mrow><mrow><msqrt><mrow><mrow><mi>hat</mi><msub><mi>v</mi><mi>t</mi></msub></mrow></mrow></msqrt><mo>+</mo><mi>ϵ</mi></mrow></mrow></mfrac><mi>hat</mi><msub><mi>m</mi><mi>t</mi></msub></math>.</li>
+<li><strong>The Math</strong>: First moment $m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t$, second moment $v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2$, bias-corrected updates $\theta_{t} = \theta_{t-1} - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t$.</li>
 <li><strong>Formula Origin</strong>: Kingma &amp; Ba (2014) combining AdaGrad&#x27;s coordinate scaling and Polyak&#x27;s heavy-ball momentum.</li>
 </ul>
 </ul>
@@ -227,7 +236,7 @@
 <li><a href="17-sampling-and-temperature/index.html">Chapter 17: Turning Up the Heat (Temperature, Top-k, &amp; Top-p Sampling)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: A creativity dial: freezing cold gives the safest, most boring answer; boiling hot gives wild, unpredictable dreams.</li>
-<li><strong>The Math</strong>: Temperature scaling <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><msub><mi>p</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><msup><mi>e</mi><mrow><msub><mi>z</mi><mi>i</mi></msub><mo>/</mo><mi>T</mi></mrow></msup></mrow><mrow><mrow><munder><mo movablelimits="true">∑</mo><mi>j</mi></munder><msup><mi>e</mi><mrow><msub><mi>z</mi><mi>j</mi></msub><mo>/</mo><mi>T</mi></mrow></msup></mrow></mrow></mfrac></math>, Top-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>k</mi></math> restriction, and Top-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi>p</mi></math> (Nucleus) cumulative cutoff <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><munder><mo movablelimits="true">∑</mo><mrow><mi>i</mi><mo>∈</mo><msup><mi>V</mi><mrow><mo>(</mo><mi>p</mi><mo>)</mo></mrow></msup></mrow></munder><msub><mi>p</mi><mi>i</mi></msub><mo>≥</mo><mi>p</mi></math>.</li>
+<li><strong>The Math</strong>: Temperature scaling $p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}$, Top-$k$ restriction, and Top-$p$ (Nucleus) cumulative cutoff $\sum_{i \in V^{(p)}} p_i \ge p$.</li>
 <li><strong>Formula Origin</strong>: Simulated annealing in physics and Holtzman et al. (2019) observing text degeneration in the distribution tail.</li>
 </ul>
 </ul>
@@ -238,10 +247,10 @@
 <li><a href="18-rlhf-and-dpo/index.html">Chapter 18: Teaching Good Manners (RLHF, Reward Modeling, and DPO)</a></li>
 <ul>
 <li><strong>The Metaphor</strong>: Giving gold stars for kind answers, gentle penalties for rude answers, and keeping the child from forgetting who they are.</li>
-<li><strong>The Math</strong>: Reward objective with KL penalty <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mi mathvariant="double-struck">E</mi><mo>[</mo><msub><mi>r</mi><mi>θ</mi></msub><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>]</mo><mo>-</mo><mi>β</mi><msub><mi>D</mi><mtext>KL</mtext></msub><mo>(</mo><msub><mi>π</mi><mi>θ</mi></msub><mo>‖</mo><msub><mi>π</mi><mtext>ref</mtext></msub><mo>)</mo></math>, and Direct Preference Optimization (DPO) closed-form loss:</li>
+<li><strong>The Math</strong>: Reward objective with KL penalty $\mathbb{E}[r_\theta(x, y)] - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$, and Direct Preference Optimization (DPO) closed-form loss:</li>
 </ul>
 </ul>
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><msub><mi mathvariant="script">L</mi><mtext>DPO</mtext></msub><mo>(</mo><msub><mi>π</mi><mi>θ</mi></msub><mo>;</mo><msub><mi>π</mi><mtext>ref</mtext></msub><mo>)</mo><mo>=</mo><mo>-</mo><msub><mi mathvariant="double-struck">E</mi><mrow><mo>(</mo><mi>x</mi><mo>,</mo><msub><mi>y</mi><mi>w</mi></msub><mo>,</mo><msub><mi>y</mi><mi>l</mi></msub><mo>)</mo></mrow></msub><mrow><mo>[</mo><mrow><mi>log</mi><mi>σ</mi><mrow><mo>(</mo><mrow><mi>β</mi><mi>log</mi><mfrac><mrow><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><msub><mi>y</mi><mi>w</mi></msub><mo>∣</mo><mi>x</mi><mo>)</mo></mrow></mrow><mrow><mrow><msub><mi>π</mi><mtext>ref</mtext></msub><mo>(</mo><msub><mi>y</mi><mi>w</mi></msub><mo>∣</mo><mi>x</mi><mo>)</mo></mrow></mrow></mfrac><mo>-</mo><mi>β</mi><mi>log</mi><mfrac><mrow><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo>(</mo><msub><mi>y</mi><mi>l</mi></msub><mo>∣</mo><mi>x</mi><mo>)</mo></mrow></mrow><mrow><mrow><msub><mi>π</mi><mtext>ref</mtext></msub><mo>(</mo><msub><mi>y</mi><mi>l</mi></msub><mo>∣</mo><mi>x</mi><mo>)</mo></mrow></mrow></mfrac></mrow><mo>)</mo></mrow></mrow><mo>]</mo></mrow></math>
+<p>$$\mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]$$</p>
 <ul>
 <li><strong>Formula Origin</strong>: Bradley-Terry preference models (1952) and Rafailov et al. (2023) analytically bypassing the reinforcement learning actor-critic loop.</li>
 </ul>
@@ -254,15 +263,16 @@
 <li><strong>Version Controlled</strong>: Every iteration is committed into Git for full traceability.</li>
 </ul>
 <hr>
-<div class="callout callout-tip"><div class="callout-header">Ready to Begin?</div><div class="callout-body"><p>Start right away with <a href="00-next-word-prediction/index.html">Chapter 00: The Next-Word Guessing Game</a> to build your first physical intuition!</p></div></div>
-    </main>
+<fieldset><legend><strong>Ready to Begin?</strong></legend><p>Start right away with <a href="00-next-word-prediction/index.html">Chapter 00: The Next-Word Guessing Game</a> to build your first physical intuition!</p></fieldset>
+  </main>
 
-    <nav class="bottom-nav"><a href="./index.html" class="nav-btn">🏠 Home / Curriculum</a><a href="./00-next-word-prediction/index.html" class="nav-btn nav-btn-primary">Chapter 00: The Next-Word Guessing Game →</a></nav>
+  <hr>
+  <nav><p><a href="./index.html">🏠 Home / Curriculum</a> &nbsp;|&nbsp; <a href="./00-next-word-prediction/index.html">Next: Chapter 00: The Next-Word Guessing Game →</a></p></nav>
 
-    <footer class="site-footer">
-      <p><strong>The Math Behind LLMs</strong> • Built with pure semantic HTML & CSS.</p>
-      <p class="footer-subtext">No JavaScript • No external tracking • Grounded in physical intuition and rigorous math.</p>
-    </footer>
-  </div>
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Built with pure semantic HTML and KaTeX.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
 </body>
 </html>
