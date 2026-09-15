@@ -9,6 +9,7 @@ import os
 import re
 import html
 from pathlib import Path
+from mathml import latex_to_mathml
 
 ROOT_DIR = Path(__file__).parent.resolve()
 
@@ -60,22 +61,40 @@ def parse_markdown(text):
         return res
 
     def format_inline(s):
-        # Escape HTML entities first, except already formatted spans/tags
+        # 1. Extract display math $$ ... $$
+        disp_math = []
+        def save_disp(m):
+            disp_math.append(m.group(1))
+            return f"___MATH_DISP_{len(disp_math)-1}___"
+
+        # 2. Extract inline math $ ... $
+        inl_math = []
+        def save_inl(m):
+            inl_math.append(m.group(1))
+            return f"___MATH_INL_{len(inl_math)-1}___"
+
+        s = re.sub(r'\$\$(.*?)\$\$', save_disp, s, flags=re.DOTALL)
+        s = re.sub(r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', save_inl, s)
+
+        # 3. Escape HTML entities on remaining text
         s = html.escape(s)
-        
-        # Display math $$ ... $$
-        s = re.sub(r'\$\$(.*?)\$\$', r'<div class="math-display">\1</div>', s)
-        # Inline math $ ... $
-        s = re.sub(r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', r'<span class="math-inline">\1</span>', s)
-        
-        # Bold
+
+        # 4. Standard markdown formatting
         s = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', s)
-        # Italic
         s = re.sub(r'\*(.*?)\*', r'<em>\1</em>', s)
-        # Inline code
         s = re.sub(r'`(.*?)`', r'<code>\1</code>', s)
-        # Links
         s = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', s)
+
+        # 5. Restore display math as valid MathML
+        for idx, raw in enumerate(disp_math):
+            m_html = latex_to_mathml(raw, display=True)
+            s = s.replace(f"___MATH_DISP_{idx}___", m_html)
+
+        # 6. Restore inline math as valid MathML
+        for idx, raw in enumerate(inl_math):
+            m_html = latex_to_mathml(raw, display=False)
+            s = s.replace(f"___MATH_INL_{idx}___", m_html)
+
         return s
 
     def render_table(rows):
@@ -123,7 +142,7 @@ def parse_markdown(text):
                 "WARNING": ("⚠️ Common Pitfall", "callout-warning")
             }
             default_title, css_class = titles.get(ctype, ("Note", "callout-note"))
-            box_title = custom_title if custom_title else default_title
+            box_title = format_inline(custom_title) if custom_title else default_title
             
             # Format lines inside callout
             inner_paras = [format_inline(p.strip()) for p in content.split("\n\n") if p.strip()]
@@ -162,6 +181,28 @@ def parse_markdown(text):
         if re.match(r'^-{3,}$', line.strip()):
             html_out.extend(close_blocks())
             html_out.append("<hr>")
+            i += 1
+            continue
+
+        # Standalone multiline block math $$ ... $$
+        if line.strip() == "$$":
+            html_out.extend(close_blocks())
+            math_lines = []
+            i += 1
+            while i < len(lines) and lines[i].strip() != "$$":
+                math_lines.append(lines[i])
+                i += 1
+            if i < len(lines) and lines[i].strip() == "$$":
+                i += 1  # Skip closing $$
+            raw_math = "\n".join(math_lines).strip()
+            html_out.append(latex_to_mathml(raw_math, display=True))
+            continue
+
+        # Standalone single-line block math $$ ... $$
+        if line.strip().startswith("$$") and line.strip().endswith("$$") and len(line.strip()) > 2:
+            html_out.extend(close_blocks())
+            raw_math = line.strip()[2:-2].strip()
+            html_out.append(latex_to_mathml(raw_math, display=True))
             i += 1
             continue
 
