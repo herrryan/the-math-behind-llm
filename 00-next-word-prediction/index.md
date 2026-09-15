@@ -130,7 +130,8 @@ $$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4
 We want to calculate the probability of generating the complete sentence:  
 **"I love ice cream"**
 
-```
+<figure>
+<pre>
 Step 1: P("I")                                        = 0.50  (50% chance)
              │
 Step 2: P("love"  │ "I")                              = 0.40  (40% chance)
@@ -140,7 +141,9 @@ Step 3: P("ice"   │ "I", "love")                      = 0.30  (30% chance)
 Step 4: P("cream" │ "I", "love", "ice")               = 0.90  (90% chance)
 ──────────────────────────────────────────────────────────────────────────
 Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
-```
+</pre>
+<figcaption><strong>Figure 0.1:</strong> Sequential probability conditioning across four time steps.</figcaption>
+</figure>
 
 ---
 
