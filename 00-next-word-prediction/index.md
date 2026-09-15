@@ -81,16 +81,67 @@ $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
 
 ### Mathematical Symbol Breakdown Table
 
-| Symbol | Formal Name | 3-Year-Old Meaning | Concrete Toy Example |
-| :--- | :--- | :--- | :--- |
-| $V$ | Vocabulary Set | The big toy box of words the model knows | $V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$ |
-| $|V|$ | Vocabulary Size | How many word blocks are in the toy box | $|V| = 4$ words |
-| $t$ | Time Step / Position | The index of the word we are guessing right now | $t = 4$ (the fourth word) |
-| $w_t$ | Token at Step $t$ | The candidate word being considered | $w_4 = \text{"cream"}$ |
-| $w_{<t}$ | Prefix Context | All previous clues whispered into the funnel | $w_{<4} = (\text{"I"}, \text{"love"}, \text{"ice"})$ |
-| $P(w_t \mid w_{<t})$ | Conditional Probability | The model's belief meter ($0.0$ to $1.0$) for that word | $P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$ |
-| $\sum$ | Summation (Sigma) | Add up all slices of the probability pizza | Sum of all 4 word probabilities $= 1.00$ ($100\%$) |
-| $\prod$ | Product (Capital Pi) | Multiply the chances of each step along the chain | $0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$ |
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 0.1:</strong> Formal mathematical symbols, dimensions, and operational definitions.</caption>
+  <thead>
+    <tr>
+      <th align="left">Symbol</th>
+      <th align="left">Formal Name</th>
+      <th align="left">3-Year-Old Meaning</th>
+      <th align="left">Concrete Toy Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>$V$</td>
+      <td>Vocabulary Set</td>
+      <td>The big toy box of words the model knows</td>
+      <td>$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$</td>
+    </tr>
+    <tr>
+      <td>$|V|$</td>
+      <td>Vocabulary Size</td>
+      <td>How many word blocks are in the toy box</td>
+      <td>$|V| = 4$ words</td>
+    </tr>
+    <tr>
+      <td>$t$</td>
+      <td>Time Step / Position</td>
+      <td>The index of the word we are guessing right now</td>
+      <td>$t = 4$ (the fourth word)</td>
+    </tr>
+    <tr>
+      <td>$w_t$</td>
+      <td>Token at Step $t$</td>
+      <td>The candidate word being considered</td>
+      <td>$w_4 = \text{"cream"}$</td>
+    </tr>
+    <tr>
+      <td>$w_{<t}$</td>
+      <td>Prefix Context</td>
+      <td>All previous clues whispered into the funnel</td>
+      <td>$w_{<4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
+    </tr>
+    <tr>
+      <td>$P(w_t \mid w_{<t})$</td>
+      <td>Conditional Probability</td>
+      <td>The model's belief meter ($0.0$ to $1.0$) for that word</td>
+      <td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
+    </tr>
+    <tr>
+      <td>$\sum$</td>
+      <td>Summation (Sigma)</td>
+      <td>Add up all slices of the probability pizza</td>
+      <td>Sum of all 4 word probabilities $= 1.00$ ($100\%$)</td>
+    </tr>
+    <tr>
+      <td>$\prod$</td>
+      <td>Product (Capital Pi)</td>
+      <td>Multiply the chances of each step along the chain</td>
+      <td>$0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -151,13 +202,55 @@ Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
 
 At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate word in $V$:
 
-| Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Visual Probability Bar | Interpretation |
-| :--- | :--- | :--- | :--- | :--- |
-| **<kbd>"cream"</kbd>** | **0.90** | <mark><strong>90%</strong></mark> | <meter min="0" max="1" value="0.90" optimum="0.8">90%</meter> | Clear favorite |
-| **<kbd>"ice"</kbd>** | 0.05 | 5% | <meter min="0" max="1" value="0.05">5%</meter> | Unlikely ("ice ice") |
-| **<kbd>"love"</kbd>** | 0.03 | 3% | <meter min="0" max="1" value="0.03">3%</meter> | Unlikely ("ice love") |
-| **<kbd>"I"</kbd>** | 0.02 | 2% | <meter min="0" max="1" value="0.02">2%</meter> | Very unlikely ("ice I") |
-| **Total Sum ($\sum$)** | **1.00** | <mark><strong>100%</strong></mark> | <progress max="100" value="100">100%</progress> | **Conserved Probability** |
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 0.2:</strong> Candidate word probability distribution conditioned on prefix context <kbd>"I love ice"</kbd>.</caption>
+  <thead>
+    <tr>
+      <th align="left">Candidate Word $w \in V$</th>
+      <th align="right">Conditional Probability $P(w \mid \text{"I love ice"})$</th>
+      <th align="right">Percentage</th>
+      <th align="center">Visual Probability Bar</th>
+      <th align="left">Interpretation</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="left"><strong><kbd>"cream"</kbd></strong></td>
+      <td align="right"><strong>0.90</strong></td>
+      <td align="right"><mark><strong>90%</strong></mark></td>
+      <td align="center"><meter min="0" max="1" value="0.90" optimum="0.8">90%</meter></td>
+      <td align="left">Clear favorite</td>
+    </tr>
+    <tr>
+      <td align="left"><strong><kbd>"ice"</kbd></strong></td>
+      <td align="right">0.05</td>
+      <td align="right">5%</td>
+      <td align="center"><meter min="0" max="1" value="0.05">5%</meter></td>
+      <td align="left">Unlikely ("ice ice")</td>
+    </tr>
+    <tr>
+      <td align="left"><strong><kbd>"love"</kbd></strong></td>
+      <td align="right">0.03</td>
+      <td align="right">3%</td>
+      <td align="center"><meter min="0" max="1" value="0.03">3%</meter></td>
+      <td align="left">Unlikely ("ice love")</td>
+    </tr>
+    <tr>
+      <td align="left"><strong><kbd>"I"</kbd></strong></td>
+      <td align="right">0.02</td>
+      <td align="right">2%</td>
+      <td align="center"><meter min="0" max="1" value="0.02">2%</meter></td>
+      <td align="left">Very unlikely ("ice I")</td>
+    </tr>
+    <tr>
+      <td align="left"><strong>Total Sum ($\sum$)</strong></td>
+      <td align="right"><strong>1.00</strong></td>
+      <td align="right"><mark><strong>100%</strong></mark></td>
+      <td align="center"><progress max="100" value="100">100%</progress></td>
+      <td align="left"><strong>Conserved Probability</strong></td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
