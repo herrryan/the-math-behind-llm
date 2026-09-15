@@ -1,0 +1,128 @@
+# Chapter 00: The Next-Word Guessing Game
+
+> [!INTUITION] 🧸 3-Year-Old Intuition: The Animal Mystery Box
+> Imagine you and your best friend are playing a game with a mystery box.
+> 
+> You give your friend a clue: *"It is fluffy..."*
+> Your friend thinks: *"Could it be a bunny? A kitten? A cloud?"*
+> 
+> Then you add a second clue: *"It is fluffy... and it says meow!"*
+> 
+> Instantly, your friend laughs and shouts: *"Kitten!"*
+> 
+> Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities.
+> 
+> A Large Language Model (LLM) is doing this exact same game every second. You give it five words: *"The sky is very..."* and it looks through its giant toy chest of words to pick the next one: *"blue"*.
+
+---
+
+## 🌉 The Bridging Question
+
+How does a computer play this guessing game mathematically?
+
+A computer cannot "feel" what word comes next. It cannot say: *"Well, kitten feels right."* 
+
+Instead, a computer needs a **ruler**. It needs to assign a score to every single word in human language, measuring how likely that word is to follow the previous words.
+
+---
+
+## 📐 The Exact Math
+
+### 1. The Vocabulary Box ($V$)
+Before the model can guess, we must write down a list of every word (or subword) it is allowed to use. We call this list the **Vocabulary**, written as $V$:
+
+$$V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}$$
+
+The number of words in this box is called $|V|$ (the vocabulary size). In modern LLMs like GPT-4 or LLaMA, $|V|$ is typically between $32{,}000$ and $128{,}000$ tokens.
+
+---
+
+### 2. The Conditional Probability Rule
+When the model has seen $t-1$ words:
+
+$$w_1, w_2, \dots, w_{t-1}$$
+
+it assigns a probability to every possible candidate word $w \in V$ for the next position $w_t$. We write this as:
+
+$$P(w_t = w \mid w_1, w_2, \dots, w_{t-1})$$
+
+The vertical bar $\mid$ means **"given that we already know"**.
+
+Two fundamental rules of probability must hold:
+1. Every word's probability is between 0 and 1:
+   $$0 \le P(w) \le 1 \quad \text{for all } w \in V$$
+2. If you sum the probabilities of all words in the dictionary, they must equal exactly 1 (100%):
+   $$\sum_{w \in V} P(w_t = w \mid w_{<t}) = 1$$
+
+---
+
+### 3. The Chain Rule of Probability
+How does the model write an entire paragraph, or even a book? It uses the **Chain Rule of Probability**:
+
+$$P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})$$
+
+Using compact mathematical product notation ($\prod$):
+
+$$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
+
+> [!MATH] Decoding the Product Symbol $\prod$
+> Just like $\sum$ means **add them all up**, the big Greek letter $\prod$ (capital Pi) means **multiply them all together**.
+> The total probability of a sentence is the probability of the first word, multiplied by the probability of the second word given the first, and so on.
+
+---
+
+## 🔍 Where Does This Formula Come From?
+
+In 1913, the Russian mathematician **Andrey Markov** sat by candlelight with a copy of Alexander Pushkin's poem *Eugene Onegin*. He counted 20,000 Russian letters by hand to prove that the probability of the next letter being a vowel depended heavily on whether the previous letter was a consonant. This gave birth to **Markov Chains**.
+
+Thirty-five years later, in 1948, **Claude Shannon** published *"A Mathematical Theory of Communication"*, which laid the foundation for modern information theory. Shannon showed that human language could be modeled as a statistical process where each word is chosen according to conditional probabilities.
+
+Today's Large Language Models do not use simple letter counts; they use massive neural networks with hundreds of billions of parameters to estimate $P(w_t \mid w_{<t})$. But the mathematical objective remains unchanged: **predict the next token**.
+
+---
+
+## 🔢 Concrete Toy Example
+
+Let's make a tiny toy language with a vocabulary of only 4 words:
+
+$$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$$
+
+Here, $|V| = 4$.
+
+Suppose we want to know the probability of the full sentence: **"I love ice cream"**.
+
+### Step 1: Individual conditional probabilities
+The model looks at its training data and calculates:
+1. $P(w_1 = \text{"I"}) = 0.50$ (half of sentences start with "I")
+2. $P(w_2 = \text{"love"} \mid \text{"I"}) = 0.40$ (given "I", 40% of the time the next word is "love")
+3. $P(w_3 = \text{"ice"} \mid \text{"I", "love"}) = 0.30$ (given "I love", 30% of the time the next word is "ice")
+4. $P(w_4 = \text{"cream"} \mid \text{"I", "love", "ice"}) = 0.90$ (given "I love ice", 90% of the time the next word is "cream"!)
+
+Notice that for step 4, the remaining 10% is divided among other words:
+- $P(\text{"ice"} \mid \text{"I love ice"}) = 0.05$
+- $P(\text{"love"} \mid \text{"I love ice"}) = 0.03$
+- $P(\text{"I"} \mid \text{"I love ice"}) = 0.02$
+- Sum: $0.90 + 0.05 + 0.03 + 0.02 = 1.00$ (100%).
+
+### Step 2: Multiply using the Chain Rule
+$$P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90$$
+
+Let's multiply step by step:
+- $0.50 \times 0.40 = 0.20$
+- $0.20 \times 0.30 = 0.06$
+- $0.06 \times 0.90 = 0.054$
+
+The probability of this exact sequence is **0.054** (or **5.4%**).
+
+---
+
+> [!TIP] 💡 Core Takeaway
+> An LLM does not need a magical spirit inside it to produce smart answers. 
+> 
+> At every single step, it calculates a list of probabilities over its vocabulary $V$, picks a word, adds that word to its memory, and repeats the process. 
+> 
+> In the next chapter, we answer the obvious question: **How does a computer, which only understands numbers, represent words like "cat" and "kitten"?**
+
+---
+
+👉 **Next Chapter**: [Chapter 01: The Word Map (Vectors & Embeddings)](../01-vectors-and-spaces/index.html)

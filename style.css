@@ -1,0 +1,455 @@
+/* ===================================================================
+   The Math Behind Large Language Models
+   Pure Semantic HTML & CSS — Zero JavaScript
+   =================================================================== */
+
+:root {
+  --bg-primary: #fcfcfb;
+  --bg-surface: #ffffff;
+  --bg-secondary: #f4f3f0;
+  --text-primary: #1d2129;
+  --text-secondary: #4e5564;
+  --text-muted: #737a8c;
+  --border-color: #e5e3dd;
+  --border-subtle: #edebe6;
+  
+  --accent-color: #1a56db;
+  --accent-hover: #1442a8;
+  --accent-light: #ebf2ff;
+
+  /* Callout Colors */
+  --intuition-bg: #fffbf0;
+  --intuition-border: #f0c05a;
+  --intuition-text: #6b4700;
+  
+  --math-bg: #f4f8fe;
+  --math-border: #72a5e8;
+  --math-text: #0e3b79;
+
+  --origin-bg: #faf5ff;
+  --origin-border: #c084fc;
+  --origin-text: #581c87;
+
+  --example-bg: #f0fdf4;
+  --example-border: #86efac;
+  --example-text: #166534;
+
+  --tip-bg: #ecfdf5;
+  --tip-border: #6ee7b7;
+  --tip-text: #065f46;
+
+  --warning-bg: #fff1f2;
+  --warning-border: #fda4af;
+  --warning-text: #9f1239;
+
+  --code-bg: #21252b;
+  --code-text: #abb2bf;
+  
+  --font-serif: "Charter", "Bitstream Charter", "Georgia", "Cambria", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Menlo", monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem 1.5rem;
+}
+
+/* Site Header */
+.site-header {
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.site-brand a {
+  font-family: var(--font-sans);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.site-brand a:hover {
+  color: var(--accent-color);
+}
+
+.site-tagline {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* Navigation */
+.top-nav, .bottom-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 1.5rem 0 2rem 0;
+  font-family: var(--font-sans);
+}
+
+.bottom-nav {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.925rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-btn:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.nav-btn-primary {
+  background-color: var(--accent-light);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.nav-btn-primary:hover {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+/* Chapter Badge */
+.chapter-badge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+/* Headings */
+h1, h2, h3, h4 {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin-top: 2.2rem;
+  margin-bottom: 0.8rem;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-top: 0.5rem;
+}
+
+h2 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.4rem;
+}
+
+h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+p {
+  margin-bottom: 1.25rem;
+}
+
+a {
+  color: var(--accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+hr {
+  border: none;
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 2.5rem 0;
+}
+
+/* Callouts */
+.callout {
+  border-radius: 8px;
+  border-left: 4px solid;
+  padding: 1.25rem 1.5rem;
+  margin: 1.75rem 0;
+  background-color: var(--bg-surface);
+}
+
+.callout-header {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 0.6rem;
+}
+
+.callout-body p:last-child {
+  margin-bottom: 0;
+}
+
+.callout-intuition {
+  background-color: var(--intuition-bg);
+  border-color: var(--intuition-border);
+}
+.callout-intuition .callout-header {
+  color: var(--intuition-text);
+}
+
+.callout-math {
+  background-color: var(--math-bg);
+  border-color: var(--math-border);
+}
+.callout-math .callout-header {
+  color: var(--math-text);
+}
+
+.callout-origin {
+  background-color: var(--origin-bg);
+  border-color: var(--origin-border);
+}
+.callout-origin .callout-header {
+  color: var(--origin-text);
+}
+
+.callout-example {
+  background-color: var(--example-bg);
+  border-color: var(--example-border);
+}
+.callout-example .callout-header {
+  color: var(--example-text);
+}
+
+.callout-tip {
+  background-color: var(--tip-bg);
+  border-color: var(--tip-border);
+}
+.callout-tip .callout-header {
+  color: var(--tip-text);
+}
+
+.callout-warning {
+  background-color: var(--warning-bg);
+  border-color: var(--warning-border);
+}
+.callout-warning .callout-header {
+  color: var(--warning-text);
+}
+
+blockquote {
+  border-left: 4px solid var(--border-color);
+  padding: 0.5rem 0 0.5rem 1.25rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+/* Math Display and Inline */
+.math-display {
+  display: block;
+  text-align: center;
+  font-family: "Cambria Math", "Latin Modern Math", "STIX Two Math", var(--font-serif);
+  font-size: 1.25rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.math-inline {
+  font-family: "Cambria Math", "Latin Modern Math", "STIX Two Math", var(--font-serif);
+  font-size: 1.05em;
+  padding: 0 0.15em;
+  color: #111827;
+}
+
+/* Lists */
+ul, ol {
+  margin: 1rem 0 1.5rem 1.75rem;
+}
+
+ul ul, ol ol, ul ol, ol ul {
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+.list-detail {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0.25rem 0 0.5rem 0.5rem;
+}
+
+.math-display-list {
+  margin: 0.5rem 0;
+}
+
+/* Code Blocks */
+pre {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+  font-family: var(--font-mono);
+  font-size: 0.925rem;
+  line-height: 1.55;
+  padding: 1.2rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background-color: var(--bg-secondary);
+  color: #c7254e;
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+}
+
+pre code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+  margin: 1.75rem 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+th {
+  background-color: var(--bg-secondary);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:nth-child(even) td {
+  background-color: #faf9f6;
+}
+
+/* Module Grid / Index Card Styling */
+.curriculum-module {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.curriculum-module h3 {
+  margin-top: 0;
+  color: var(--accent-color);
+}
+
+/* Footer */
+.site-footer {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.footer-subtext {
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+/* Print and Mobile Adjustments */
+@media (max-width: 640px) {
+  body {
+    font-size: 1.05rem;
+  }
+  .page-container {
+    padding: 1.5rem 1rem 3rem 1rem;
+  }
+  h1 {
+    font-size: 1.85rem;
+  }
+  h2 {
+    font-size: 1.4rem;
+  }
+  .callout {
+    padding: 1rem;
+  }
+}

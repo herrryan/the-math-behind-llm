@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 00: The Next-Word Guessing Game - The Math Behind LLMs</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <div class="page-container">
+    <header class="site-header">
+      <div class="site-brand">
+        <a href="../index.html">The Math Behind Large Language Models</a>
+      </div>
+      <p class="site-tagline">Intuitive, Rigorous, Pure HTML — Zero JavaScript</p>
+    </header>
+
+    <nav class="top-nav"><a href="../index.html" class="nav-btn">🏠 Home / Curriculum</a></nav>
+
+    <main class="content">
+      <div class="chapter-badge">Chapter 0</div>
+      <h1 id="chapter-00-the-next-word-guessing-game">Chapter 00: The Next-Word Guessing Game</h1>
+<div class="callout callout-intuition"><div class="callout-header">🧸 3-Year-Old Intuition: The Animal Mystery Box</div><div class="callout-body"><p>Imagine you and your best friend are playing a game with a mystery box.</p><p>You give your friend a clue: <em>&quot;It is fluffy...&quot;</em>
+Your friend thinks: <em>&quot;Could it be a bunny? A kitten? A cloud?&quot;</em></p><p>Then you add a second clue: <em>&quot;It is fluffy... and it says meow!&quot;</em></p><p>Instantly, your friend laughs and shouts: <em>&quot;Kitten!&quot;</em></p><p>Did your friend know the answer before the word &quot;meow&quot;? No! But every single clue narrowed down the possibilities.</p><p>A Large Language Model (LLM) is doing this exact same game every second. You give it five words: <em>&quot;The sky is very...&quot;</em> and it looks through its giant toy chest of words to pick the next one: <em>&quot;blue&quot;</em>.</p></div></div>
+<hr>
+<h2 id="the-bridging-question">🌉 The Bridging Question</h2>
+<p>How does a computer play this guessing game mathematically?</p>
+<p>A computer cannot &quot;feel&quot; what word comes next. It cannot say: <em>&quot;Well, kitten feels right.&quot;</em> </p>
+<p>Instead, a computer needs a <strong>ruler</strong>. It needs to assign a score to every single word in human language, measuring how likely that word is to follow the previous words.</p>
+<hr>
+<h2 id="the-exact-math">📐 The Exact Math</h2>
+<h3 id="1-the-vocabulary-box-v">1. The Vocabulary Box (<span class="math-inline">V</span>)</h3>
+<p>Before the model can guess, we must write down a list of every word (or subword) it is allowed to use. We call this list the <strong>Vocabulary</strong>, written as <span class="math-inline">V</span>:</p>
+<p><div class="math-display">V = \{\text{&quot;the&quot;}, \text{&quot;cat&quot;}, \text{&quot;sat&quot;}, \text{&quot;on&quot;}, \text{&quot;mat&quot;}, \dots\}</div></p>
+<p>The number of words in this box is called <span class="math-inline">|V|</span> (the vocabulary size). In modern LLMs like GPT-4 or LLaMA, <span class="math-inline">|V|</span> is typically between <span class="math-inline">32{,}000</span> and <span class="math-inline">128{,}000</span> tokens.</p>
+<hr>
+<h3 id="2-the-conditional-probability-rule">2. The Conditional Probability Rule</h3>
+<p>When the model has seen <span class="math-inline">t-1</span> words:</p>
+<p><div class="math-display">w_1, w_2, \dots, w_{t-1}</div></p>
+<p>it assigns a probability to every possible candidate word <span class="math-inline">w \in V</span> for the next position <span class="math-inline">w_t</span>. We write this as:</p>
+<p><div class="math-display">P(w_t = w \mid w_1, w_2, \dots, w_{t-1})</div></p>
+<p>The vertical bar <span class="math-inline">\mid</span> means <strong>&quot;given that we already know&quot;</strong>.</p>
+<p>Two fundamental rules of probability must hold:</p>
+<ol>
+<li>Every word&#x27;s probability is between 0 and 1:</li>
+<div class="math-display-list"><div class="math-display">0 \le P(w) \le 1 \quad \text{for all } w \in V</div></div>
+<li>If you sum the probabilities of all words in the dictionary, they must equal exactly 1 (100%):</li>
+<div class="math-display-list"><div class="math-display">\sum_{w \in V} P(w_t = w \mid w_{&lt;t}) = 1</div></div>
+</ol>
+<hr>
+<h3 id="3-the-chain-rule-of-probability">3. The Chain Rule of Probability</h3>
+<p>How does the model write an entire paragraph, or even a book? It uses the <strong>Chain Rule of Probability</strong>:</p>
+<p><div class="math-display">P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})</div></p>
+<p>Using compact mathematical product notation (<span class="math-inline">\prod</span>):</p>
+<p><div class="math-display">P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})</div></p>
+<div class="callout callout-math"><div class="callout-header">Decoding the Product Symbol $\prod$</div><div class="callout-body"><p>Just like <span class="math-inline">\sum</span> means <strong>add them all up</strong>, the big Greek letter <span class="math-inline">\prod</span> (capital Pi) means <strong>multiply them all together</strong>.
+The total probability of a sentence is the probability of the first word, multiplied by the probability of the second word given the first, and so on.</p></div></div>
+<hr>
+<h2 id="where-does-this-formula-come-from">🔍 Where Does This Formula Come From?</h2>
+<p>In 1913, the Russian mathematician <strong>Andrey Markov</strong> sat by candlelight with a copy of Alexander Pushkin&#x27;s poem <em>Eugene Onegin</em>. He counted 20,000 Russian letters by hand to prove that the probability of the next letter being a vowel depended heavily on whether the previous letter was a consonant. This gave birth to <strong>Markov Chains</strong>.</p>
+<p>Thirty-five years later, in 1948, <strong>Claude Shannon</strong> published <em>&quot;A Mathematical Theory of Communication&quot;</em>, which laid the foundation for modern information theory. Shannon showed that human language could be modeled as a statistical process where each word is chosen according to conditional probabilities.</p>
+<p>Today&#x27;s Large Language Models do not use simple letter counts; they use massive neural networks with hundreds of billions of parameters to estimate <span class="math-inline">P(w_t \mid w_{&lt;t})</span>. But the mathematical objective remains unchanged: <strong>predict the next token</strong>.</p>
+<hr>
+<h2 id="concrete-toy-example">🔢 Concrete Toy Example</h2>
+<p>Let&#x27;s make a tiny toy language with a vocabulary of only 4 words:</p>
+<p><div class="math-display">V = \{\text{&quot;I&quot;}, \text{&quot;love&quot;}, \text{&quot;ice&quot;}, \text{&quot;cream&quot;}\}</div></p>
+<p>Here, <span class="math-inline">|V| = 4</span>.</p>
+<p>Suppose we want to know the probability of the full sentence: <strong>&quot;I love ice cream&quot;</strong>.</p>
+<h3 id="step-1-individual-conditional-probabilities">Step 1: Individual conditional probabilities</h3>
+<p>The model looks at its training data and calculates:</p>
+<ol>
+<li><span class="math-inline">P(w_1 = \text{&quot;I&quot;}) = 0.50</span> (half of sentences start with &quot;I&quot;)</li>
+<li><span class="math-inline">P(w_2 = \text{&quot;love&quot;} \mid \text{&quot;I&quot;}) = 0.40</span> (given &quot;I&quot;, 40% of the time the next word is &quot;love&quot;)</li>
+<li><span class="math-inline">P(w_3 = \text{&quot;ice&quot;} \mid \text{&quot;I&quot;, &quot;love&quot;}) = 0.30</span> (given &quot;I love&quot;, 30% of the time the next word is &quot;ice&quot;)</li>
+<li><span class="math-inline">P(w_4 = \text{&quot;cream&quot;} \mid \text{&quot;I&quot;, &quot;love&quot;, &quot;ice&quot;}) = 0.90</span> (given &quot;I love ice&quot;, 90% of the time the next word is &quot;cream&quot;!)</li>
+</ol>
+<p>Notice that for step 4, the remaining 10% is divided among other words:</p>
+<ul>
+<li><span class="math-inline">P(\text{&quot;ice&quot;} \mid \text{&quot;I love ice&quot;}) = 0.05</span></li>
+<li><span class="math-inline">P(\text{&quot;love&quot;} \mid \text{&quot;I love ice&quot;}) = 0.03</span></li>
+<li><span class="math-inline">P(\text{&quot;I&quot;} \mid \text{&quot;I love ice&quot;}) = 0.02</span></li>
+<li>Sum: <span class="math-inline">0.90 + 0.05 + 0.03 + 0.02 = 1.00</span> (100%).</li>
+</ul>
+<h3 id="step-2-multiply-using-the-chain-rule">Step 2: Multiply using the Chain Rule</h3>
+<p><div class="math-display">P(\text{&quot;I love ice cream&quot;}) = 0.50 \times 0.40 \times 0.30 \times 0.90</div></p>
+<p>Let&#x27;s multiply step by step:</p>
+<ul>
+<li><span class="math-inline">0.50 \times 0.40 = 0.20</span></li>
+<li><span class="math-inline">0.20 \times 0.30 = 0.06</span></li>
+<li><span class="math-inline">0.06 \times 0.90 = 0.054</span></li>
+</ul>
+<p>The probability of this exact sequence is <strong>0.054</strong> (or <strong>5.4%</strong>).</p>
+<hr>
+<div class="callout callout-tip"><div class="callout-header">💡 Core Takeaway</div><div class="callout-body"><p>An LLM does not need a magical spirit inside it to produce smart answers.</p><p>At every single step, it calculates a list of probabilities over its vocabulary <span class="math-inline">V</span>, picks a word, adds that word to its memory, and repeats the process.</p><p>In the next chapter, we answer the obvious question: <strong>How does a computer, which only understands numbers, represent words like &quot;cat&quot; and &quot;kitten&quot;?</strong></p></div></div>
+<hr>
+<p>👉 <strong>Next Chapter</strong>: <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings)</a></p>
+    </main>
+
+    <nav class="bottom-nav"><a href="../index.html" class="nav-btn">🏠 Home / Curriculum</a></nav>
+
+    <footer class="site-footer">
+      <p><strong>The Math Behind LLMs</strong> • Built with pure semantic HTML & CSS.</p>
+      <p class="footer-subtext">No JavaScript • No external tracking • Grounded in physical intuition and rigorous math.</p>
+    </footer>
+  </div>
+</body>
+</html>

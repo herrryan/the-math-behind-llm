@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Math Behind Large Language Models: A Master Curriculum - The Math Behind LLMs</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="page-container">
+    <header class="site-header">
+      <div class="site-brand">
+        <a href="./index.html">The Math Behind Large Language Models</a>
+      </div>
+      <p class="site-tagline">Intuitive, Rigorous, Pure HTML — Zero JavaScript</p>
+    </header>
+
+    <nav class="top-nav"><a href="./index.html" class="nav-btn">🏠 Home / Curriculum</a><a href="./00-next-word-prediction/index.html" class="nav-btn nav-btn-primary">Chapter 00: The Next-Word Guessing Game →</a></nav>
+
+    <main class="content">
+      
+      <h1 id="the-math-behind-large-language-models-a-master-curriculum">The Math Behind Large Language Models: A Master Curriculum</h1>
+<div class="callout callout-intuition"><div class="callout-header">How to Think About This Entire Guide</div><div class="callout-body"><p>Imagine an LLM is a giant musical music box. Inside the music box are billions of tiny wooden knobs and gears. If you whisper three words into the funnel (&quot;The cat sat...&quot;), the gears spin smoothly and out pops a tiny slip of paper with the next word: (&quot;on&quot;).</p><p>Mathematics is simply the blueprint of those knobs and gears. It tells us how the box turns words into numbers, how it remembers who did what, and how it adjusts its knobs so it stops making silly mistakes.</p></div></div>
+<hr>
+<h2 id="the-teaching-philosophy-the-5-step-pedagogy">🧭 The Teaching Philosophy: The 5-Step Pedagogy</h2>
+<p>Every single chapter in this course follows an unshakeable 5-step learning ladder:</p>
+<div class="table-container"><table>
+<thead><tr>
+<th>Step</th>
+<th>Section Title</th>
+<th>What You Learn</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>🧸 3-Year-Old Intuition</strong></td>
+<td>A tactile, physical metaphor (colored blocks, spotlights, rubber bands, pizza slices) that requires zero math background.</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>🌉 The Bridging Question</strong></td>
+<td>The exact problem that arises when we try to build this physical idea in a computer.</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>📐 The Exact Math &amp; Formula</strong></td>
+<td>The precise mathematical equation, with every single symbol defined clearly.</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>🔍 Where Did It Come From?</strong></td>
+<td>The historical and mathematical origin: why this formula looks like this, and what went wrong with simpler ideas.</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>🔢 Concrete Toy Example</strong></td>
+<td>Step-by-step arithmetic with tiny numbers (vectors of 2 or 3 numbers), showing you every addition and multiplication.</td>
+</tr>
+</tbody></table></div>
+<hr>
+<h2 id="complete-curriculum-overview">📚 Complete Curriculum Overview</h2>
+<p>Below is the complete roadmap of 19 chapters across 9 intuitive modules, covering the entire journey from raw words to deep alignment.</p>
+<pre><code>[Raw Words] ➔ [Word Embeddings] ➔ [Self-Attention] ➔ [Feed-Forward] ➔ [Logits] ➔ [Probabilities]
+     ▲                                                                                 │
+     └───────────── [Backpropagation &amp; Adam Loss Optimization] ◄───────────────────────┘</code></pre>
+<hr>
+<h3 id="module-0-the-big-picture-what-is-a-model-really">Module 0: The Big Picture (What is a Model, Really?)</h3>
+<p><em>Foundational concept: LLMs as probability engines.</em></p>
+<ul>
+<li><a href="00-next-word-prediction/index.html">Chapter 00: The Next-Word Guessing Game</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Guessing the hidden animal in the box using clues one by one.</li>
+<li><strong>The Math</strong>: Discrete probability distributions <span class="math-inline">P(w_t \mid w_1, \dots, w_{t-1})</span>, vocabulary space <span class="math-inline">V</span>, and the chain rule of joint probability.</li>
+<li><strong>Formula Origin</strong>: Andrei Markov (1913) &amp; Claude Shannon (1948) modeling sequences as conditional probability chains.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-1-representing-words-with-numbers-vector-geometry">Module 1: Representing Words with Numbers (Vector Geometry)</h3>
+<p><em>How human language becomes points in geometric space.</em></p>
+<ul>
+<li><a href="01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A giant playground map where similar toys sit in neighboring sandboxes.</li>
+<li><strong>The Math</strong>: Vector coordinates <span class="math-inline">\mathbf{x} \in \mathbb{R}^d</span>, one-hot vectors <span class="math-inline">\mathbf{e}_i</span>, and the embedding lookup matrix <span class="math-inline">\mathbf{E} \in \mathbb{R}^{|V| \times d}</span>.</li>
+<li><strong>Formula Origin</strong>: Distributional Semantics (&quot;You shall know a word by the company it keeps&quot; - J.R. Firth, 1957) and Word2Vec (Mikolov et al., 2013).</li>
+</ul>
+</ul>
+<ul>
+<li><a href="02-dot-product-and-similarity/index.html">Chapter 02: Measuring Closeness (Dot Product &amp; Cosine Similarity)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Do two toy arrows point towards the same treasure?</li>
+<li><strong>The Math</strong>: Dot product <span class="math-inline">\mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^d u_i v_i</span>, vector length (Euclidean <span class="math-inline">L_2</span> norm <span class="math-inline">\|\mathbf{u}\| = \sqrt{\sum u_i^2}</span>), and Cosine similarity <span class="math-inline">\cos(\theta) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}</span>.</li>
+<li><strong>Formula Origin</strong>: Vector projections from 19th-century Euclidean geometry used as the fundamental affinity metric in modern machine learning.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-2-transforming-spaces-linear-algebra-activations">Module 2: Transforming Spaces (Linear Algebra &amp; Activations)</h3>
+<p><em>How the network bends, stretches, and filters information.</em></p>
+<ul>
+<li><a href="03-matrix-multiplication/index.html">Chapter 03: The Magic Stretching Box (Matrix Multiplication)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A Play-Doh press that stretches, squashes, and turns shapes in space.</li>
+<li><strong>The Math</strong>: Linear transformation <span class="math-inline">\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}</span>, matrix dimension compatibility <span class="math-inline">(m \times k) \times (k \times n) \to (m \times n)</span>.</li>
+<li><strong>Formula Origin</strong>: Linear combinations of basis vectors; why matrix multiplication is the fastest operation on modern GPUs.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="04-activation-functions/index.html">Chapter 04: The One-Way Gate (Activation Functions: ReLU, GELU, SwiGLU)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A secret one-way valve; why stacking flat sheets of glass never creates a curved magnifying lens.</li>
+<li><strong>The Math</strong>: The collapse of linear cascades <span class="math-inline">\mathbf{W}_2(\mathbf{W}_1 \mathbf{x}) = \mathbf{W}_{\text{comb}} \mathbf{x}</span>. Non-linear remedies: ReLU <span class="math-inline">\max(0, x)</span>, GELU <span class="math-inline">x \Phi(x)</span>, and SwiGLU <span class="math-inline">\text{Swish}(\mathbf{x}\mathbf{W}) \odot (\mathbf{x}\mathbf{V})</span>.</li>
+<li><strong>Formula Origin</strong>: Biological neuron thresholding (McCulloch-Pitts 1943) to modern probabilistic gating (Hendrycks &amp; Gimpel 2016, Shazeer 2020).</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-3-the-secret-sauce-the-attention-mechanism">Module 3: The Secret Sauce (The Attention Mechanism)</h3>
+<p><em>The engine of the Transformer: dynamic, context-aware information routing.</em></p>
+<ul>
+<li><a href="05-queries-keys-values/index.html">Chapter 05: The Library Clue Hunt (Queries, Keys, and Values)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: You hold a clue card (Query), library shelves have category labels (Keys), and inside each book is the actual treasure story (Value).</li>
+<li><strong>The Math</strong>: Projection matrices <span class="math-inline">\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d \times d_k}</span> and transformed matrices <span class="math-inline">\mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \mathbf{K} = \mathbf{X}\mathbf{W}_K, \mathbf{V} = \mathbf{X}\mathbf{W}_V</span>.</li>
+<li><strong>Formula Origin</strong>: Information retrieval systems (database query-key matching) made differentiable for neural networks.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="06-softmax-function/index.html">Chapter 06: The Fair Voting Booth (The Softmax Function)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Turning loud shouting matches into percentages of a pizza that sum up to exactly 100%.</li>
+<li><strong>The Math</strong>: <span class="math-inline">\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}</span>.</li>
+<li><strong>Formula Origin</strong>: Ludwig Boltzmann&#x27;s statistical physics (1868) for particle energy distributions, adapted by Luce (1959) for choice probabilities.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="07-attention-formula/index.html">Chapter 07: The Attention Formula &amp; Why We Divide by <span class="math-inline">\sqrt{d_k}</span></a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Why whispering in a crowded hall needs a volume damper to prevent the loudest child from drowning out everyone else.</li>
+<li><strong>The Math</strong>: <span class="math-inline">\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}</span>.</li>
+<li><strong>Formula Origin</strong>: Vaswani et al. (2017). Proof of variance growth: if components have unit variance, their dot product has variance <span class="math-inline">d_k</span>; dividing by <span class="math-inline">\sqrt{d_k}</span> keeps variance at 1 and stops softmax gradients from dying.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="08-causal-masking/index.html">Chapter 08: Blindfolds on Future Words (Causal Masking)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Taking a reading quiz without being allowed to peek at the answer key on the next page.</li>
+<li><strong>The Math</strong>: Attention mask <span class="math-inline">\mathbf{M} \in \mathbb{R}^{T \times T}</span> where <span class="math-inline">M_{ij} = -\infty</span> for <span class="math-inline">j &gt; i</span>. Since <span class="math-inline">e^{-\infty} = 0</span>, attention weights to future tokens strictly vanish.</li>
+<li><strong>Formula Origin</strong>: Autoregressive modeling constraint: <span class="math-inline">P(w_t \mid w_{&lt;t})</span> must depend only on observed history.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-4-order-and-multi-perspective-processing">Module 4: Order and Multi-Perspective Processing</h3>
+<p><em>Teaching transformers about word order and looking at sentences through multiple lenses.</em></p>
+<ul>
+<li><a href="09-positional-encodings/index.html">Chapter 09: Where in the Sentence Am I? (Positional Encodings &amp; RoPE)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Number tags on runner shirts and clock hands turning at different speeds.</li>
+<li><strong>The Math</strong>: Sinusoidal encodings <span class="math-inline">\sin(\text{pos}/10000^{2i/d})</span> and Rotary Position Embedding (RoPE) 2D rotation blocks <span class="math-inline">\mathbf{R}_{\Theta, m}</span>.</li>
+<li><strong>Formula Origin</strong>: Fourier basis encodings (Vaswani et al. 2017) and complex number geometry for relative distance preservation (Su et al. 2021).</li>
+</ul>
+</ul>
+<ul>
+<li><a href="10-multi-head-attention/index.html">Chapter 10: Looking Through Different Glasses (Multi-Head Attention)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A team of detectives reading the same text: one tracks grammar, one tracks feelings, one tracks timestamps.</li>
+<li><strong>The Math</strong>: <span class="math-inline">\text{MHA}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\mathbf{W}_O</span> with sub-space dimension <span class="math-inline">d_k = d_{\text{model}} / h</span>.</li>
+<li><strong>Formula Origin</strong>: Ensemble subspace projections without increasing total computation cost.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-5-putting-the-transformer-block-together">Module 5: Putting the Transformer Block Together</h3>
+<p><em>How modern transformers stack layers without exploding or collapsing.</em></p>
+<ul>
+<li><a href="11-residual-connections/index.html">Chapter 11: The Shortcut Bridge (Residual Connections)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: An express highway alongside a scenic mountain trail so you never get stuck.</li>
+<li><strong>The Math</strong>: <span class="math-inline">\mathbf{x}_{\text{out}} = \mathbf{x}_{\text{in}} + \mathcal{F}(\mathbf{x}_{\text{in}})</span>. Gradient flow: <span class="math-inline">\frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{in}}} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{out}}} \left(\mathbf{I} + \frac{\partial \mathcal{F}}{\partial \mathbf{x}_{\text{in}}}\right)</span>.</li>
+<li><strong>Formula Origin</strong>: ResNet (He et al., 2015) solving the vanishing gradient dilemma in deep networks.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="12-layer-norm-and-rmsnorm/index.html">Chapter 12: Keeping Everyone Calm (LayerNorm &amp; RMSNorm)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A volume knob in a concert hall that keeps sound at a pleasant listening level so no speaker blows up.</li>
+<li><strong>The Math</strong>: <span class="math-inline">\text{LayerNorm}(\mathbf{x}) = \frac{\mathbf{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \boldsymbol{\gamma} + \boldsymbol{\beta}</span> and <span class="math-inline">\text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum x_i^2 + \epsilon}} \odot \boldsymbol{\gamma}</span>.</li>
+<li><strong>Formula Origin</strong>: Ba, Kiros, &amp; Hinton (2016) and Zhang &amp; Sennrich (2019) proving scale invariance improves training stability.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="13-feed-forward-networks/index.html">Chapter 13: The Thinking Chamber (Feed-Forward Networks)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Sitting quietly in your room to digest what you just heard and store facts into memory.</li>
+<li><strong>The Math</strong>: <span class="math-inline">\text{FFN}(\mathbf{x}) = \sigma(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1)\mathbf{W}_2 + \mathbf{b}_2</span>. Projection from <span class="math-inline">d_{\text{model}} \to 4d_{\text{model}} \to d_{\text{model}}</span>.</li>
+<li><strong>Formula Origin</strong>: Universal approximation theorem; key-value factual memory storage in MLP weights.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-6-how-the-model-learns-training-math">Module 6: How the Model Learns (Training Math)</h3>
+<p><em>How billions of knobs are tuned from trillions of text tokens.</em></p>
+<ul>
+<li><a href="14-cross-entropy-loss/index.html">Chapter 14: How Wrong Was I? (Cross-Entropy Loss &amp; Perplexity)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: The penalty points you get during a guessing game when your guess was far off.</li>
+<li><strong>The Math</strong>: Cross-entropy <span class="math-inline">\mathcal{L} = -\sum_{i=1}^{|V|} y_i \log p_i = -\log p_{\text{correct}}</span> and Perplexity <span class="math-inline">\text{PPL} = e^{\mathcal{L}}</span>.</li>
+<li><strong>Formula Origin</strong>: Information theory (Shannon entropy 1948) and Kullback-Leibler (KL) divergence minimization.</li>
+</ul>
+</ul>
+<ul>
+<li><a href="15-gradients-and-backpropagation/index.html">Chapter 15: Walking Down the Mountain (Gradients &amp; Backpropagation)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Feeling the steepness of the slope with your toes while walking down a foggy mountain.</li>
+<li><strong>The Math</strong>: Multivariable gradients <span class="math-inline">\nabla_\theta \mathcal{L}</span>, chain rule <span class="math-inline">\frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \frac{\partial \mathbf{y}}{\partial \mathbf{W}}</span>, gradient descent step <span class="math-inline">\theta \leftarrow \theta - \eta \nabla_\theta \mathcal{L}</span>.</li>
+<li><strong>Formula Origin</strong>: Calculus (Leibniz &amp; Newton) meets algorithmic reverse-mode automatic differentiation (Rumelhart, Hinton, &amp; Williams 1986).</li>
+</ul>
+</ul>
+<ul>
+<li><a href="16-adam-optimizer/index.html">Chapter 16: The Smart Walker (Momentum and the Adam Optimizer)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A heavy bowling ball rolling downhill (momentum) wearing shoes that adjust their grip depending on mud vs rocks (adaptive learning rates).</li>
+<li><strong>The Math</strong>: First moment <span class="math-inline">m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t</span>, second moment <span class="math-inline">v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2</span>, bias-corrected updates <span class="math-inline">\theta_{t} = \theta_{t-1} - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t</span>.</li>
+<li><strong>Formula Origin</strong>: Kingma &amp; Ba (2014) combining AdaGrad&#x27;s coordinate scaling and Polyak&#x27;s heavy-ball momentum.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-7-speaking-to-the-world-inference-sampling">Module 7: Speaking to the World (Inference &amp; Sampling)</h3>
+<p><em>How the model turns probabilities into fluid sentences.</em></p>
+<ul>
+<li><a href="17-sampling-and-temperature/index.html">Chapter 17: Turning Up the Heat (Temperature, Top-k, &amp; Top-p Sampling)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: A creativity dial: freezing cold gives the safest, most boring answer; boiling hot gives wild, unpredictable dreams.</li>
+<li><strong>The Math</strong>: Temperature scaling <span class="math-inline">p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}</span>, Top-<span class="math-inline">k</span> restriction, and Top-<span class="math-inline">p</span> (Nucleus) cumulative cutoff <span class="math-inline">\sum_{i \in V^{(p)}} p_i \ge p</span>.</li>
+<li><strong>Formula Origin</strong>: Simulated annealing in physics and Holtzman et al. (2019) observing text degeneration in the distribution tail.</li>
+</ul>
+</ul>
+<hr>
+<h3 id="module-8-aligning-and-refining-post-training-math">Module 8: Aligning and Refining (Post-Training Math)</h3>
+<p><em>Teaching the model to be helpful, honest, and harmless.</em></p>
+<ul>
+<li><a href="18-rlhf-and-dpo/index.html">Chapter 18: Teaching Good Manners (RLHF, Reward Modeling, and DPO)</a></li>
+<ul>
+<li><strong>The Metaphor</strong>: Giving gold stars for kind answers, gentle penalties for rude answers, and keeping the child from forgetting who they are.</li>
+<li><strong>The Math</strong>: Reward objective with KL penalty <span class="math-inline">\mathbb{E}[r_\theta(x, y)] - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})</span>, and Direct Preference Optimization (DPO) closed-form loss:</li>
+<div class="math-display-list"><div class="math-display">\mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]</div></div>
+<li><strong>Formula Origin</strong>: Bradley-Terry preference models (1952) and Rafailov et al. (2023) analytically bypassing the reinforcement learning actor-critic loop.</li>
+</ul>
+</ul>
+<hr>
+<h2 id="how-this-website-is-built">🛠️ How This Website is Built</h2>
+<ul>
+<li><strong>100% Pure HTML &amp; CSS</strong>: No JavaScript runtime, no tracking scripts, no client-side dependencies.</li>
+<li><strong>Fast, Local, and Offline</strong>: All pages link using relative paths; open <code>index.html</code> directly in your browser.</li>
+<li><strong>Reproducible Build Script</strong>: Run <code>python3 build.py</code> from the root directory at any time to regenerate all HTML pages from markdown source files.</li>
+<li><strong>Version Controlled</strong>: Every iteration is committed into Git for full traceability.</li>
+</ul>
+<hr>
+<div class="callout callout-tip"><div class="callout-header">Ready to Begin?</div><div class="callout-body"><p>Start right away with <a href="00-next-word-prediction/index.html">Chapter 00: The Next-Word Guessing Game</a> to build your first physical intuition!</p></div></div>
+    </main>
+
+    <nav class="bottom-nav"><a href="./index.html" class="nav-btn">🏠 Home / Curriculum</a><a href="./00-next-word-prediction/index.html" class="nav-btn nav-btn-primary">Chapter 00: The Next-Word Guessing Game →</a></nav>
+
+    <footer class="site-footer">
+      <p><strong>The Math Behind LLMs</strong> • Built with pure semantic HTML & CSS.</p>
+      <p class="footer-subtext">No JavaScript • No external tracking • Grounded in physical intuition and rigorous math.</p>
+    </footer>
+  </div>
+</body>
+</html>
