@@ -148,13 +148,13 @@ Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
 
 At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate word in $V$:
 
-| Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Interpretation |
-| :--- | :--- | :--- | :--- |
-| **"cream"** | **0.90** | **90%** | Clear favorite |
-| **"ice"** | 0.05 | 5% | Unlikely ("ice ice") |
-| **"love"** | 0.03 | 3% | Unlikely ("ice love") |
-| **"I"** | 0.02 | 2% | Very unlikely ("ice I") |
-| **Total Sum ($\sum$)** | **1.00** | **100%** | **Conserved Probability** |
+| Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Visual Probability Bar | Interpretation |
+| :--- | :--- | :--- | :--- | :--- |
+| **"cream"** | **0.90** | **90%** | <meter min="0" max="1" value="0.90" optimum="0.8">90%</meter> | Clear favorite |
+| **"ice"** | 0.05 | 5% | <meter min="0" max="1" value="0.05">5%</meter> | Unlikely ("ice ice") |
+| **"love"** | 0.03 | 3% | <meter min="0" max="1" value="0.03">3%</meter> | Unlikely ("ice love") |
+| **"I"** | 0.02 | 2% | <meter min="0" max="1" value="0.02">2%</meter> | Very unlikely ("ice I") |
+| **Total Sum ($\sum$)** | **1.00** | **100%** | <progress max="100" value="100">100%</progress> | **Conserved Probability** |
 
 ---
 
