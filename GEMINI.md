@@ -47,10 +47,17 @@ Every chapter written in this project **MUST** follow this structured learning s
   - No build scripts (`build.py`) or compilation commands are needed. Focus 100% on crafting the mathematical content.
   - Pages are rendered on the fly in the browser using `marked.js` with `marked-katex-extension` and `KaTeX`.
 - **Pure Semantic HTML & Readability (Strictly Zero Custom CSS)**:
-  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<details>`, `<summary>`, `<mark>`, `<pre>`, `<footer>`).
+  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<details>`, `<summary>`, `<mark>`, `<pre>`, `<footer>`, `<meter>`, `<progress>`, `<figure>`, `<figcaption>`, `<kbd>`, `<samp>`, `<dl>`, `<dt>`, `<dd>`).
   - No custom CSS stylesheets or `<style>` tags are permitted; only KaTeX's official CSS is included for mathematical typography.
-  - Readability is achieved purely through semantic HTML structure and native attributes:
-    - Tables: configured with `border="1" cellpadding="8" cellspacing="0"` so content has clean borders and comfortable cell padding.
+  - Readability is achieved purely through 8 native semantic HTML design standards:
+    1. **Visual Probability Bars**: Use native `<meter min="0" max="1" value="...">` and `<progress max="100" value="...">` to give instant graphical feedback on distributions.
+    2. **Architecture & Equation Diagrams**: Wrap diagrams, dataflows, and ASCII art in `<figure><pre>...</pre><figcaption><strong>Figure X.Y:</strong> ...</figcaption></figure>`.
+    3. **Token Badges & Model Outputs**: Wrap tokens in `<kbd>"token"</kbd>` and model generations in `<samp>"output"</samp>` for clear monospaced badge styling.
+    4. **Milestone Highlighting**: Use native `<mark>` to highlight key numbers, thresholds, and final joint probabilities.
+    5. **Clean Semantic Tables**: Use `<caption><strong>Table X.Y:</strong> ...</caption>`, `border="1" cellpadding="8" cellspacing="0" width="100%"`, and explicit alignment attributes (`align="left"`, `align="right"`, `align="center"`).
+    6. **Mathematical Glossaries**: Author symbol catalogs using native definition lists (`<dl><dt><strong>Symbol</strong></dt><dd>Definition</dd></dl>`), often wrapped in `<details>`.
+    7. **In-Page Jump Navigation**: Include `<nav aria-label="Table of Contents">` with relative anchor links (`<a href="#step-1">...</a>`) paired with `id="step-N"` on step headings.
+    8. **Box-Drawing Tensor Diagrams**: Represent tensor dimensions, vector projections, and transformation pipelines using clean Unicode box-drawing characters (`┌─┐│└─┘├─┤▼▲`).
     - Callout Boxes: converted to `<fieldset><legend><strong>Title</strong></legend></fieldset>` for clean, border-delimited visual containers.
     - Interactive Deep-Dives: authored using native `<details>` and `<summary>` for optional historical or mathematical proofs.
     - Equations: formatted with `\begin{aligned}` for multi-step derivations to prevent awkward horizontal overflow.
