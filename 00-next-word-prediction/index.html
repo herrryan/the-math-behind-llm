@@ -205,11 +205,11 @@ At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate
 
 | Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Visual Probability Bar | Interpretation |
 | :--- | :--- | :--- | :--- | :--- |
-| **<kbd>"cream"</kbd>** | **0.90** | **90%** | <meter min="0" max="1" value="0.90" optimum="0.8">90%</meter> | Clear favorite |
+| **<kbd>"cream"</kbd>** | **0.90** | <mark><strong>90%</strong></mark> | <meter min="0" max="1" value="0.90" optimum="0.8">90%</meter> | Clear favorite |
 | **<kbd>"ice"</kbd>** | 0.05 | 5% | <meter min="0" max="1" value="0.05">5%</meter> | Unlikely ("ice ice") |
 | **<kbd>"love"</kbd>** | 0.03 | 3% | <meter min="0" max="1" value="0.03">3%</meter> | Unlikely ("ice love") |
 | **<kbd>"I"</kbd>** | 0.02 | 2% | <meter min="0" max="1" value="0.02">2%</meter> | Very unlikely ("ice I") |
-| **Total Sum ($\sum$)** | **1.00** | **100%** | <progress max="100" value="100">100%</progress> | **Conserved Probability** |
+| **Total Sum ($\sum$)** | **1.00** | <mark><strong>100%</strong></mark> | <progress max="100" value="100">100%</progress> | **Conserved Probability** |
 
 ---
 
@@ -230,7 +230,7 @@ Let's compute each multiplication by hand:
 3. Multiply by the fourth word:
    $$0.06 \times 0.90 = \mathbf{0.054}$$
 
-The full sentence has an overall probability of **$0.054$** (or **$5.4\%$**).
+The full sentence has an overall probability of <mark><strong>0.054</strong></mark> (or <mark><strong>5.4%</strong></mark>).
 
 ---
 
