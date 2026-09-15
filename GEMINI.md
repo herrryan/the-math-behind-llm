@@ -65,6 +65,10 @@ Every chapter written in this project **MUST** follow this structured learning s
   - Each chapter lives in its own dedicated subfolder: `NN-topic-name/` (e.g., `00-next-word-prediction/`, `01-vectors-and-spaces/`).
   - Source content is written in Markdown: `NN-topic-name/index.md`.
   - The viewer is `NN-topic-name/index.html`.
+  - **Navigation Architecture**:
+    - Top site navigation lives in the outer `index.html` shell before `<main id="content">`.
+    - In-page Table of Contents (`<nav aria-label="Table of Contents">`) and bottom chapter navigation (`<nav aria-label="Chapter Navigation">`) live within `index.md` inside `<main id="content">`.
+    - Do **NOT** put a redundant `<nav>` between `</main>` and `<footer>` in `index.html`, which causes duplicate navigation bars at the bottom.
 - **Chapter Scope Isolation (Strictly Zero Unintended Modifications)**:
   - When authoring, revising, or debugging a chapter, modify **strictly** that chapter's dedicated files (`NN-topic-name/index.md` and `NN-topic-name/index.html`).
   - Do NOT modify, refactor, or touch other existing chapters, global curriculum files, homepages, or unrelated repository files unless explicitly instructed by the user. Keep work laser-focused.
