@@ -73,20 +73,15 @@
 > [!INTUITION] 3-Year-Old Intuition: The Giant Playground Map
 > Imagine you bring all your toys outside into a giant grassy playground.
 > 
-> You have teddy bears, kittens, toy puppies, wooden airplanes, racecars, fire trucks, bananas, and red apples.
+> You arrange the playground into large sandboxes where similar toys sit side by side in neighboring sandboxes: teddy bears, kittens, and puppies in the soft cuddly sandbox; wooden airplanes and racecars in the zoom-machine sandbox; and bananas and apples in the snack sandbox.
 > 
-> You want to arrange them on the grass so you can always find what you want quickly:
-> - Where do you put the kitten? Right next to the puppy and the teddy bear in the soft, cuddly animal corner!
-> - Where do you put the toy airplane? Far away in the "machines that go zoom" corner, right next to the helicopter and rocket ship.
-> - Where do you put the red apple? In the tasty snack corner, right next to the banana and orange.
+> Now imagine drawing chalk grid lines across the playground:
+> - Walk 2 steps North and 8 steps East: you reach the kitten in the cuddly animal sandbox.
+> - Walk 9 steps North and 1 step East: you reach the airplane in the machine sandbox.
 > 
-> Now imagine drawing chalk grid lines on the grass:
-> - Walk 2 steps North and 8 steps East: you reach the kitten.
-> - Walk 9 steps North and 1 step East: you reach the airplane.
+> Every toy now has an exact **address** on the playground map. 
 > 
-> Every toy now has an exact **address** on the grass. 
-> 
-> If two toys are similar, their addresses are close together. If two toys have nothing in common (like a fluffy kitten and a giant Boeing 747 airplane), their addresses are far apart on opposite sides of the playground.
+> If two toys are similar, their addresses sit close together in neighboring sandboxes. If two toys have nothing in common (like a fluffy kitten and a giant Boeing 747 airplane), their addresses are far apart on opposite sides of the playground.
 > 
 > This is what an LLM does with human language. It gives every word an address on a giant mathematical playground map so words with similar meanings sit right next to each other!
 
@@ -96,7 +91,7 @@
 
 In Chapter 00, we learned that a Large Language Model predicts probabilities over words. 
 
-However, computer chips and GPUs are built from silicon and electric circuits. They do not know what the English letters <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> mean. A computer processor cannot multiply the word <samp>"kitten"</samp> by $0.90$.
+However, computer chips and GPUs are built from silicon and electric circuits. They do not know what the English letters <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> mean. A computer processor cannot multiply the word <kbd>"kitten"</kbd> by $0.90$.
 
 **How do we convert human words into physical coordinates (lists of numbers) that a computer chip can store, add, and multiply?**
 
@@ -134,11 +129,15 @@ Before a word receives its multi-dimensional coordinates, it starts as an entry 
 
 Each word at index $i \in \{1, 2, \dots, |V|\}$ is formally represented as a **one-hot vector** $\mathbf{e}_i \in \{0, 1\}^{|V|}$. This is a tall column vector filled entirely with zeros, except for a single $1$ at the word's designated position:
 
-$$\mathbf{e}_i = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix} \leftarrow \text{index } i$$
+$$
+\mathbf{e}_i = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix} \leftarrow \text{index } i
+$$
 
 Formally, the $j^{\text{th}}$ entry of one-hot vector $\mathbf{e}_i$ is defined by the Kronecker delta:
 
-$$(\mathbf{e}_i)_j = \begin{cases} 1 & \text{if } j = i \\ 0 & \text{if } j \neq i \end{cases}$$
+$$
+(\mathbf{e}_i)_j = \begin{cases} 1 & \text{if } j = i \\ 0 & \text{if } j \neq i \end{cases}
+$$
 
 ---
 
@@ -146,7 +145,9 @@ $$(\mathbf{e}_i)_j = \begin{cases} 1 & \text{if } j = i \\ 0 & \text{if } j \neq
 
 The master word map of an LLM is stored as a large 2D parameter matrix called the **Embedding Matrix**, denoted by $\mathbf{E}$:
 
-$$\mathbf{E} \in \mathbb{R}^{|V| \times d}$$
+$$
+\mathbf{E} \in \mathbb{R}^{|V| \times d}
+$$
 
 Where:
 - $|V|$ is the total number of words in the vocabulary (the number of rows).
@@ -154,12 +155,14 @@ Where:
 
 Each row $i$ of the matrix $\mathbf{E}$, written as $\mathbf{E}[i, :]$, is the dense vector embedding for word $i$:
 
-$$\mathbf{E} = \begin{bmatrix} 
+$$
+\mathbf{E} = \begin{bmatrix} 
 \text{---} & \mathbf{x}_1^\top & \text{---} \\ 
 \text{---} & \mathbf{x}_2^\top & \text{---} \\ 
 & \vdots & \\ 
 \text{---} & \mathbf{x}_{|V|}^\top & \text{---} 
-\end{bmatrix} \in \mathbb{R}^{|V| \times d}$$
+\end{bmatrix} \in \mathbb{R}^{|V| \times d}
+$$
 
 ---
 
@@ -169,11 +172,15 @@ How does the neural network retrieve the coordinate vector $\mathbf{x}_i \in \ma
 
 Mathematically, word lookup is defined as the matrix multiplication of the transposed one-hot vector $\mathbf{e}_i^\top$ with the embedding matrix $\mathbf{E}$:
 
-$$\mathbf{x}_i = \mathbf{e}_i^\top \mathbf{E} \in \mathbb{R}^{1 \times d}$$
+$$
+\mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E} \in \mathbb{R}^{1 \times d}
+$$
 
 If written in standard column-vector orientation:
 
-$$\mathbf{x}_i = \mathbf{E}^\top \mathbf{e}_i \in \mathbb{R}^{d \times 1}$$
+$$
+\mathbf{x}_i = \mathbf{E}^\top \mathbf{e}_i \in \mathbb{R}^{d \times 1}
+$$
 
 Because $\mathbf{e}_i$ contains all zeros except for a $1$ at position $i$, this matrix multiplication acts like an **optical selector switch**: it zeros out every other row and extracts precisely row $i$ from matrix $\mathbf{E}$:
 
@@ -248,11 +255,11 @@ One-Hot Vector e_i^T (1 × |V|)           Embedding Matrix E (|V| × d)         
       <td>Matrix of shape $4 \times 2$</td>
     </tr>
     <tr>
-      <td>$\mathbf{x}_i$</td>
+      <td>$\mathbf{x}_i^\top$ (or $\mathbf{x}_i$)</td>
       <td>Embedding Vector</td>
-      <td>$\mathbb{R}^{1 \times d}$ (or $\mathbb{R}^d$)</td>
+      <td>$\mathbb{R}^{1 \times d}$ (row) / $\mathbb{R}^{d \times 1}$ (column)</td>
       <td>The specific list of GPS coordinates for word $i$</td>
-      <td>$\mathbf{x}_{\text{kitten}} = [0.95, 0.15]$</td>
+      <td>$\mathbf{x}_{\text{kitten}}^\top = [0.95, 0.15]$</td>
     </tr>
   </tbody>
 </table>
@@ -294,7 +301,7 @@ Firth observed that words with similar meanings naturally appear in similar sent
 - <kbd>"The fluffy [kitten] drank warm milk from the saucer."</kbd>
 - <kbd>"The fluffy [cat] drank warm milk from the saucer."</kbd>
 
-Because <samp>"kitten"</samp> and <samp>"cat"</samp> share nearly identical surrounding context words, their mathematical coordinates should be close together.
+Because <kbd>"kitten"</kbd> and <kbd>"cat"</kbd> share nearly identical surrounding context words, their mathematical coordinates should be close together.
 
 ### 2. The Orthogonality Catastrophe of One-Hot Vectors
 Before dense embeddings, early computational linguistics relied entirely on one-hot vectors $\mathbf{e}_i$. 
@@ -303,13 +310,15 @@ This caused a fatal mathematical flaw known as the **Orthogonality Catastrophe**
 
 Take any two distinct one-hot words $\mathbf{e}_i$ and $\mathbf{e}_j$ where $i \neq j$. If you compute their inner dot product:
 
-$$\mathbf{e}_i \cdot \mathbf{e}_j = \sum_{k=1}^{|V|} (\mathbf{e}_i)_k (\mathbf{e}_j)_k = 0$$
+$$
+\mathbf{e}_i \cdot \mathbf{e}_j = \sum_{k=1}^{|V|} (\mathbf{e}_i)_k (\mathbf{e}_j)_k = 0
+$$
 
 In linear algebra, when the dot product between two non-zero vectors is zero, the vectors are **perpendicular (orthogonal)**.
 
 In one-hot space, every single word is 90 degrees away from every other word!
-- Distance from <samp>"puppy"</samp> to <samp>"dog"</samp>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
-- Distance from <samp>"puppy"</samp> to <samp>"nuclear reactor"</samp>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
+- Distance from <kbd>"puppy"</kbd> to <kbd>"dog"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
+- Distance from <kbd>"puppy"</kbd> to <kbd>"nuclear reactor"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
 
 The computer was completely blind to meaning: it considered a puppy just as unrelated to a dog as it was to a submarine or a sandwich!
 
@@ -320,9 +329,11 @@ When researchers plotted these vectors, something astonishing emerged: the geome
 
 The most celebrated discovery was vector analogy arithmetic:
 
-$$\mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}} \approx \mathbf{x}_{\text{queen}}$$
+$$
+\mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}} \approx \mathbf{x}_{\text{queen}}
+$$
 
-Subtracting the vector for <samp>"man"</samp> from <samp>"king"</samp> stripped away the "male" concept, leaving behind pure "royalty". Adding <samp>"woman"</samp> yielded the exact coordinates of <samp>"queen"</samp>!
+Subtracting the vector for <kbd>"man"</kbd> from <kbd>"king"</kbd> stripped away the "male" concept, leaving behind pure "royalty". Adding <kbd>"woman"</kbd> yielded the exact coordinates of <kbd>"queen"</kbd>!
 
 In modern Transformers, the embedding layer $\mathbf{E}$ is learned directly from training data through backpropagation, creating a rich geometric universe of human concepts.
 
@@ -346,7 +357,8 @@ In modern Transformers, the embedding layer $\mathbf{E}$ is learned directly fro
 
 ### The Embedding Matrix ($\mathbf{E} \in \mathbb{R}^{4 \times 2}$)
 
-$$\mathbf{E} = \begin{bmatrix}
+$$
+\mathbf{E} = \begin{bmatrix}
 0.90 & 0.30 \\
 0.95 & 0.15 \\
 0.85 & 0.55 \\
@@ -356,32 +368,43 @@ $$\mathbf{E} = \begin{bmatrix}
 \leftarrow \text{Row 2: "kitten"} \\ 
 \leftarrow \text{Row 3: "dog"} \\ 
 \leftarrow \text{Row 4: "airplane"} 
-\end{matrix}$$
+\end{matrix}
+$$
 
 ---
 
 ### Step-by-Step Lookup for $w_2 = \text{"kitten"}$
 
-The one-hot vector for <samp>"kitten"</samp> (index 2) is:
+The one-hot vector for <kbd>"kitten"</kbd> (index 2) is:
 
-$$\mathbf{e}_2^\top = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix}$$
+$$
+\mathbf{e}_2^\top = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix}
+$$
 
 Now, multiply $\mathbf{e}_2^\top$ by $\mathbf{E}$:
 
-$$\mathbf{x}_{\text{kitten}} = \mathbf{e}_2^\top \mathbf{E} = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} \begin{bmatrix}
+$$
+\mathbf{x}_{\text{kitten}}^\top = \mathbf{e}_2^\top \mathbf{E} = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} \begin{bmatrix}
 0.90 & 0.30 \\
 0.95 & 0.15 \\
 0.85 & 0.55 \\
 0.02 & 0.98
-\end{bmatrix}$$
+\end{bmatrix}
+$$
 
 Let's compute each coordinate by hand:
 
-$$\text{Coordinate } 1 = (0 \times 0.90) + (1 \times 0.95) + (0 \times 0.85) + (0 \times 0.02) = \mathbf{0.95}$$
+$$
+\text{Coordinate } 1 = (0 \times 0.90) + (1 \times 0.95) + (0 \times 0.85) + (0 \times 0.02) = \mathbf{0.95}
+$$
 
-$$\text{Coordinate } 2 = (0 \times 0.30) + (1 \times 0.15) + (0 \times 0.55) + (0 \times 0.98) = \mathbf{0.15}$$
+$$
+\text{Coordinate } 2 = (0 \times 0.30) + (1 \times 0.15) + (0 \times 0.55) + (0 \times 0.98) = \mathbf{0.15}
+$$
 
-$$\mathbf{x}_{\text{kitten}} = [0.95, 0.15]$$
+$$
+\mathbf{x}_{\text{kitten}}^\top = [0.95, 0.15]
+$$
 
 The one-hot selector perfectly extracted Row 2!
 
@@ -448,31 +471,41 @@ The one-hot selector perfectly extracted Row 2!
 
 How far apart are our words on this 2D playground map? We use the classical **Euclidean Distance Formula**:
 
-$$\text{Distance}(\mathbf{u}, \mathbf{v}) = \sqrt{(u_1 - v_1)^2 + (u_2 - v_2)^2}$$
+$$
+\text{Distance}(\mathbf{u}, \mathbf{v}) = \sqrt{(u_1 - v_1)^2 + (u_2 - v_2)^2}
+$$
 
 #### 1. Distance Between "kitten" and "cat":
-$$\begin{aligned}
+
+$$
+\begin{aligned}
 \text{Distance}(\text{kitten}, \text{cat}) &= \sqrt{(0.95 - 0.90)^2 + (0.15 - 0.30)^2} \\
 &= \sqrt{(0.05)^2 + (-0.15)^2} \\
 &= \sqrt{0.0025 + 0.0225} \\
 &= \sqrt{0.0250} \\
 &\approx \mathbf{0.158}
-\end{aligned}$$
+\end{aligned}
+$$
 
 #### 2. Distance Between "kitten" and "airplane":
-$$\begin{aligned}
+
+$$
+\begin{aligned}
 \text{Distance}(\text{kitten}, \text{airplane}) &= \sqrt{(0.95 - 0.02)^2 + (0.15 - 0.98)^2} \\
 &= \sqrt{(0.93)^2 + (-0.83)^2} \\
 &= \sqrt{0.8649 + 0.6889} \\
 &= \sqrt{1.5538} \\
 &\approx \mathbf{1.246}
-\end{aligned}$$
+\end{aligned}
+$$
 
 Let's compare the two distances:
 
-$$\frac{1.246}{0.158} \approx \mathbf{7.89\times \text{ farther away!}}$$
+$$
+\frac{1.246}{0.158} \approx \mathbf{7.89\times \text{ farther away!}}
+$$
 
-<samp>"airplane"</samp> is nearly **8 times farther** from <samp>"kitten"</samp> than <samp>"cat"</samp> is!
+<kbd>"airplane"</kbd> is nearly **8 times farther** from <kbd>"kitten"</kbd> than <kbd>"cat"</kbd> is!
 
 ---
 
@@ -519,6 +552,7 @@ Size (Axis 2)
     <strong>Next Chapter:</strong> <a href="../02-dot-product-and-similarity/index.html">Chapter 02: Measuring Closeness (Dot Product &amp; Cosine Similarity) &rarr;</a>
   </p>
 </nav>
+
   </script>
 
   <script>
@@ -563,7 +597,7 @@ Size (Axis 2)
 
       // 1. Configure marked with KaTeX
       if (typeof markedKatex !== "undefined") {
-        marked.use(markedKatex({ throwOnError: false }));
+        marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
       }
 
       // 2. Configure marked with custom blockquote renderer for callouts
