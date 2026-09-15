@@ -37,7 +37,7 @@ How does a computer play this guessing game mathematically?
 
 A computer cannot "feel" what word comes next. It cannot say: *"Well, kitten feels cozy."* 
 
-Instead, a computer needs a **mathematical ruler**. It must assign a precise numerical score—a **probability** between $0\%$ and $100\%$—to every single word in human language, measuring how likely that word is to follow the previous clues.
+Instead, a computer needs a **mathematical ruler**. It must assign a precise numerical score—a **probability** between 0% and 100%—to every single word in human language, measuring how likely that word is to follow the previous clues.
 
 ---
 
@@ -72,39 +72,8 @@ Every valid probability distribution in an LLM must satisfy two unbreakable math
 1. **Non-negativity & Boundedness**: No word can have a negative chance, and no word can have more than a 100% chance:
    $$0 \le P(w_t = w \mid w_{<t}) \le 1 \quad \text{for all } w \in V$$
 
-2. **Total Probability Conservation**: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ ($100\%$ of the pie):
+2. **Total Probability Conservation**: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ (100% of the pie):
    $$\sum_{w \in V} P(w_t = w \mid w_{<t}) = 1$$
-
-<figure>
-<pre>
-┌────────────────────────────────────────────────────────────────────────┐
-│ Context Tokens (Length T = 3):                                         │
-│   w_1 = "I",  w_2 = "love",  w_3 = "ice"                               │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Neural Network Transformer Forward Pass                                │
-│ Mapping sequence of hidden states h_t ∈ ℝ^d into unnormalized logits   │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Unnormalized Logits Vector: z ∈ ℝ^|V|  (|V| = 4)                       │
-│   z_"cream" = 4.10,  z_"ice" = 1.20,  z_"love" = 0.70,  z_"I" = 0.30   │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │ Softmax Transformation: σ(z)_i
-                                   ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│ Final Probability Distribution: P(w | context) ∈ [0, 1]^|V|            │
-│   P("cream") = 0.90 (90%)  │  P("ice")  = 0.05 (5%)                    │
-│   P("love")  = 0.03 (3%)   │  P("I")    = 0.02 (2%)                    │
-│                                                                        │
-│   Constraint check: 0.90 + 0.05 + 0.03 + 0.02 = 1.00 (100% conserved)  │
-└────────────────────────────────────────────────────────────────────────┘
-</pre>
-<figcaption><strong>Figure 0.2:</strong> End-to-end tensor transformation pipeline: from context sequence to vocabulary probability vector.</figcaption>
-</figure>
 
 ---
 
@@ -122,6 +91,24 @@ $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
 > - $\sum$ (Capital Sigma): Means **"Add them all up"**.
 > - $\prod$ (Capital Pi): Means **"Multiply them all together"**.
 > - The total probability of a paragraph is the chance of the first word, multiplied by the chance of the second word given the first, multiplied by the third word given the first two, and so on until the final period.
+
+### Why Do We Calculate the Joint Probability of a Full Sentence?
+
+Why can't an LLM simply stop at guessing the next single word? Why do researchers care about the joint probability $P(w_1, w_2, \dots, w_T)$ of the entire paragraph?
+
+There are three foundational reasons:
+
+1. **Training the Brain (Maximum Likelihood Estimation)**:  
+   When an LLM trains on billions of sentences from libraries and the internet, how does it know whether its parameters are improving? It measures the joint probability it assigns to real human sentences. Training an LLM is mathematically defined as adjusting internal weights so that $P(w_1, \dots, w_T)$ is as close to $1.0$ as possible for coherent language, while assigning near-zero probability to scrambled words. (This forms the exact foundation of Cross-Entropy Loss in Chapter 14).
+
+2. **Comparing and Ranking Competing Thoughts**:  
+   When generating text or translating between languages, the model often considers multiple candidate sentences:
+   - Candidate A: <samp>"The cat sat on the warm rug."</samp>
+   - Candidate B: <samp>"The cat sat on the warm rug rug."</samp>  
+   Evaluating the joint probability across all tokens allows the model to score and rank complete hypotheses, picking the one that makes the most cohesive sense as a whole.
+
+3. **Preventing Short-Sighted "Greedy" Traps**:  
+   A word that looks highly probable in the short term might lead into a grammatical dead-end two words later. Calculating or approximating the joint probability over sequence paths allows algorithms like Beam Search to steer clear of dead ends.
 
 ---
 
@@ -178,7 +165,7 @@ $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
       <td>$\sum$</td>
       <td>Summation (Sigma)</td>
       <td>Add up all slices of the probability pizza</td>
-      <td>Sum of all 4 word probabilities $= 1.00$ ($100\%$)</td>
+      <td>Sum of all 4 word probabilities $= 1.00$ (100%)</td>
     </tr>
     <tr>
       <td>$\prod$</td>
@@ -344,6 +331,62 @@ Let's compute each multiplication by hand:
    $$0.06 \times 0.90 = \mathbf{0.054}$$
 
 The full sentence has an overall probability of <mark><strong>0.054</strong></mark> (or <mark><strong>5.4%</strong></mark>).
+
+---
+
+### The Paradox of 5.4%: Why Does It Look So Low, and Why Is It Actually Huge?
+
+At first glance, a probability of <mark><strong>5.4%</strong></mark> looks tiny. You might wonder: *"If the model is so smart, shouldn't the probability of 'I love ice cream' be 80% or 90%?"*
+
+Here is the deep mathematical secret: **In sequence probability, 5.4% is an astonishingly massive number.**
+
+Let's see why:
+
+#### 1. The 256-Sentence Universe (Combinatorial Explosion)
+In our tiny toy language with only 4 words ($|V| = 4$), how many unique 4-word sentences can you write?
+
+$$\text{Total Possible Sentences} = |V|^T = 4^4 = 256 \text{ sentences}$$
+
+These include sentences like:
+- <samp>"I I I I"</samp>
+- <samp>"cream cream cream cream"</samp>
+- <samp>"love ice cream I"</samp>
+- <samp>"I love ice cream"</samp>
+- ...and 252 other candidate combinations!
+
+#### 2. Comparison With Pure Random Chance
+If a child randomly picked 4 word blocks out of the box, every sentence would have an identical chance of:
+
+$$P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)$$
+
+Our language model assigns <mark><strong>5.4%</strong></mark> to <samp>"I love ice cream"</samp>. Let's compare our model to random chance:
+
+$$\frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{ higher than random chance!}}$$
+
+In a crowded stadium of 256 competing sentences, one single sentence captured over 5% of all the probability mass in the entire universe. That is an overwhelming statistical endorsement.
+
+#### 3. What Happens in Real LLMs? The Microscopic Decay & Log-Space
+Now imagine a production LLM like GPT-4 or LLaMA-3:
+- The vocabulary contains about $|V| \approx 100{,}000$ tokens.
+- A typical paragraph has $T = 50$ tokens.
+
+The number of possible 50-token sequences is:
+
+$$|V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}$$
+
+By comparison, the entire observable universe contains only about $10^{80}$ atoms!
+
+When you multiply 50 numbers that are each less than 1 (for instance, even if the model were 90% confident at every step, $0.90^{50} \approx 0.00515$; if it is 30% confident, $0.30^{50} \approx 10^{-26}$), the raw joint probability becomes microscopic.
+
+**The Hardware Engineering Problem:**
+If a computer chip tries to store a number like $10^{-250}$ using standard floating-point hardware (`float32`), the number is too tiny to represent. The chip encounters **arithmetic underflow** and rounds the number down to absolute $0.0$!
+
+**The Mathematical Solution (Log-Probabilities):**
+To prevent this underflow, AI researchers never multiply probabilities directly. Instead, they convert probabilities into logarithms. Because $\log(a \times b) = \log(a) + \log(b)$, dangerous multiplication turns into safe, stable addition:
+
+$$\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{<t})$$
+
+We will explore this logarithmic superpower in depth when we train models with **Cross-Entropy Loss** in Module 6!
 
 ---
 
