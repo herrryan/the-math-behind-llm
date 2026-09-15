@@ -59,21 +59,81 @@ For example, the word <kbd>"bank"</kbd> enters the model with a fixed starting c
 - In *"river bank"*, the word needs to move toward water, nature, and geography.
 - In *"bank deposit"*, the word needs to move toward money, finance, and vaults.
 
-How does an artificial neural network move, rotate, and reshape thousands of word vectors simultaneously?
+A static dictionary of embeddings is not yet an AI brain. Words cannot remain frozen in place!
 
-How do we capture the entire rubber-sheet stretching game inside a neat grid of numbers that a computer chip can compute in a fraction of a microsecond?
+This brings us to two fundamental questions:
+1. **What is a "Weight" ($\mathbf{W}$), and how is it different from the "Embeddings" ($\mathbf{x}$) we built in Chapter 01?**
+2. **How does an artificial neural network move, rotate, and reshape thousands of word embeddings simultaneously using simple arithmetic?**
 
 ---
 
 <h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
 
-Every layer of a modern Large Language Model reshapes vector spaces using the fundamental equation of deep learning: the **Affine Linear Transformation**.
+Every layer of a modern neural network reshapes vector spaces using the fundamental equation of deep learning: the **Affine Linear Transformation**.
 
 ---
 
-### 1. The Core Transformation Formula
+### 1. From Embeddings to Weights: What Are Weights?
 
-For an input vector $\mathbf{x} \in \mathbb{R}^{k \times 1}$, a weight matrix $\mathbf{W} \in \mathbb{R}^{m \times k}$, and a bias vector $\mathbf{b} \in \mathbb{R}^{m \times 1}$, the transformed output vector $\mathbf{y} \in \mathbb{R}^{m \times 1}$ is:
+Before writing the linear equation, let's establish the fundamental distinction between two types of numbers in AI:
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 3.1:</strong> The Fundamental Divide: Embeddings vs. Weights</caption>
+  <thead>
+    <tr bgcolor="#f0f0f0">
+      <th align="left" width="18%">Concept</th>
+      <th align="left" width="32%">Embedding Vector ($\mathbf{x}$)</th>
+      <th align="left" width="32%">Weight Matrix ($\mathbf{W}$)</th>
+      <th align="left" width="18%">Tangible Analogy</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>What is it?</strong></td>
+      <td>The <strong>Input Data</strong>: the numerical coordinates of a specific word or token.</td>
+      <td>The <strong>Processing Engine</strong>: the learned rules that transform and manipulate data.</td>
+      <td>Dough vs. Pasta Maker</td>
+    </tr>
+    <tr>
+      <td><strong>Where does it come from?</strong></td>
+      <td>Retrieved dynamically from the vocabulary table whenever a user enters a word.</td>
+      <td>Trained across billions of text examples and <em>frozen in memory</em> during inference.</td>
+      <td>Object vs. Optical Lens</td>
+    </tr>
+    <tr>
+      <td><strong>Does it change?</strong></td>
+      <td>Yes! Every token in a sentence brings a different embedding vector into the model.</td>
+      <td>No! The weights stay identical regardless of which sentence is being read.</td>
+      <td>Passenger vs. Train Track</td>
+    </tr>
+    <tr>
+      <td><strong>Grammar Role</strong></td>
+      <td>The <strong>Noun</strong>: the subject being acted upon.</td>
+      <td>The <strong>Verb</strong>: the action, lens, or operation performed upon the subject.</td>
+      <td>Actor vs. Director</td>
+    </tr>
+  </tbody>
+</table>
+
+<fieldset>
+<legend><strong>Connecting Back to Chapter 01: You Already Met a Weight Matrix!</strong></legend>
+In Chapter 01, we introduced the <strong>Embedding Matrix</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$. 
+Notice something profound: $\mathbf{E}$ was actually our very first matrix of weights! It stored $|V|$ vectors, translating a discrete word ID (a one-hot vector) into continuous coordinates:
+
+$$
+\mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E}
+$$
+
+Now, a layer's <strong>Weight Matrix</strong> $\mathbf{W}$ continues that journey: it takes an existing word embedding $\mathbf{x}$ and translates it into an entirely new concept space. 
+
+If the embedding matrix $\mathbf{E}$ is the <strong>dictionary</strong> that gives words their initial definitions, the weight matrix $\mathbf{W}$ is the <strong>thinking lens</strong> that interprets how those words interact.
+</fieldset>
+
+---
+
+### 2. The Core Transformation Formula
+
+For an input embedding vector $\mathbf{x} \in \mathbb{R}^{k \times 1}$, a weight matrix $\mathbf{W} \in \mathbb{R}^{m \times k}$, and a bias vector $\mathbf{b} \in \mathbb{R}^{m \times 1}$, the transformed output vector $\mathbf{y} \in \mathbb{R}^{m \times 1}$ is:
 
 $$
 \mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}
@@ -85,12 +145,12 @@ $$
 \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_m \end{bmatrix} = \begin{bmatrix} W_{1,1} & W_{1,2} & \cdots & W_{1,k} \\ W_{2,1} & W_{2,2} & \cdots & W_{2,k} \\ \vdots & \vdots & \ddots & \vdots \\ W_{m,1} & W_{m,2} & \cdots & W_{m,k} \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_k \end{bmatrix} + \begin{bmatrix} b_1 \\ b_2 \\ \vdots \\ b_m \end{bmatrix}
 $$
 
-- $\mathbf{W}\mathbf{x}$ performs the **rubber-sheet transformation**: stretching, rotating, shearing, or changing the dimension of the space.
+- $\mathbf{W}\mathbf{x}$ performs the **rubber-sheet transformation**: stretching, rotating, shearing, or changing the dimension of the embedding space.
 - $+\, \mathbf{b}$ performs a **rigid translation**: sliding the entire transformed coordinate system across space without changing its shape.
 
 ---
 
-### 2. The Inner Dimension Compatibility Rule
+### 3. The Inner Dimension Compatibility Rule
 
 Two matrices can be multiplied **if and only if** the number of columns in the first matrix equals the number of rows in the second matrix.
 
@@ -132,9 +192,9 @@ Matrix multiplication is a structured, parallel factory for computing thousands 
 
 ---
 
-### 3. The Geometric Secret: Where Do the Basis Vectors Land?
+### 4. The Geometric Secret: Where Do the Basis Vectors Land?
 
-Why should someone studying Large Language Models care about "where basis vectors land"?
+Why should someone studying neural language models care about "where basis vectors land"?
 
 When developers first learn matrix multiplication, they are taught the row-by-column dot product formula:
 
@@ -144,19 +204,21 @@ $$
 
 While this explains how silicon hardware computes numbers, it leaves our mental model of the neural network completely blind. It makes a linear layer look like a dry, disconnected grid of arithmetic.
 
-Viewing matrix multiplication through its **columns** provides the direct mechanical blueprint for how an LLM transforms linguistic features.
+Viewing matrix multiplication through its **columns** provides the direct mechanical blueprint for how an AI transforms linguistic features.
 
-#### What Is a "Basis Vector" Inside an LLM?
+#### What Is a "Basis Vector" in Terms of Embeddings?
 
-In standard 2D feature space, any token vector $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ is composed of two basic unit arrows called the **standard basis vectors**:
-- $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ represents a token carrying **100% pure Feature 1** (e.g., pure *"Feline Nature"*) and 0% of anything else.
-- $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ represents a token carrying **100% pure Feature 2** (e.g., pure *"Playfulness"*) and 0% of anything else.
+Recall from Chapter 01 that every word embedding $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ is composed of coordinates representing semantic traits (such as $x_1 = 2$ for furriness and $x_2 = 1$ for playfulness).
 
-Every word is simply a recipe of these pure ingredients: $\mathbf{x} = x_1 \hat{\mathbf{i}} + x_2 \hat{\mathbf{j}}$.
+The standard basis vectors are simply the purest, most extreme embeddings possible in that space:
+- $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ represents an embedding containing **100% pure Feature 1** (e.g., pure *"Feline Nature"*) and 0% of anything else.
+- $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ represents an embedding containing **100% pure Feature 2** (e.g., pure *"Playfulness"*) and 0% of anything else.
+
+Every real word embedding is just a recipe of these pure ingredients: $\mathbf{x} = x_1 \hat{\mathbf{i}} + x_2 \hat{\mathbf{j}}$.
 
 #### The Matrix Columns as a Feature Translation Dictionary
 
-Now, watch what happens when our weight matrix $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ acts on these pure basis features:
+Now, watch what happens when our weight matrix lens $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ acts on these pure basis embeddings:
 
 $$
 \mathbf{W} \hat{\mathbf{i}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} W_{1,1} \\ W_{2,1} \end{bmatrix} = \text{Column 1 of } \mathbf{W}
@@ -168,43 +230,43 @@ $$
 
 This reveals the foundational insight of neural transformations:
 
-> **The columns of a weight matrix are simply the landing coordinates of the model's pure basis features after transformation!**
+> **The columns of a weight matrix are simply the landing coordinates of pure basis features after being transformed!**
 
 Each column of $\mathbf{W}$ acts as a **semantic dictionary entry**:
-- **Column 1 ($\mathbf{w}_{:, 1}$)** answers: *"If an input token possesses 1 unit of Feature 1 (Feline Nature), what new downstream traits should this layer produce?"*
-- **Column 2 ($\mathbf{w}_{:, 2}$)** answers: *"If an input token possesses 1 unit of Feature 2 (Playfulness), what new downstream traits should this layer produce?"*
+- **Column 1 ($\mathbf{w}_{:, 1}$)** answers: *"If an input word possesses 1 unit of Feature 1 (Feline Nature), what new downstream traits should this layer produce?"*
+- **Column 2 ($\mathbf{w}_{:, 2}$)** answers: *"If an input word possesses 1 unit of Feature 2 (Playfulness), what new downstream traits should this layer produce?"*
 
 #### Matrix Multiplication as a "Concept Recipe Blender"
 
-When a real word vector $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ (such as $\text{"cat"} = [2, 1]^\top$) enters the neural network layer, the matrix multiplication computes:
+When a real word embedding $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ (such as $\text{"cat"} = [2, 1]^\top$) enters the neural network layer, the matrix multiplication computes:
 
 $$
 \mathbf{W}\mathbf{x} = x_1 (\text{Column 1 of } \mathbf{W}) + x_2 (\text{Column 2 of } \mathbf{W})
 $$
 
-The input vector $\mathbf{x}$ is not an abstract math puzzle—it is a **blender recipe**:
+The embedding vector $\mathbf{x}$ is not an abstract math puzzle—it is a **blender recipe**:
 > *"Take $x_1$ scoops of Column 1's concept, and $x_2$ scoops of Column 2's concept, and blend them together into the output representation!"*
 
 <fieldset>
-<legend><strong>Why This Basis-Column Intuition Unlocks the Entire Transformer</strong></legend>
-This column perspective is the key to understanding the deep architecture of modern LLMs:
+<legend><strong>Why This Basis-Column Intuition Unlocks Future Chapters</strong></legend>
+This column perspective is the key to understanding how deeper neural architectures work:
 <ol>
-  <li><strong>Self-Attention Projections ($\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$) in Module 3</strong>: When a token is multiplied by $\mathbf{W}_Q$, the columns of $\mathbf{W}_Q$ define the coordinate axes of the "Query space"—translating raw word traits into <em>"What questions is this token actively asking about its context?"</em></li>
-  <li><strong>Feed-Forward Memory Networks (FFN / MLP) in Module 5</strong>: In models like LLaMA and GPT, the intermediate layers expand vectors into thousands of dimensions and project them back down. The columns of these projection matrices act as key-value memory slots storing factual associations.</li>
-  <li><strong>Mechanistic Interpretability</strong>: When AI safety researchers peer inside a trained LLM to find "honesty vectors", "refusal directions", or "hallucination circuits", they are directly analyzing the directions formed by linear combinations of these matrix columns.</li>
+  <li><strong>Attention Projections ($\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$) in Module 3</strong>: When a word embedding is transformed into a "Query", the columns of $\mathbf{W}_Q$ define the coordinate axes of the search space—translating raw word traits into <em>"What questions is this word actively asking about its surrounding context?"</em></li>
+  <li><strong>Feed-Forward Memory Networks (FFN) in Module 5</strong>: In models like LLaMA and GPT, intermediate layers expand embeddings into thousands of dimensions and project them back down. The columns of these projection matrices act as key-value memory slots storing factual knowledge.</li>
+  <li><strong>Mechanistic Interpretability</strong>: When AI safety researchers peer inside a trained model to find "honesty vectors" or "refusal directions", they are directly analyzing the directions formed by linear combinations of these matrix columns.</li>
 </ol>
 </fieldset>
 
 ---
 
-### 4. Deep Learning Convention: Row Vectors and Batches
+### 5. Deep Learning Convention: Row Vectors and Batches
 
 In mathematics textbooks, vectors are traditionally written as vertical columns: $\mathbf{y} = \mathbf{W}\mathbf{x}$.
 
 However, in deep learning software (PyTorch, JAX, Hugging Face), text is processed in **batches of tokens**, where each token is represented as a **horizontal row vector**.
 
 For a sequence of $T$ tokens, each with dimension $d_{\text{in}}$:
-- The input token matrix is $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{in}}}$ (each row is one token).
+- The input token matrix is $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{in}}}$ (each row is one token embedding).
 - The weight matrix is $\mathbf{W} \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$.
 - The bias vector is $\mathbf{b} \in \mathbb{R}^{1 \times d_{\text{out}}}$ (broadcasted across all $T$ rows).
 
@@ -230,7 +292,7 @@ Both representations are mathematically equivalent under the transpose identity:
 <summary><strong>Click to expand: Complete Mathematical Notation Catalog</strong></summary>
 
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>Table 3.1:</strong> Formal Notation Catalog for Chapter 03</caption>
+  <caption><strong>Table 3.2:</strong> Formal Notation Catalog for Chapter 03</caption>
   <thead>
     <tr bgcolor="#f0f0f0">
       <th align="center">Symbol</th>
