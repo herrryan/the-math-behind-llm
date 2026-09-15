@@ -39,21 +39,20 @@ Every chapter written in this project **MUST** follow this structured learning s
 
 ## 🛑 3. Strict Technical Guardrails
 
-- **Math Rendering via KaTeX**:
-  - Math is authored in standard LaTeX format (`$...$` for inline, `$$...$$` for block math).
-  - Formulas are rendered in the browser using KaTeX via its official auto-render CDN.
+- **Dynamic In-Browser Rendering (Zero Build Step)**:
+  - Content is authored purely in standard Markdown (`.md`).
+  - No build scripts (`build.py`) or compilation commands are needed. Focus 100% on crafting the mathematical content.
+  - Pages are rendered on the fly in the browser using `marked.js` with `marked-katex-extension` and `KaTeX`.
 - **Pure Semantic HTML (Zero Custom CSS)**:
   - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<footer>`).
-  - No custom CSS stylesheets are used.
+  - No custom CSS stylesheets are used; only KaTeX's official CSS is included for mathematical typography.
 - **Chapter Organization**:
   - Each chapter lives in its own dedicated subfolder: `NN-topic-name/` (e.g., `00-next-word-prediction/`, `01-vectors-and-spaces/`).
   - Source content is written in Markdown: `NN-topic-name/index.md`.
-  - Rendered output is pure HTML: `NN-topic-name/index.html`.
-- **Zero-Dependency Site Generator**:
-  - HTML generation is handled by `build.py` using **only the Python standard library** (no external packages or virtual environments required).
-  - Whenever Markdown content is added or modified, `python3 build.py` must be executed to ensure the HTML remains in sync.
-- **Local Portability**:
-  - All navigation and relative paths must work locally via the `file://` protocol.
+  - The viewer is `NN-topic-name/index.html`.
+- **Local Portability & Fallback**:
+  - Supports live editing via local HTTP server (`python3 -m http.server 8000`).
+  - Includes embedded fallback markdown in `index.html` so direct opening via `file://` renders without browser CORS blocks.
 
 ---
 

@@ -17,34 +17,23 @@ Every chapter is structured around the **5-Step Learning Ladder**:
 
 ---
 
-## 🌐 Architecture: Pure HTML & CSS (Zero JavaScript)
+## 🌐 Architecture: Dynamic Markdown + KaTeX (Zero Custom CSS)
 
-- **Pure Static HTML & CSS**: No client-side scripts, frameworks, or external trackers.
-- **Local & Offline**: Works directly in any browser by opening `index.html`.
-- **Organized Subdirectories**: Each chapter lives in its own folder with an `index.md` source and `index.html` render.
-- **Built-in Static Site Generator**: `build.py` uses only Python's standard library.
+- **Pure Semantic HTML**: No custom CSS stylesheets; relies on native browser elements (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<table>`).
+- **Dynamic In-Browser Rendering**: Uses `marked.js` with `marked-katex-extension` and `KaTeX` to render Markdown and math equations directly in the browser on page load.
+- **Zero Build Commands**: Focus 100% on authoring Markdown (`.md`) without running compiler scripts.
+- **Organized Subdirectories**: Each chapter lives in its own dedicated folder (e.g., `00-next-word-prediction/index.md`).
 
 ---
 
 ## 🚀 Quickstart
 
-### 1. View in Browser
-Open `index.html` directly in your browser:
-```bash
-open index.html
-```
-
-Or run a minimal local server if preferred:
+Run a local server from the project root:
 ```bash
 python3 -m http.server 8000
 # Then visit http://localhost:8000
 ```
-
-### 2. Regenerate HTML from Markdown
-To recompile all chapters from Markdown to pure HTML:
-```bash
-python3 build.py
-```
+Or open any `index.html` directly in your browser. Whenever you edit `index.md`, simply refresh the browser to see your changes!
 
 ---
 

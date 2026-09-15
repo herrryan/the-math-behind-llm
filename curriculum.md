@@ -176,10 +176,10 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 
 ## 🛠️ How This Website is Built
 
-- **100% Pure HTML & CSS**: No JavaScript runtime, no tracking scripts, no client-side dependencies.
-- **Fast, Local, and Offline**: All pages link using relative paths; open `index.html` directly in your browser.
-- **Reproducible Build Script**: Run `python3 build.py` from the root directory at any time to regenerate all HTML pages from markdown source files.
-- **Version Controlled**: Every iteration is committed into Git for full traceability.
+- **Focus on Content**: Content is written in standard Markdown (`.md`).
+- **Dynamic In-Browser Rendering**: Rendered on the fly in the browser using `marked.js` and `KaTeX` — zero build commands or compiler scripts needed.
+- **Pure Semantic HTML**: No custom CSS stylesheets; relies on native browser elements (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<table>`).
+- **Version Controlled**: Every iteration is committed into Git for complete traceability.
 
 ---
 
