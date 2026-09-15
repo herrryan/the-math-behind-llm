@@ -134,15 +134,29 @@ Matrix multiplication is a structured, parallel factory for computing thousands 
 
 ### 3. The Geometric Secret: Where Do the Basis Vectors Land?
 
-Why does matrix multiplication represent rubber-sheet stretching?
+Why should someone studying Large Language Models care about "where basis vectors land"?
 
-In standard 2D space, any point $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ is built from two basic unit arrows called the **standard basis vectors**:
-- The horizontal step: $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$
-- The vertical step: $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$
+When developers first learn matrix multiplication, they are taught the row-by-column dot product formula:
 
-Any vector is just a recipe of these steps: $\mathbf{x} = x_1 \hat{\mathbf{i}} + x_2 \hat{\mathbf{j}}$.
+$$
+y_i = (\text{Row } i \text{ of } \mathbf{W}) \cdot \mathbf{x}
+$$
 
-Now, let's see what happens when our weight matrix $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ acts on the basis vectors:
+While this explains how silicon hardware computes numbers, it leaves our mental model of the neural network completely blind. It makes a linear layer look like a dry, disconnected grid of arithmetic.
+
+Viewing matrix multiplication through its **columns** provides the direct mechanical blueprint for how an LLM transforms linguistic features.
+
+#### What Is a "Basis Vector" Inside an LLM?
+
+In standard 2D feature space, any token vector $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ is composed of two basic unit arrows called the **standard basis vectors**:
+- $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ represents a token carrying **100% pure Feature 1** (e.g., pure *"Feline Nature"*) and 0% of anything else.
+- $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ represents a token carrying **100% pure Feature 2** (e.g., pure *"Playfulness"*) and 0% of anything else.
+
+Every word is simply a recipe of these pure ingredients: $\mathbf{x} = x_1 \hat{\mathbf{i}} + x_2 \hat{\mathbf{j}}$.
+
+#### The Matrix Columns as a Feature Translation Dictionary
+
+Now, watch what happens when our weight matrix $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ acts on these pure basis features:
 
 $$
 \mathbf{W} \hat{\mathbf{i}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} W_{1,1} \\ W_{2,1} \end{bmatrix} = \text{Column 1 of } \mathbf{W}
@@ -152,15 +166,34 @@ $$
 \mathbf{W} \hat{\mathbf{j}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} W_{1,2} \\ W_{2,2} \end{bmatrix} = \text{Column 2 of } \mathbf{W}
 $$
 
-This is the ultimate geometric intuition of linear algebra:
+This reveals the foundational insight of neural transformations:
 
-> **The columns of a matrix are simply the new landing coordinates of the unit axes after the rubber sheet has been stretched!**
+> **The columns of a weight matrix are simply the landing coordinates of the model's pure basis features after transformation!**
 
-If you know where $\hat{\mathbf{i}}$ lands (Column 1) and where $\hat{\mathbf{j}}$ lands (Column 2), you instantly know where *every single vector in the entire universe* lands, because linear combinations are preserved:
+Each column of $\mathbf{W}$ acts as a **semantic dictionary entry**:
+- **Column 1 ($\mathbf{w}_{:, 1}$)** answers: *"If an input token possesses 1 unit of Feature 1 (Feline Nature), what new downstream traits should this layer produce?"*
+- **Column 2 ($\mathbf{w}_{:, 2}$)** answers: *"If an input token possesses 1 unit of Feature 2 (Playfulness), what new downstream traits should this layer produce?"*
+
+#### Matrix Multiplication as a "Concept Recipe Blender"
+
+When a real word vector $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ (such as $\text{"cat"} = [2, 1]^\top$) enters the neural network layer, the matrix multiplication computes:
 
 $$
-\mathbf{W}\mathbf{x} = x_1 (\text{Column 1}) + x_2 (\text{Column 2})
+\mathbf{W}\mathbf{x} = x_1 (\text{Column 1 of } \mathbf{W}) + x_2 (\text{Column 2 of } \mathbf{W})
 $$
+
+The input vector $\mathbf{x}$ is not an abstract math puzzle—it is a **blender recipe**:
+> *"Take $x_1$ scoops of Column 1's concept, and $x_2$ scoops of Column 2's concept, and blend them together into the output representation!"*
+
+<fieldset>
+<legend><strong>Why This Basis-Column Intuition Unlocks the Entire Transformer</strong></legend>
+This column perspective is the key to understanding the deep architecture of modern LLMs:
+<ol>
+  <li><strong>Self-Attention Projections ($\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$) in Module 3</strong>: When a token is multiplied by $\mathbf{W}_Q$, the columns of $\mathbf{W}_Q$ define the coordinate axes of the "Query space"—translating raw word traits into <em>"What questions is this token actively asking about its context?"</em></li>
+  <li><strong>Feed-Forward Memory Networks (FFN / MLP) in Module 5</strong>: In models like LLaMA and GPT, the intermediate layers expand vectors into thousands of dimensions and project them back down. The columns of these projection matrices act as key-value memory slots storing factual associations.</li>
+  <li><strong>Mechanistic Interpretability</strong>: When AI safety researchers peer inside a trained LLM to find "honesty vectors", "refusal directions", or "hallucination circuits", they are directly analyzing the directions formed by linear combinations of these matrix columns.</li>
+</ol>
+</fieldset>
 
 ---
 
