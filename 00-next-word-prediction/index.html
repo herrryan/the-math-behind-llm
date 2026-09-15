@@ -17,15 +17,15 @@
 </head>
 <body>
   <header>
-    <h1><a href="../index.html">🧠 The Math Behind Large Language Models</a></h1>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
     <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
     <hr>
   </header>
 
   <nav>
     <p>
-      <a href="../index.html">🏠 Home / Curriculum Overview</a> &nbsp;|&nbsp; 
-      <strong>👉 Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map 🗺️ →</a>
+      <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
+      <strong>Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map &rarr;</a>
     </p>
   </nav>
   <hr>
@@ -37,8 +37,8 @@
   <hr>
   <nav>
     <p>
-      <a href="../index.html">🏠 Home / Curriculum Overview</a> &nbsp;|&nbsp; 
-      <strong>👉 Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map 🗺️ →</a>
+      <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
+      <strong>Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map &rarr;</a>
     </p>
   </nav>
 
@@ -50,9 +50,9 @@
 
   <!-- Fallback content if opened directly via file:// protocol -->
   <script type="text/markdown" id="fallback-content">
-# 📖 Chapter 00: The Next-Word Guessing Game
+# Chapter 00: The Next-Word Guessing Game
 
-> [!INTUITION] 🧸 3-Year-Old Intuition: The Animal Mystery Box
+> [!INTUITION] 3-Year-Old Intuition: The Animal Mystery Box
 > Imagine you and your best friend are playing a game with a mystery box.
 > 
 > You give your friend a clue: *"It is fluffy..."*  
@@ -60,15 +60,15 @@
 > 
 > Then you whisper a second clue into their ear: *"It is fluffy... and it says meow!"*
 > 
-> Instantly, your friend laughs and shouts: *"Kitten!"* 🐱
+> Instantly, your friend laughs and shouts: *"Kitten!"*
 > 
 > Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities until only one answer made sense.
 > 
-> A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it five words: *"The sky is very..."* and it looks through its giant toy chest of words to pick the next one: *"blue"*. 🌤️
+> A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it five words: *"The sky is very..."* and it looks through its giant toy chest of words to pick the next one: *"blue"*.
 
 ---
 
-## 🌉 Step 2: The Bridging Question (From Whispers to Numbers)
+## Step 2: The Bridging Question (From Whispers to Numbers)
 
 How does a computer play this guessing game mathematically?
 
@@ -78,9 +78,9 @@ Instead, a computer needs a **mathematical ruler**. It must assign a precise num
 
 ---
 
-## 📐 Step 3: The Exact Math & Formulas
+## Step 3: The Exact Math & Formulas
 
-### 📦 1. The Vocabulary Box ($V$)
+### 1. The Vocabulary Box ($V$)
 
 Before the model can make a guess, we must write down a master catalog of every word or subword it is allowed to speak. We call this catalog the **Vocabulary Set**, denoted by the symbol $V$:
 
@@ -92,7 +92,7 @@ The total count of distinct words in this box is called the **Vocabulary Size**,
 
 ---
 
-### 🎯 2. The Conditional Probability Rule
+### 2. The Conditional Probability Rule
 
 When the model has already observed a sequence of $t-1$ words:
 
@@ -114,7 +114,7 @@ Every valid probability distribution in an LLM must satisfy two unbreakable math
 
 ---
 
-### 🔗 3. The Chain Rule of Probability
+### 3. The Chain Rule of Probability
 
 How does an LLM generate an entire essay, a poem, or a computer program? It strings individual next-word guesses together using the **Chain Rule of Joint Probability**:
 
@@ -124,16 +124,16 @@ Using compact mathematical product notation ($\prod$):
 
 $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
 
-> [!MATH] 📐 Decoding the Mathematical Symbols
+> [!MATH] Decoding the Mathematical Symbols
 > - $\sum$ (Capital Sigma): Means **"Add them all up"**.
 > - $\prod$ (Capital Pi): Means **"Multiply them all together"**.
 > - The total probability of a paragraph is the chance of the first word, multiplied by the chance of the second word given the first, multiplied by the third word given the first two, and so on until the final period.
 
 ---
 
-### 📋 Mathematical Symbol Breakdown Table
+### Mathematical Symbol Breakdown Table
 
-| 🏷️ Symbol | 📝 Formal Name | 🧸 3-Year-Old Meaning | 🔢 Concrete Toy Example |
+| Symbol | Formal Name | 3-Year-Old Meaning | Concrete Toy Example |
 | :--- | :--- | :--- | :--- |
 | $V$ | Vocabulary Set | The big toy box of words the model knows | $V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$ |
 | $|V|$ | Vocabulary Size | How many word blocks are in the toy box | $|V| = 4$ words |
@@ -146,12 +146,12 @@ $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
 
 ---
 
-## 🔍 Step 4: Where Does This Formula Come From?
+## Step 4: Where Does This Formula Come From?
 
 Why do all modern LLMs formulate language generation as a chain of conditional probabilities rather than predicting the whole sentence at once?
 
 <details>
-<summary><strong>📜 Historical Origins: Andrey Markov (1913) & Claude Shannon (1948)</strong></summary>
+<summary><strong>Historical Origins: Andrey Markov (1913) & Claude Shannon (1948)</strong></summary>
 
 <p>In 1913, Russian mathematician <strong>Andrey Markov</strong> spent months working by candlelight with a copy of Alexander Pushkin's verse novel <em>Eugene Onegin</em>. He meticulously counted 20,000 Russian letters by hand to prove that the probability of a letter being a vowel depended strongly on whether the previous letter was a consonant.</p>
 
@@ -163,7 +163,7 @@ Why do all modern LLMs formulate language generation as a chain of conditional p
 <br>
 
 <details>
-<summary><strong>⚠️ What Broke When Researchers Tried Simpler Ideas?</strong></summary>
+<summary><strong>What Broke When Researchers Tried Simpler Ideas?</strong></summary>
 
 <p>Why can't we just assume words are independent? That is, why not compute:</p>
 $$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
@@ -173,14 +173,14 @@ $$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
 
 ---
 
-## 🔢 Step 5: Concrete Toy Example (Step-by-Step Arithmetic)
+## Step 5: Concrete Toy Example (Step-by-Step Arithmetic)
 
 Let's walk through the exact arithmetic using our tiny toy language:
 
 $$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)$$
 
 We want to calculate the probability of generating the complete sentence:  
-**"I love ice cream"** 🍦
+**"I love ice cream"**
 
 ```
 Step 1: P("I")                                        = 0.50  (50% chance)
@@ -189,8 +189,8 @@ Step 2: P("love"  │ "I")                              = 0.40  (40% chance)
              │
 Step 3: P("ice"   │ "I", "love")                      = 0.30  (30% chance)
              │
-Step 4: P("cream" │ "I", "love", "ice")               = 0.90  (90% chance!)
-══════════════════════════════════════════════════════════════════════════
+Step 4: P("cream" │ "I", "love", "ice")               = 0.90  (90% chance)
+──────────────────────────────────────────────────────────────────────────
 Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
 ```
 
@@ -202,7 +202,7 @@ At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate
 
 | Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Interpretation |
 | :--- | :--- | :--- | :--- |
-| **"cream"** | **0.90** | **90%** | Clear favorite! 🍦 |
+| **"cream"** | **0.90** | **90%** | Clear favorite |
 | **"ice"** | 0.05 | 5% | Unlikely ("ice ice") |
 | **"love"** | 0.03 | 3% | Unlikely ("ice love") |
 | **"I"** | 0.02 | 2% | Very unlikely ("ice I") |
@@ -231,9 +231,9 @@ The full sentence has an overall probability of **$0.054$** (or **$5.4\%$**).
 
 ---
 
-## 💡 Step 6: Core Takeaway
+## Step 6: Core Takeaway
 
-> [!TIP] 💡 Core Takeaway
+> [!TIP] Core Takeaway
 > A Large Language Model has no magical human consciousness. At its core, it is a **probabilistic guessing machine**:
 > 
 > At every single position, it computes a probability distribution over its vocabulary $V$, selects a candidate word, appends that word to its prompt, and repeats.
@@ -244,31 +244,21 @@ The full sentence has an overall probability of **$0.054$** (or **$5.4\%$**).
 
 <nav>
   <p>
-    <a href="../index.html">🏠 Home / Curriculum Overview</a> &nbsp;|&nbsp; 
-    <strong>👉 Next Chapter:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings) 🗺️ →</a>
+    <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
+    <strong>Next Chapter:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings) &rarr;</a>
   </p>
 </nav>
   </script>
 
   <script>
-    const emojiMap = {
-      INTUITION: "🧸",
-      MATH: "📐",
-      ORIGIN: "🔍",
-      EXAMPLE: "🔢",
-      TIP: "💡",
-      NOTE: "📝",
-      WARNING: "⚠️"
-    };
-
     const defaultTitles = {
-      INTUITION: "🧸 3-Year-Old Intuition",
-      MATH: "📐 The Exact Math",
-      ORIGIN: "🔍 Where Does This Formula Come From?",
-      EXAMPLE: "🔢 Concrete Toy Example",
-      TIP: "💡 Core Takeaway",
-      NOTE: "📝 Note",
-      WARNING: "⚠️ Common Pitfall"
+      INTUITION: "3-Year-Old Intuition",
+      MATH: "The Exact Math",
+      ORIGIN: "Where Does This Formula Come From?",
+      EXAMPLE: "Concrete Toy Example",
+      TIP: "Core Takeaway",
+      NOTE: "Note",
+      WARNING: "Common Pitfall"
     };
 
     function parseCallout(body) {
@@ -276,11 +266,7 @@ The full sentence has an overall probability of **$0.054$** (or **$5.4\%$**).
       if (!match) return null;
       const type = match[1].toUpperCase();
       let customTitle = match[2].trim();
-      const emoji = emojiMap[type] || "📌";
       let title = customTitle || defaultTitles[type] || "Note";
-      if (customTitle && !customTitle.includes(emoji)) {
-        title = emoji + " " + customTitle;
-      }
       const remaining = match[3];
       const content = remaining.trim() ? (remaining.startsWith("<p>") ? remaining : "<p>" + remaining) : "";
       return `<fieldset><legend><strong>${title}</strong></legend>${content}</fieldset>\n`;
