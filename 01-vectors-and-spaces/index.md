@@ -491,7 +491,7 @@ Size (Axis 2)
 
 ---
 
-<nav>
+<nav aria-label="Chapter Navigation">
   <p>
     <a href="../00-next-word-prediction/index.html">&larr; Chapter 00: The Next-Word Guessing Game</a> &nbsp;|&nbsp; 
     <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
