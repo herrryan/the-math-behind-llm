@@ -3,16 +3,16 @@
 > [!INTUITION] 3-Year-Old Intuition: The Animal Mystery Box
 > Imagine you and your best friend are playing a game with a mystery box.
 > 
-> You give your friend a clue: *"It is fluffy..."*  
+> You give your friend a clue: <kbd>"It is fluffy..."</kbd>  
 > Your friend thinks: *"Could it be a bunny? A kitten? A cloud?"*
 > 
-> Then you whisper a second clue into their ear: *"It is fluffy... and it says meow!"*
+> Then you whisper a second clue into their ear: <kbd>"It is fluffy... and it says meow!"</kbd>  
 > 
-> Instantly, your friend laughs and shouts: *"Kitten!"*
+> Instantly, your friend laughs and shouts: <samp>"Kitten!"</samp>
 > 
 > Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities until only one answer made sense.
 > 
-> A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it five words: *"The sky is very..."* and it looks through its giant toy chest of words to pick the next one: *"blue"*.
+> A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it prompt tokens: <kbd>"The"</kbd> <kbd>"sky"</kbd> <kbd>"is"</kbd> <kbd>"very"</kbd> and it looks through its giant toy chest of words to pick the next one: <samp>"blue"</samp>.
 
 ---
 
@@ -153,10 +153,10 @@ At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate
 
 | Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Visual Probability Bar | Interpretation |
 | :--- | :--- | :--- | :--- | :--- |
-| **"cream"** | **0.90** | **90%** | <meter min="0" max="1" value="0.90" optimum="0.8">90%</meter> | Clear favorite |
-| **"ice"** | 0.05 | 5% | <meter min="0" max="1" value="0.05">5%</meter> | Unlikely ("ice ice") |
-| **"love"** | 0.03 | 3% | <meter min="0" max="1" value="0.03">3%</meter> | Unlikely ("ice love") |
-| **"I"** | 0.02 | 2% | <meter min="0" max="1" value="0.02">2%</meter> | Very unlikely ("ice I") |
+| **<kbd>"cream"</kbd>** | **0.90** | **90%** | <meter min="0" max="1" value="0.90" optimum="0.8">90%</meter> | Clear favorite |
+| **<kbd>"ice"</kbd>** | 0.05 | 5% | <meter min="0" max="1" value="0.05">5%</meter> | Unlikely ("ice ice") |
+| **<kbd>"love"</kbd>** | 0.03 | 3% | <meter min="0" max="1" value="0.03">3%</meter> | Unlikely ("ice love") |
+| **<kbd>"I"</kbd>** | 0.02 | 2% | <meter min="0" max="1" value="0.02">2%</meter> | Very unlikely ("ice I") |
 | **Total Sum ($\sum$)** | **1.00** | **100%** | <progress max="100" value="100">100%</progress> | **Conserved Probability** |
 
 ---
