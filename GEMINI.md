@@ -43,9 +43,17 @@ Every chapter written in this project **MUST** follow this structured learning s
   - Content is authored purely in standard Markdown (`.md`).
   - No build scripts (`build.py`) or compilation commands are needed. Focus 100% on crafting the mathematical content.
   - Pages are rendered on the fly in the browser using `marked.js` with `marked-katex-extension` and `KaTeX`.
-- **Pure Semantic HTML (Zero Custom CSS)**:
-  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<footer>`).
-  - No custom CSS stylesheets are used; only KaTeX's official CSS is included for mathematical typography.
+- **Pure Semantic HTML & Readability (Strictly Zero Custom CSS)**:
+  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<details>`, `<summary>`, `<mark>`, `<pre>`, `<footer>`).
+  - No custom CSS stylesheets or `<style>` tags are permitted; only KaTeX's official CSS is included for mathematical typography.
+  - Readability is achieved purely through semantic HTML structure and native attributes:
+    - Tables: configured with `border="1" cellpadding="8" cellspacing="0"` so content has clean borders and comfortable cell padding.
+    - Callout Boxes: converted to `<fieldset><legend><strong>Title</strong></legend></fieldset>` for clean, border-delimited visual containers.
+    - Interactive Deep-Dives: authored using native `<details>` and `<summary>` for optional historical or mathematical proofs.
+    - Equations: formatted with `\begin{aligned}` for multi-step derivations to prevent awkward horizontal overflow.
+- **Mandatory Emojis for Visual Intuition**:
+  - Emojis must be used prominently and consistently across all headings, steps, pedagogical callouts, symbol tables, flowcharts, and navigation links.
+  - Every chapter must feature vivid emoji anchors (🧸 3-Year-Old Intuition, 🌉 Bridging Question, 📐 Exact Math, 🔍 Historical Origins, 🔢 Toy Arithmetic, 💡 Core Takeaway, etc.).
 - **Chapter Organization**:
   - Each chapter lives in its own dedicated subfolder: `NN-topic-name/` (e.g., `00-next-word-prediction/`, `01-vectors-and-spaces/`).
   - Source content is written in Markdown: `NN-topic-name/index.md`.

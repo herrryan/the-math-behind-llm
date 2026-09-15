@@ -17,13 +17,16 @@
 </head>
 <body>
   <header>
-    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
-    <p><em>Intuitive, Rigorous, Pure Semantic HTML with Dynamic Markdown &amp; KaTeX</em></p>
+    <h1><a href="../index.html">🧠 The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
     <hr>
   </header>
 
   <nav>
-    <p><a href="../index.html">🏠 Home / Curriculum</a> &nbsp;|&nbsp; <a href="../01-vectors-and-spaces/index.html">Next: Chapter 01: The Word Map →</a></p>
+    <p>
+      <a href="../index.html">🏠 Home / Curriculum Overview</a> &nbsp;|&nbsp; 
+      <strong>👉 Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map 🗺️ →</a>
+    </p>
   </nav>
   <hr>
 
@@ -33,77 +36,87 @@
 
   <hr>
   <nav>
-    <p><a href="../index.html">🏠 Home / Curriculum</a> &nbsp;|&nbsp; <a href="../01-vectors-and-spaces/index.html">Next: Chapter 01: The Word Map →</a></p>
+    <p>
+      <a href="../index.html">🏠 Home / Curriculum Overview</a> &nbsp;|&nbsp; 
+      <strong>👉 Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map 🗺️ →</a>
+    </p>
   </nav>
 
   <footer>
     <hr>
-    <p><strong>The Math Behind LLMs</strong> • Dynamic Markdown &amp; KaTeX viewer with zero build step.</p>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • Dynamic Markdown &amp; KaTeX • Zero Build Step.</p>
     <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
   </footer>
 
   <!-- Fallback content if opened directly via file:// protocol -->
   <script type="text/markdown" id="fallback-content">
-# Chapter 00: The Next-Word Guessing Game
+# 📖 Chapter 00: The Next-Word Guessing Game
 
 > [!INTUITION] 🧸 3-Year-Old Intuition: The Animal Mystery Box
 > Imagine you and your best friend are playing a game with a mystery box.
 > 
-> You give your friend a clue: *"It is fluffy..."*
+> You give your friend a clue: *"It is fluffy..."*  
 > Your friend thinks: *"Could it be a bunny? A kitten? A cloud?"*
 > 
-> Then you add a second clue: *"It is fluffy... and it says meow!"*
+> Then you whisper a second clue into their ear: *"It is fluffy... and it says meow!"*
 > 
-> Instantly, your friend laughs and shouts: *"Kitten!"*
+> Instantly, your friend laughs and shouts: *"Kitten!"* 🐱
 > 
-> Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities.
+> Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities until only one answer made sense.
 > 
-> A Large Language Model (LLM) is doing this exact same game every second. You give it five words: *"The sky is very..."* and it looks through its giant toy chest of words to pick the next one: *"blue"*.
+> A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it five words: *"The sky is very..."* and it looks through its giant toy chest of words to pick the next one: *"blue"*. 🌤️
 
 ---
 
-## 🌉 The Bridging Question
+## 🌉 Step 2: The Bridging Question (From Whispers to Numbers)
 
 How does a computer play this guessing game mathematically?
 
-A computer cannot "feel" what word comes next. It cannot say: *"Well, kitten feels right."* 
+A computer cannot "feel" what word comes next. It cannot say: *"Well, kitten feels cozy."* 
 
-Instead, a computer needs a **ruler**. It needs to assign a score to every single word in human language, measuring how likely that word is to follow the previous words.
+Instead, a computer needs a **mathematical ruler**. It must assign a precise numerical score—a **probability** between $0\%$ and $100\%$—to every single word in human language, measuring how likely that word is to follow the previous clues.
 
 ---
 
-## 📐 The Exact Math
+## 📐 Step 3: The Exact Math & Formulas
 
-### 1. The Vocabulary Box ($V$)
-Before the model can guess, we must write down a list of every word (or subword) it is allowed to use. We call this list the **Vocabulary**, written as $V$:
+### 📦 1. The Vocabulary Box ($V$)
+
+Before the model can make a guess, we must write down a master catalog of every word or subword it is allowed to speak. We call this catalog the **Vocabulary Set**, denoted by the symbol $V$:
 
 $$V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}$$
 
-The number of words in this box is called $|V|$ (the vocabulary size). In modern LLMs like GPT-4 or LLaMA, $|V|$ is typically between $32{,}000$ and $128{,}000$ tokens.
+The total count of distinct words in this box is called the **Vocabulary Size**, written as $|V|$:
+- In toy models: $|V| = 4$ or $|V| = 10$.
+- In production models (GPT-4, LLaMA-3): $|V|$ is typically between $32{,}000$ and $128{,}000$ tokens.
 
 ---
 
-### 2. The Conditional Probability Rule
-When the model has seen $t-1$ words:
+### 🎯 2. The Conditional Probability Rule
 
-$$w_1, w_2, \dots, w_{t-1}$$
+When the model has already observed a sequence of $t-1$ words:
 
-it assigns a probability to every possible candidate word $w \in V$ for the next position $w_t$. We write this as:
+$$w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{<t})$$
+
+it calculates the probability that the next word at position $t$ is a specific candidate word $w \in V$. We write this as:
 
 $$P(w_t = w \mid w_1, w_2, \dots, w_{t-1})$$
 
-The vertical bar $\mid$ means **"given that we already know"**.
+The vertical bar $\mid$ translates into plain English as **"given that we already observed"**.
 
-Two fundamental rules of probability must hold:
-1. Every word's probability is between 0 and 1:
-   $$0 \le P(w) \le 1 \quad \text{for all } w \in V$$
-2. If you sum the probabilities of all words in the dictionary, they must equal exactly 1 (100%):
+Every valid probability distribution in an LLM must satisfy two unbreakable mathematical laws:
+
+1. **Non-negativity & Boundedness**: No word can have a negative chance, and no word can have more than a 100% chance:
+   $$0 \le P(w_t = w \mid w_{<t}) \le 1 \quad \text{for all } w \in V$$
+
+2. **Total Probability Conservation**: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ ($100\%$ of the pie):
    $$\sum_{w \in V} P(w_t = w \mid w_{<t}) = 1$$
 
 ---
 
-### 3. The Chain Rule of Probability
-How does the model write an entire paragraph, or even a book? It uses the **Chain Rule of Probability**:
+### 🔗 3. The Chain Rule of Probability
+
+How does an LLM generate an entire essay, a poem, or a computer program? It strings individual next-word guesses together using the **Chain Rule of Joint Probability**:
 
 $$P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})$$
 
@@ -111,70 +124,168 @@ Using compact mathematical product notation ($\prod$):
 
 $$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
 
-> [!MATH] Decoding the Product Symbol $\prod$
-> Just like $\sum$ means **add them all up**, the big Greek letter $\prod$ (capital Pi) means **multiply them all together**.
-> The total probability of a sentence is the probability of the first word, multiplied by the probability of the second word given the first, and so on.
+> [!MATH] 📐 Decoding the Mathematical Symbols
+> - $\sum$ (Capital Sigma): Means **"Add them all up"**.
+> - $\prod$ (Capital Pi): Means **"Multiply them all together"**.
+> - The total probability of a paragraph is the chance of the first word, multiplied by the chance of the second word given the first, multiplied by the third word given the first two, and so on until the final period.
 
 ---
 
-## 🔍 Where Does This Formula Come From?
+### 📋 Mathematical Symbol Breakdown Table
 
-In 1913, the Russian mathematician **Andrey Markov** sat by candlelight with a copy of Alexander Pushkin's poem *Eugene Onegin*. He counted 20,000 Russian letters by hand to prove that the probability of the next letter being a vowel depended heavily on whether the previous letter was a consonant. This gave birth to **Markov Chains**.
-
-Thirty-five years later, in 1948, **Claude Shannon** published *"A Mathematical Theory of Communication"*, which laid the foundation for modern information theory. Shannon showed that human language could be modeled as a statistical process where each word is chosen according to conditional probabilities.
-
-Today's Large Language Models do not use simple letter counts; they use massive neural networks with hundreds of billions of parameters to estimate $P(w_t \mid w_{<t})$. But the mathematical objective remains unchanged: **predict the next token**.
+| 🏷️ Symbol | 📝 Formal Name | 🧸 3-Year-Old Meaning | 🔢 Concrete Toy Example |
+| :--- | :--- | :--- | :--- |
+| $V$ | Vocabulary Set | The big toy box of words the model knows | $V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$ |
+| $|V|$ | Vocabulary Size | How many word blocks are in the toy box | $|V| = 4$ words |
+| $t$ | Time Step / Position | The index of the word we are guessing right now | $t = 4$ (the fourth word) |
+| $w_t$ | Token at Step $t$ | The candidate word being considered | $w_4 = \text{"cream"}$ |
+| $w_{<t}$ | Prefix Context | All previous clues whispered into the funnel | $w_{<4} = (\text{"I"}, \text{"love"}, \text{"ice"})$ |
+| $P(w_t \mid w_{<t})$ | Conditional Probability | The model's belief meter ($0.0$ to $1.0$) for that word | $P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$ |
+| $\sum$ | Summation (Sigma) | Add up all slices of the probability pizza | Sum of all 4 word probabilities $= 1.00$ ($100\%$) |
+| $\prod$ | Product (Capital Pi) | Multiply the chances of each step along the chain | $0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$ |
 
 ---
 
-## 🔢 Concrete Toy Example
+## 🔍 Step 4: Where Does This Formula Come From?
 
-Let's make a tiny toy language with a vocabulary of only 4 words:
+Why do all modern LLMs formulate language generation as a chain of conditional probabilities rather than predicting the whole sentence at once?
 
-$$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$$
+<details>
+<summary><strong>📜 Historical Origins: Andrey Markov (1913) & Claude Shannon (1948)</strong></summary>
 
-Here, $|V| = 4$.
+<p>In 1913, Russian mathematician <strong>Andrey Markov</strong> spent months working by candlelight with a copy of Alexander Pushkin's verse novel <em>Eugene Onegin</em>. He meticulously counted 20,000 Russian letters by hand to prove that the probability of a letter being a vowel depended strongly on whether the previous letter was a consonant.</p>
 
-Suppose we want to know the probability of the full sentence: **"I love ice cream"**.
+<p>This proved that language has <strong>temporal dependence</strong>: letters and words do not appear randomly; each token depends on what came immediately before it. This mathematical structure became known as a <strong>Markov Chain</strong>.</p>
 
-### Step 1: Individual conditional probabilities
-The model looks at its training data and calculates:
-1. $P(w_1 = \text{"I"}) = 0.50$ (half of sentences start with "I")
-2. $P(w_2 = \text{"love"} \mid \text{"I"}) = 0.40$ (given "I", 40% of the time the next word is "love")
-3. $P(w_3 = \text{"ice"} \mid \text{"I", "love"}) = 0.30$ (given "I love", 30% of the time the next word is "ice")
-4. $P(w_4 = \text{"cream"} \mid \text{"I", "love", "ice"}) = 0.90$ (given "I love ice", 90% of the time the next word is "cream"!)
+<p>Thirty-five years later, in 1948, <strong>Claude Shannon</strong> published his landmark paper <em>"A Mathematical Theory of Communication"</em>. Shannon formalized human language as a statistical stochastic process where each successive symbol is chosen according to conditional probability distributions conditioned on preceding symbols.</p>
+</details>
 
-Notice that for step 4, the remaining 10% is divided among other words:
-- $P(\text{"ice"} \mid \text{"I love ice"}) = 0.05$
-- $P(\text{"love"} \mid \text{"I love ice"}) = 0.03$
-- $P(\text{"I"} \mid \text{"I love ice"}) = 0.02$
-- Sum: $0.90 + 0.05 + 0.03 + 0.02 = 1.00$ (100%).
+<br>
 
-### Step 2: Multiply using the Chain Rule
+<details>
+<summary><strong>⚠️ What Broke When Researchers Tried Simpler Ideas?</strong></summary>
+
+<p>Why can't we just assume words are independent? That is, why not compute:</p>
+$$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
+
+<p>If words were independent, the sentence <em>"The dog bit the man"</em> would have the exact same probability as <em>"Bit man dog the the"</em>, because both contain identical words! Language relies entirely on word order and context. Therefore, conditioning on the past prefix $w_{<t}$ is mathematically essential.</p>
+</details>
+
+---
+
+## 🔢 Step 5: Concrete Toy Example (Step-by-Step Arithmetic)
+
+Let's walk through the exact arithmetic using our tiny toy language:
+
+$$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)$$
+
+We want to calculate the probability of generating the complete sentence:  
+**"I love ice cream"** 🍦
+
+```
+Step 1: P("I")                                        = 0.50  (50% chance)
+             │
+Step 2: P("love"  │ "I")                              = 0.40  (40% chance)
+             │
+Step 3: P("ice"   │ "I", "love")                      = 0.30  (30% chance)
+             │
+Step 4: P("cream" │ "I", "love", "ice")               = 0.90  (90% chance!)
+══════════════════════════════════════════════════════════════════════════
+Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
+```
+
+---
+
+### Step-by-Step Probability Distribution at Step 4
+
+At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate word in $V$:
+
+| Candidate Word $w \in V$ | Conditional Probability $P(w \mid \text{"I love ice"})$ | Percentage | Interpretation |
+| :--- | :--- | :--- | :--- |
+| **"cream"** | **0.90** | **90%** | Clear favorite! 🍦 |
+| **"ice"** | 0.05 | 5% | Unlikely ("ice ice") |
+| **"love"** | 0.03 | 3% | Unlikely ("ice love") |
+| **"I"** | 0.02 | 2% | Very unlikely ("ice I") |
+| **Total Sum ($\sum$)** | **1.00** | **100%** | **Conserved Probability** |
+
+---
+
+### Step-by-Step Multiplication
+
+Now we multiply the 4 probabilities together using the Chain Rule:
+
 $$P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90$$
 
-Let's multiply step by step:
-- $0.50 \times 0.40 = 0.20$
-- $0.20 \times 0.30 = 0.06$
-- $0.06 \times 0.90 = 0.054$
+Let's compute each multiplication by hand:
 
-The probability of this exact sequence is **0.054** (or **5.4%**).
+1. Multiply the first two words:
+   $$0.50 \times 0.40 = 0.20$$
+
+2. Multiply by the third word:
+   $$0.20 \times 0.30 = 0.06$$
+
+3. Multiply by the fourth word:
+   $$0.06 \times 0.90 = \mathbf{0.054}$$
+
+The full sentence has an overall probability of **$0.054$** (or **$5.4\%$**).
 
 ---
+
+## 💡 Step 6: Core Takeaway
 
 > [!TIP] 💡 Core Takeaway
-> An LLM does not need a magical spirit inside it to produce smart answers. 
+> A Large Language Model has no magical human consciousness. At its core, it is a **probabilistic guessing machine**:
 > 
-> At every single step, it calculates a list of probabilities over its vocabulary $V$, picks a word, adds that word to its memory, and repeats the process. 
+> At every single position, it computes a probability distribution over its vocabulary $V$, selects a candidate word, appends that word to its prompt, and repeats.
 > 
-> In the next chapter, we answer the obvious question: **How does a computer, which only understands numbers, represent words like "cat" and "kitten"?**
+> But this brings us to the next big mystery: **Computers cannot understand raw letters or English words. How does an LLM convert words into numbers that silicon chips can compute?**
 
 ---
 
-👉 **Next Chapter**: [Chapter 01: The Word Map (Vectors & Embeddings)](../01-vectors-and-spaces/index.html)
+<nav>
+  <p>
+    <a href="../index.html">🏠 Home / Curriculum Overview</a> &nbsp;|&nbsp; 
+    <strong>👉 Next Chapter:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings) 🗺️ →</a>
+  </p>
+</nav>
   </script>
 
   <script>
+    const emojiMap = {
+      INTUITION: "🧸",
+      MATH: "📐",
+      ORIGIN: "🔍",
+      EXAMPLE: "🔢",
+      TIP: "💡",
+      NOTE: "📝",
+      WARNING: "⚠️"
+    };
+
+    const defaultTitles = {
+      INTUITION: "🧸 3-Year-Old Intuition",
+      MATH: "📐 The Exact Math",
+      ORIGIN: "🔍 Where Does This Formula Come From?",
+      EXAMPLE: "🔢 Concrete Toy Example",
+      TIP: "💡 Core Takeaway",
+      NOTE: "📝 Note",
+      WARNING: "⚠️ Common Pitfall"
+    };
+
+    function parseCallout(body) {
+      const match = body.match(/^<p>\[!(INTUITION|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\]([^\n<]*)(?:\n|<br\s*\/?>)?([\s\S]*)/i);
+      if (!match) return null;
+      const type = match[1].toUpperCase();
+      let customTitle = match[2].trim();
+      const emoji = emojiMap[type] || "📌";
+      let title = customTitle || defaultTitles[type] || "Note";
+      if (customTitle && !customTitle.includes(emoji)) {
+        title = emoji + " " + customTitle;
+      }
+      const remaining = match[3];
+      const content = remaining.trim() ? (remaining.startsWith("<p>") ? remaining : "<p>" + remaining) : "";
+      return `<fieldset><legend><strong>${title}</strong></legend>${content}</fieldset>\n`;
+    }
+
     async function renderPage() {
       let mdText = "";
       try {
@@ -193,53 +304,33 @@ The probability of this exact sequence is **0.054** (or **5.4%**).
 
       if (!mdText) return;
 
-      // Configure marked with KaTeX
+      // 1. Configure marked with KaTeX
       if (typeof markedKatex !== "undefined") {
         marked.use(markedKatex({ throwOnError: false }));
       }
 
-      const container = document.getElementById("content");
-      container.innerHTML = marked.parse(mdText);
-
-      // Enhance callouts to native <fieldset><legend>
-      container.querySelectorAll("blockquote").forEach(bq => {
-        const p = bq.querySelector("p");
-        if (p) {
-          const match = p.innerHTML.match(/^\[!(INTUITION|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\](?:\s+([^<]*))?/i);
-          if (match) {
-            const type = match[1].toUpperCase();
-            const customTitle = match[2];
-            const titles = {
-              INTUITION: "🧸 3-Year-Old Intuition",
-              MATH: "📐 The Exact Math",
-              ORIGIN: "🔍 Where Does This Formula Come From?",
-              EXAMPLE: "🔢 Concrete Toy Example",
-              TIP: "💡 Core Takeaway",
-              NOTE: "📝 Note",
-              WARNING: "⚠️ Common Pitfall"
-            };
-            const title = customTitle || titles[type] || "Note";
-            p.remove();
-            const fieldset = document.createElement("fieldset");
-            const legend = document.createElement("legend");
-            legend.innerHTML = `<strong>${title}</strong>`;
-            fieldset.appendChild(legend);
-            while (bq.firstChild) {
-              fieldset.appendChild(bq.firstChild);
-            }
-            bq.replaceWith(fieldset);
+      // 2. Configure marked with custom blockquote renderer for callouts
+      marked.use({
+        renderer: {
+          blockquote(token) {
+            const body = this.parser.parse(token.tokens);
+            const callout = parseCallout(body);
+            return callout || `<blockquote>${body}</blockquote>\n`;
           }
         }
       });
 
-      // Enhance tables with standard HTML attributes
+      const container = document.getElementById("content");
+      container.innerHTML = marked.parse(mdText);
+
+      // 3. Enhance tables with native HTML borders and comfortable cell padding
       container.querySelectorAll("table").forEach(tbl => {
         tbl.setAttribute("border", "1");
-        tbl.setAttribute("cellpadding", "6");
+        tbl.setAttribute("cellpadding", "8");
         tbl.setAttribute("cellspacing", "0");
       });
 
-      // Secondary pass for any remaining KaTeX blocks
+      // 4. Secondary pass for any remaining KaTeX blocks
       if (typeof renderMathInElement !== "undefined") {
         renderMathInElement(container, {
           delimiters: [
