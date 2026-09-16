@@ -380,7 +380,7 @@ Deep learning is not an impenetrable black box. Using only linear algebra, one-w
 ### The Fatal Bottleneck: Severe Short-Term Amnesia
 
 Notice the generated text above:
-`<samp>"cat sat on the rug the rug"</samp>`
+<samp>"cat sat on the rug the rug"</samp>
 
 Why did it fall into an infinite loop of <samp>"the rug the rug"</samp>?
 **Because this micro-brain suffers from incurable short-term amnesia!**

@@ -380,7 +380,7 @@ Generated: cat sat on the rug the rug
 ### 但是，这个微型大脑有一个足以致命的硬伤：
 
 仔细观察上面的自回归生成结果：
-`<samp>"cat sat on the rug the rug"</samp>`
+<samp>"cat sat on the rug the rug"</samp>
 
 为什么它在生成到后面时，陷入了 <samp>"the rug the rug"</samp> 的死循环？
 **因为它患有无法治愈的严重“短时失忆症”！**
