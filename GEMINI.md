@@ -47,17 +47,23 @@ Every chapter written in this project **MUST** follow this structured learning s
   - No build scripts (`build.py`) or compilation commands are needed. Focus 100% on crafting the mathematical content.
   - Pages are rendered on the fly in the browser using `marked.js` with `marked-katex-extension` and `KaTeX`.
 - **Pure Semantic HTML & Readability (Strictly Zero Custom CSS)**:
-  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<details>`, `<summary>`, `<mark>`, `<pre>`, `<footer>`, `<meter>`, `<progress>`, `<figure>`, `<figcaption>`, `<kbd>`, `<samp>`, `<dl>`, `<dt>`, `<dd>`).
+  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<details>`, `<summary>`, `<mark>`, `<pre>`, `<footer>`, `<meter>`, `<progress>`, `<figure>`, `<figcaption>`, `<kbd>`, `<samp>`, `<dl>`, `<dt>`, `<dd>`, `<abbr>`, `<dfn>`, `<cite>`, `<time>`, `<input type="checkbox">`, `<ins>`, `<del>`, `<var>`).
   - No custom CSS stylesheets or `<style>` tags are permitted; only KaTeX's official CSS is included for mathematical typography.
-  - Readability is achieved purely through 8 native semantic HTML design standards:
-    1. **Visual Probability Bars**: Use native `<meter min="0" max="1" value="...">` and `<progress max="100" value="...">` to give instant graphical feedback on distributions.
+  - Readability is achieved purely through 14 native semantic HTML design standards:
+    1. **Visual Probability Bars**: Use native `<meter min="0" max="1" low="0.33" high="0.66" optimum="0.9" value="...">` and `<progress max="100" value="...">` to give instant graphical and color-coded feedback on distributions.
     2. **Architecture & Equation Diagrams**: Wrap diagrams, dataflows, and ASCII art in `<figure><pre>...</pre><figcaption><strong>Figure X.Y:</strong> ...</figcaption></figure>`.
     3. **Token Badges & Model Outputs**: Wrap tokens in `<kbd>"token"</kbd>` and model generations in `<samp>"output"</samp>` for clear monospaced badge styling.
     4. **Milestone Highlighting**: Use native `<mark>` to highlight key numbers, thresholds, and final joint probabilities.
-    5. **Clean Semantic Tables**: Use `<caption><strong>Table X.Y:</strong> ...</caption>`, `border="1" cellpadding="8" cellspacing="0" width="100%"`, and explicit alignment attributes (`align="left"`, `align="right"`, `align="center"`).
+    5. **Clean Semantic Tables**: Use `<caption><strong>Table X.Y:</strong> ...</caption>`, `border="1" cellpadding="8" cellspacing="0" width="100%"`, and explicit alignment and background attributes (`align="left"`, `align="right"`, `align="center"`, `bgcolor="#f8f9fa"`).
     6. **Mathematical Glossaries**: Author symbol catalogs using native definition lists (`<dl><dt><strong>Symbol</strong></dt><dd>Definition</dd></dl>`), often wrapped in `<details>`.
     7. **In-Page Jump Navigation**: Include `<nav aria-label="Table of Contents">` with relative anchor links (`<a href="#step-1">...</a>`) paired with `id="step-N"` on step headings.
     8. **Box-Drawing Tensor Diagrams**: Represent tensor dimensions, vector projections, and transformation pipelines using clean Unicode box-drawing characters (`┌─┐│└─┘├─┤▼▲`).
+    9. **Native Tooltips & Acronyms**: Use `<abbr title="Full Terminology">ACRONYM</abbr>` (e.g. `<abbr title="Feed-Forward Network">FFN</abbr>`, `<abbr title="Gaussian Error Linear Unit">GELU</abbr>`) to provide native browser hover tooltips without cluttering sentences.
+    10. **Computational Pipeline Checklists**: Use `<fieldset><legend><strong>Execution Checklist</strong></legend><p><input type="checkbox" checked disabled> <strong>Step N:</strong> ...</p></fieldset>` for concrete algorithms and step-by-step arithmetic walkthroughs.
+    11. **Historical Timelines with Semantic Dates**: Use `<dl>`, `<dt><time datetime="YYYY">YYYY</time> &mdash; <strong>Author / Paper</strong></dt>`, and `<dd>...</dd>` combined with `<cite>` tags for scholarly citations.
+    12. **Formal Definitions**: Use `<dfn id="def-term">Terminology</dfn>` on the first introduction of pivotal mathematical definitions.
+    13. **Target vs. Candidate Semantic Diffs**: Use `<ins>"target"</ins>` and `<del>"candidate"</del>` when contrasting model errors and ground-truth tokens.
+    14. **Exclusive Accordions**: Group collapsible deep-dives using `<details name="group-name">` so opening one automatically closes others in that section.
     - Callout Boxes: converted to `<fieldset><legend><strong>Title</strong></legend></fieldset>` for clean, border-delimited visual containers.
     - Interactive Deep-Dives: authored using native `<details>` and `<summary>` for optional historical or mathematical proofs.
     - Equations: formatted with `\begin{aligned}` for multi-step derivations to prevent awkward horizontal overflow.

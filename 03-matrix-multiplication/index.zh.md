@@ -69,7 +69,7 @@
 
 <h2 id="step-3">Step 3: 精确数学公式</h2>
 
-在现代神经网络的每一个层级中，重塑向量空间都依托于深度学习最根本的基础方程式：**仿射线性变换（Affine Linear Transformation）**。
+在现代神经网络的每一个层级中，重塑向量空间都依托于深度学习最根本的基础方程式：<dfn id="def-affine-transformation"><strong>仿射线性变换（Affine Linear Transformation）</strong></dfn>。
 
 ---
 
@@ -80,34 +80,34 @@
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>表 3.1:</strong> 根本分水岭：词嵌入（Embeddings）与模型权重（Weights）</caption>
   <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="left" width="18%">核心维度</th>
-      <th align="left" width="32%">词嵌入向量（$\mathbf{x}$）</th>
-      <th align="left" width="32%">权重矩阵（$\mathbf{W}$）</th>
-      <th align="left" width="18%">直观生活比喻</th>
+    <tr bgcolor="#eef2f7">
+      <th scope="col" align="left" width="18%">核心维度</th>
+      <th scope="col" align="left" width="32%">词嵌入向量（$\mathbf{x}$）</th>
+      <th scope="col" align="left" width="32%">权重矩阵（$\mathbf{W}$）</th>
+      <th scope="col" align="left" width="18%">直观生活比喻</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>它究竟是什么？</strong></td>
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>它究竟是什么？</strong></th>
       <td><strong>输入数据</strong>：某个具体单词或词元的静态数字坐标。</td>
       <td><strong>处理引擎</strong>：网络学到的如何扭转、筛选、加工数据的数学规则。</td>
       <td>面团 vs. 压面机</td>
     </tr>
-    <tr>
-      <td><strong>它从何而来？</strong></td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>它从何而来？</strong></th>
       <td>用户每次输入句子时，根据单词编号即时从词汇表中查表取出。</td>
       <td>在海量语料上训练数月得到，推理时<strong>永久固化在显存中</strong>。</td>
       <td>被观察的物体 vs. 彩色滤镜</td>
     </tr>
     <tr>
-      <td><strong>它会随时改变吗？</strong></td>
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>它会随时改变吗？</strong></th>
       <td>会！句子里的每一个新词，都会带来全新的嵌入向量。</td>
       <td>不会！无论输入什么句子，权重矩阵里的数值都保持不变。</td>
       <td>车厢里的乘客 vs. 铁轨轨道</td>
     </tr>
-    <tr>
-      <td><strong>语法角色</strong></td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>语法角色</strong></th>
       <td><strong>名词</strong>：被加工、被观察的对象本体。</td>
       <td><strong>动词</strong>：作用于名词之上的透镜、动作与运算。</td>
       <td>舞台上的演员 vs. 导演与聚光灯</td>
@@ -289,58 +289,58 @@ $$
 
 ### 数学符号拆解速查表
 
-<details>
+<details name="ch03-deep-dives">
 <summary><strong>点击展开：形式化数学符号速查表</strong></summary>
 
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>表 3.2:</strong> 第03章矩阵运算的形式化数学符号、维度与物理含义</caption>
   <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="center">符号</th>
-      <th align="left">数学名称</th>
-      <th align="center">标准形状</th>
-      <th align="left">在 LLM 中的物理含义</th>
-      <th align="left">实例</th>
+    <tr bgcolor="#eef2f7">
+      <th scope="col" align="center">符号</th>
+      <th scope="col" align="left">数学名称</th>
+      <th scope="col" align="center">标准形状</th>
+      <th scope="col" align="left">在 LLM 中的物理含义</th>
+      <th scope="col" align="left">实例</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>$\mathbf{W}$</td>
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{W}$</th>
       <td>权重矩阵</td>
       <td>$\mathbb{R}^{m \times k}$ 或 $\mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$</td>
       <td>神经网络中可学习的空间线性变换参数</td>
       <td>前馈网络中的投影权重矩阵</td>
     </tr>
-    <tr>
-      <td>$\mathbf{x}$</td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{x}$</th>
       <td>输入向量</td>
       <td>$\mathbb{R}^{k \times 1}$</td>
       <td>变换前单个词元的嵌入坐标</td>
       <td>$\mathbf{x} \in \mathbb{R}^{4096 \times 1}$（Llama 3 维度）</td>
     </tr>
     <tr>
-      <td>$\mathbf{X}$</td>
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{X}$</th>
       <td>批输入矩阵</td>
       <td>$\mathbb{R}^{T \times d_{\text{in}}}$</td>
       <td>将 $T$ 个词元向量堆叠为水平行构成的序列矩阵</td>
       <td>$2048 \text{ 词元} \times 4096 \text{ 维度}$</td>
     </tr>
-    <tr>
-      <td>$\mathbf{b}$</td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{b}$</th>
       <td>偏置向量</td>
       <td>$\mathbb{R}^{m \times 1}$</td>
       <td>平移滑动整个坐标系的恒定偏移量</td>
       <td>加在每个变换后点的坐标上</td>
     </tr>
     <tr>
-      <td>$\mathbf{y}, \mathbf{Y}$</td>
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{y}, \mathbf{Y}$</th>
       <td>输出空间表征</td>
       <td>$\mathbb{R}^{m \times 1}$ 或 $\mathbb{R}^{T \times d_{\text{out}}}$</td>
       <td>经过重塑后准备输送给下一层的隐藏状态</td>
       <td>融合了上下文的新特征坐标</td>
     </tr>
-    <tr>
-      <td>$\hat{\mathbf{i}}, \hat{\mathbf{j}}$</td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\hat{\mathbf{i}}, \hat{\mathbf{j}}$</th>
       <td>基向量</td>
       <td>$\mathbb{R}^{d \times 1}$</td>
       <td>定义标准空间方向的单位坐标轴</td>
@@ -350,14 +350,14 @@ $$
 </table>
 
 <dl>
-  <dt><strong>线性变换（Linear Transformation）</strong></dt>
+  <dt><dfn id="def-linear-transformation"><strong>线性变换（Linear Transformation）</strong></dfn></dt>
   <dd>向量空间之间的数学映射 $T(\mathbf{x})$，必须严格满足可加性 $T(\mathbf{u} + \mathbf{v}) = T(\mathbf{u}) + T(\mathbf{v})$ 与标量齐次性 $T(c\mathbf{u}) = cT(\mathbf{u})$。</dd>
   
-  <dt><strong>仿射变换（Affine Transformation）</strong></dt>
+  <dt><dfn id="def-affine-map"><strong>仿射变换（Affine Transformation）</strong></dfn></dt>
   <dd>在线性变换的基础上叠加一个平移向量：$f(\mathbf{x}) = \mathbf{W}\mathbf{x} + \mathbf{b}$。严格的线性变换必须将原点固定在零点，而仿射变换可以把原点自由滑动到空间任意位置。</dd>
 
-  <dt><strong>GEMM（通用矩阵乘法，General Matrix Multiply）</strong></dt>
-  <dd>高性能计算标准算子：$\mathbf{C} \leftarrow \alpha \mathbf{A}\mathbf{B} + \beta \mathbf{C}$。它是整个现代机器学习中被工程优化得最极致的微观计算核心。</dd>
+  <dt><dfn id="def-gemm"><strong><abbr title="General Matrix Multiply">GEMM</abbr>（通用矩阵乘法，General Matrix Multiply）</strong></dfn></dt>
+  <dd>高性能计算标准算子：$\mathbf{C} \leftarrow \alpha \mathbf{A}\mathbf{B} + \beta \mathbf{C}$。在 <abbr title="Basic Linear Algebra Subprograms">BLAS</abbr> 算子库中，它是整个现代机器学习中被工程优化得最极致的微观计算核心。</dd>
 </dl>
 </details>
 
@@ -366,9 +366,17 @@ $$
 <h2 id="step-4">Step 4: 公式从何而来？</h2>
 
 ### 1. 历史溯源
-矩阵代数由英国数学家**阿瑟·凯莱（Arthur Cayley）**于 1858 年在其划时代的论文《矩阵理论备忘录》（*A Memoir on the Theory of Matrices*）中系统创立。凯莱发明矩阵并非为了简单存储数据表格，而是为了用简洁的代数形式表达线性方程组中的复合线性代换。
 
-20世纪50至60年代，早期神经网络先驱**弗兰克·罗森布拉特（Frank Rosenblatt）**（感知机发明人）将矩阵-向量乘积引入人工智能，用以模拟生物大脑中多条树突输入信号汇聚为单个神经元突触膜电位的过程。
+<dl>
+  <dt><time datetime="1858">1858</time> &mdash; <strong>阿瑟·凯莱（Arthur Cayley）：线性代换与矩阵论奠基</strong></dt>
+  <dd>矩阵代数由英国数学家阿瑟·凯莱在其划时代的论文 <cite>《矩阵理论备忘录》（A Memoir on the Theory of Matrices）</cite> 中系统创立。凯莱发明矩阵并非为了简单存储数据表格，而是为了用简洁的代数形式表达线性方程组中的复合线性代换。</dd>
+
+  <dt><time datetime="1958">1958</time> &mdash; <strong>弗兰克·罗森布拉特（Frank Rosenblatt）：感知机与突触权重点积</strong></dt>
+  <dd>早期神经网络先驱将矩阵-向量乘积引入人工智能，用以模拟生物大脑中多条树突输入信号汇聚为单个神经元突触膜电位的过程。</dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Vaswani 等人：Transformer 与大规模并行矩阵投影</strong></dt>
+  <dd>在论文 <cite>《Attention Is All You Need》</cite> 中，循环递归（RNN）彻底被大规模并行矩阵投影（$\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$）所取代，全面释放现代硬件的吞吐算力。</dd>
+</dl>
 
 ---
 
@@ -377,7 +385,7 @@ $$
 为什么从最古老的多层感知机（MLP）到当今最先进的 Transformer，每一种深度学习架构都以矩阵乘法为绝对核心？
 
 #### 超能力 1：精准、光滑的可微求导特性
-当训练拥有数千亿参数的大模型时，我们必须精确计算改变每一个微小的权重 $W_{i, j}$ 会对最终的预测损失 $\mathcal{L}$ 产生怎样的影响。
+当训练拥有数千亿参数的 <abbr title="Large Language Model">LLM</abbr> 时，我们必须精确计算改变每一个微小的权重 $W_{i, j}$ 会对最终的预测损失 $\mathcal{L}$ 产生怎样的影响。
 
 因为矩阵乘法完全由线性的加法和乘法构成，它的导数惊人地纯净简练：
 
@@ -406,24 +414,37 @@ $$
 
 ### 3. 硅基硬件的秘密：为什么 GPU 是矩阵乘法吞吐巨兽？
 
-请对比计算机在计算两个 $(N \times N)$ 矩阵相乘时所消耗的两种资源：
-- **需要从内存读取的数据量**：$2 \times N^2$ 个浮点数（矩阵 $\mathbf{A}$ 和 $\mathbf{B}$）。
-- **需要执行的算术运算次数**：$2 \times N^3$ 次微观运算（乘法与加法）。
+<details name="ch03-deep-dives">
+<summary><strong>硬件深度剖析：脉动阵列与高算术强度</strong></summary>
 
-注意这两者的比例：
+<p>请对比计算机在计算两个 $(N \times N)$ 矩阵相乘时所消耗的两种资源：</p>
+<ul>
+  <li><strong>需要从显存读取的数据量</strong>：$2 \times N^2$ 个浮点数（矩阵 $\mathbf{A}$ 和 $\mathbf{B}$）。</li>
+  <li><strong>需要执行的算术运算次数</strong>：$2 \times N^3$ 次微观运算（乘法与加法）。</li>
+</ul>
+
+<p>注意这两者的比例：</p>
 
 $$
 \frac{\text{运算次数}}{\text{内存传输量}} = \frac{O(N^3)}{O(N^2)} = O(N)
 $$
 
-这就是计算机体系结构中梦寐以求的圣杯——**高算术强度（High Arithmetic Intensity）**！  
-对于大规模矩阵，GPU 只需要从昂贵缓慢的显存中加载一次数字，就能在不同的点积计算中将其复用数百次。
+<p>这就是计算机体系结构中梦寐以求的圣杯——<strong>高算术强度（High Arithmetic Intensity）</strong>！对于大规模矩阵，<abbr title="Graphics Processing Unit">GPU</abbr> 只需要从昂贵缓慢的显存中加载一次数字，就能在不同的点积计算中将其复用数百次。</p>
 
-现代 AI 芯片（如 NVIDIA H100 GPU 或 Google TPU）利用张量核心构建了**脉动阵列（Systolic Arrays）**。数据在硅晶圆的物理二维乘法网格中富有节奏地流动，如同心脏泵血一般，无需等待缓慢的显存通信，每秒即可吞吐数百万亿次矩阵运算。
+<p>现代 <abbr title="Artificial Intelligence">AI</abbr> 芯片（如 NVIDIA H100 <abbr title="Graphics Processing Unit">GPU</abbr> 或 Google <abbr title="Tensor Processing Unit">TPU</abbr>）利用张量核心构建了<strong>脉动阵列（Systolic Arrays）</strong>。数据在硅晶圆的物理二维乘法网格中富有节奏地流动，如同心脏泵血一般，无需等待缓慢的显存通信，每秒即可吞吐数百万亿次矩阵运算。</p>
+</details>
 
 ---
 
 <h2 id="step-5">Step 5: 具象微型算例（笔算验证）</h2>
+
+<fieldset>
+  <legend><strong>第5步手算数值执行流水线</strong></legend>
+  <p><input type="checkbox" checked disabled> <strong>步骤 5.1:</strong> 核对维度契合性：$(2 \times 2) \times (2 \times 1) \longrightarrow (2 \times 1)$</p>
+  <p><input type="checkbox" checked disabled> <strong>步骤 5.2:</strong> 并行点积计算原始矩阵-向量乘积 $\mathbf{W}\mathbf{x}_{\text{cat}} = [5, 3]^\top$</p>
+  <p><input type="checkbox" checked disabled> <strong>步骤 5.3:</strong> 加上偏置向量平移 $\mathbf{b} = [1, -1]^\top \longrightarrow \mathbf{y}_{\text{cat}} = [6, 2]^\top$</p>
+  <p><input type="checkbox" checked disabled> <strong>步骤 5.4:</strong> 验证基向量在新空间中的着陆点 $\mathbf{W}\hat{\mathbf{i}} = [2, 0]^\top$ 与 $\mathbf{W}\hat{\mathbf{j}} = [1, 3]^\top$</p>
+</fieldset>
 
 让我们用简单的微型数字，在纸上一笔一划推演完整的矩阵变换过程。
 

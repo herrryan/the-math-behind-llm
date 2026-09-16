@@ -69,45 +69,45 @@ This brings us to two fundamental questions:
 
 <h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
 
-Every layer of a modern neural network reshapes vector spaces using the fundamental equation of deep learning: the **Affine Linear Transformation**.
+Every layer of a modern neural network reshapes vector spaces using the fundamental equation of deep learning: the <dfn id="def-affine-transformation"><strong>Affine Linear Transformation</strong></dfn>.
 
 ---
 
 ### 1. From Embeddings to Weights: What Are Weights?
 
-Before writing the linear equation, let's establish the fundamental distinction between two types of numbers in AI:
+Before writing the linear equation, let's establish the fundamental distinction between two types of numbers in <abbr title="Artificial Intelligence">AI</abbr>:
 
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 3.1:</strong> The Fundamental Divide: Embeddings vs. Weights</caption>
   <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="left" width="18%">Concept</th>
-      <th align="left" width="32%">Embedding Vector ($\mathbf{x}$)</th>
-      <th align="left" width="32%">Weight Matrix ($\mathbf{W}$)</th>
-      <th align="left" width="18%">Tangible Analogy</th>
+    <tr bgcolor="#eef2f7">
+      <th scope="col" align="left" width="18%">Concept</th>
+      <th scope="col" align="left" width="32%">Embedding Vector ($\mathbf{x}$)</th>
+      <th scope="col" align="left" width="32%">Weight Matrix ($\mathbf{W}$)</th>
+      <th scope="col" align="left" width="18%">Tangible Analogy</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>What is it?</strong></td>
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>What is it?</strong></th>
       <td>The <strong>Input Data</strong>: the numerical coordinates of a specific word or token.</td>
       <td>The <strong>Processing Engine</strong>: the learned rules that transform and manipulate data.</td>
       <td>Dough vs. Pasta Maker</td>
     </tr>
-    <tr>
-      <td><strong>Where does it come from?</strong></td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>Where does it come from?</strong></th>
       <td>Retrieved dynamically from the vocabulary table whenever a user enters a word.</td>
       <td>Trained across billions of text examples and <em>frozen in memory</em> during inference.</td>
       <td>Object vs. Optical Lens</td>
     </tr>
     <tr>
-      <td><strong>Does it change?</strong></td>
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>Does it change?</strong></th>
       <td>Yes! Every token in a sentence brings a different embedding vector into the model.</td>
       <td>No! The weights stay identical regardless of which sentence is being read.</td>
       <td>Passenger vs. Train Track</td>
     </tr>
-    <tr>
-      <td><strong>Grammar Role</strong></td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="left" bgcolor="#f8f9fa"><strong>Grammar Role</strong></th>
       <td>The <strong>Noun</strong>: the subject being acted upon.</td>
       <td>The <strong>Verb</strong>: the action, lens, or operation performed upon the subject.</td>
       <td>Actor vs. Director</td>
@@ -288,58 +288,58 @@ Both representations are mathematically equivalent under the transpose identity:
 
 ### Mathematical Notation Catalog
 
-<details>
+<details name="ch03-deep-dives">
 <summary><strong>Click to expand: Complete Mathematical Notation Catalog</strong></summary>
 
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 3.2:</strong> Formal Notation Catalog for Chapter 03</caption>
   <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="center">Symbol</th>
-      <th align="left">Mathematical Name</th>
-      <th align="center">Standard Shape</th>
-      <th align="left">Physical Meaning in an LLM</th>
-      <th align="left">Example</th>
+    <tr bgcolor="#eef2f7">
+      <th scope="col" align="center">Symbol</th>
+      <th scope="col" align="left">Mathematical Name</th>
+      <th scope="col" align="center">Standard Shape</th>
+      <th scope="col" align="left">Physical Meaning in an LLM</th>
+      <th scope="col" align="left">Example</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>$\mathbf{W}$</td>
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{W}$</th>
       <td>Weight Matrix</td>
       <td>$\mathbb{R}^{m \times k}$ (or $\mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$)</td>
       <td>The learnable linear transformation parameters</td>
       <td>Feed-forward or projection weights</td>
     </tr>
-    <tr>
-      <td>$\mathbf{x}$</td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{x}$</th>
       <td>Input Vector</td>
       <td>$\mathbb{R}^{k \times 1}$</td>
       <td>Single token embedding before transformation</td>
       <td>$\mathbf{x} \in \mathbb{R}^{4096 \times 1}$ (Llama 3)</td>
     </tr>
     <tr>
-      <td>$\mathbf{X}$</td>
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{X}$</th>
       <td>Batch Input Matrix</td>
       <td>$\mathbb{R}^{T \times d_{\text{in}}}$</td>
       <td>Sequence of $T$ token vectors stacked as rows</td>
       <td>$2048 \text{ tokens} \times 4096 \text{ dims}$</td>
     </tr>
-    <tr>
-      <td>$\mathbf{b}$</td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{b}$</th>
       <td>Bias Vector</td>
       <td>$\mathbb{R}^{m \times 1}$</td>
       <td>Constant offset shifting the origin of coordinates</td>
       <td>Added to every transformed point</td>
     </tr>
     <tr>
-      <td>$\mathbf{y}, \mathbf{Y}$</td>
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\mathbf{y}, \mathbf{Y}$</th>
       <td>Output Representation</td>
       <td>$\mathbb{R}^{m \times 1}$ (or $\mathbb{R}^{T \times d_{\text{out}}}$)</td>
       <td>Reshaped features ready for the next layer</td>
       <td>Updated contextual hidden states</td>
     </tr>
-    <tr>
-      <td>$\hat{\mathbf{i}}, \hat{\mathbf{j}}$</td>
+    <tr bgcolor="#fcfcfc">
+      <th scope="row" align="center" bgcolor="#f8f9fa">$\hat{\mathbf{i}}, \hat{\mathbf{j}}$</th>
       <td>Basis Vectors</td>
       <td>$\mathbb{R}^{d \times 1}$</td>
       <td>Unit coordinate axes defining standard orientation</td>
@@ -349,14 +349,14 @@ Both representations are mathematically equivalent under the transpose identity:
 </table>
 
 <dl>
-  <dt><strong>Linear Transformation</strong></dt>
+  <dt><dfn id="def-linear-transformation"><strong>Linear Transformation</strong></dfn></dt>
   <dd>A mathematical mapping $T(\mathbf{x})$ between vector spaces that satisfies two properties: additivity $T(\mathbf{u} + \mathbf{v}) = T(\mathbf{u}) + T(\mathbf{v})$ and scalar homogeneity $T(c\mathbf{u}) = cT(\mathbf{u})$.</dd>
   
-  <dt><strong>Affine Transformation</strong></dt>
+  <dt><dfn id="def-affine-map"><strong>Affine Transformation</strong></dfn></dt>
   <dd>A linear transformation followed by a vector translation: $f(\mathbf{x}) = \mathbf{W}\mathbf{x} + \mathbf{b}$. While a strict linear map must fix the origin at zero, an affine map can slide the origin anywhere in space.</dd>
 
-  <dt><strong>GEMM (General Matrix Multiply)</strong></dt>
-  <dd>The standard high-performance computing primitive computing $\mathbf{C} \leftarrow \alpha \mathbf{A}\mathbf{B} + \beta \mathbf{C}$. It is the most heavily optimized computational kernel in all of modern machine learning.</dd>
+  <dt><dfn id="def-gemm"><strong><abbr title="General Matrix Multiply">GEMM</abbr> (General Matrix Multiply)</strong></dfn></dt>
+  <dd>The standard high-performance computing primitive computing $\mathbf{C} \leftarrow \alpha \mathbf{A}\mathbf{B} + \beta \mathbf{C}$. In <abbr title="Basic Linear Algebra Subprograms">BLAS</abbr> libraries, it is the most heavily optimized computational kernel in all of modern machine learning.</dd>
 </dl>
 </details>
 
@@ -365,9 +365,17 @@ Both representations are mathematically equivalent under the transpose identity:
 <h2 id="step-4">Step 4: Where Did It Come From?</h2>
 
 ### 1. The Historical Origin
-Matrix algebra was formalized in 1858 by British mathematician **Arthur Cayley** in his historic paper *A Memoir on the Theory of Matrices*. Cayley did not invent matrices to store tables of data; he invented them specifically to represent compositions of linear substitutions in systems of equations.
 
-In the 1950s and 1960s, early neural network pioneers like **Frank Rosenblatt** (the Perceptron) adopted matrix-vector products to model how multiple biological dendrite inputs combine into a single neuron's membrane potential.
+<dl>
+  <dt><time datetime="1858">1858</time> &mdash; <strong>Arthur Cayley: Linear Substitutions</strong></dt>
+  <dd>Matrix algebra was formalized by British mathematician Arthur Cayley in his landmark treatise <cite>A Memoir on the Theory of Matrices</cite>. Cayley did not invent matrices to store tables of data; he invented them specifically to represent compositions of linear substitutions in systems of equations.</dd>
+
+  <dt><time datetime="1958">1958</time> &mdash; <strong>Frank Rosenblatt: Synaptic Weight Multiplication</strong></dt>
+  <dd>In the Perceptron, early neural network pioneers adopted matrix-vector dot products to model how multiple biological dendrite inputs combine into a single neuron's activation threshold.</dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Vaswani et al.: Massively Parallel Attention Projections</strong></dt>
+  <dd>In <cite>Attention Is All You Need</cite>, recurrent sequential steps were replaced entirely by massive, parallel matrix projections ($\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$), leveraging the full parallel compute bandwidth of modern hardware.</dd>
+</dl>
 
 ---
 
@@ -376,7 +384,7 @@ In the 1950s and 1960s, early neural network pioneers like **Frank Rosenblatt** 
 Why does every deep learning architecture—from the oldest Multilayer Perceptron to modern Transformers—rely on matrix multiplication?
 
 #### Superpower 1: Exact, Smooth Differentiability
-When training an LLM with billions of parameters, we must calculate how changing every single weight $W_{i, j}$ affects the final prediction loss $\mathcal{L}$.
+When training an <abbr title="Large Language Model">LLM</abbr> with billions of parameters, we must calculate how changing every single weight $W_{i, j}$ affects the final prediction loss $\mathcal{L}$.
 
 Because matrix multiplication is purely linear additions and multiplications, its derivative is astonishingly simple:
 
@@ -405,24 +413,37 @@ The model can rotate, project, and stretch concepts into new sub-spaces without 
 
 ### 3. The Silicon Secret: Why GPUs Are Matrix Multiplication Monsters
 
-Consider how much work a computer must do to multiply two $(N \times N)$ matrices:
-- **Data to store in memory**: $2 \times N^2$ numbers (Matrices $\mathbf{A}$ and $\mathbf{B}$).
-- **Math operations to compute**: $2 \times N^3$ arithmetic operations (multiplications and additions).
+<details name="ch03-deep-dives">
+<summary><strong>Hardware Deep-Dive: Systolic Arrays and Arithmetic Intensity</strong></summary>
 
-Notice the ratio:
+<p>Consider how much work a computer must do to multiply two $(N \times N)$ matrices:</p>
+<ul>
+  <li><strong>Data to store in memory</strong>: $2 \times N^2$ numbers (Matrices $\mathbf{A}$ and $\mathbf{B}$).</li>
+  <li><strong>Math operations to compute</strong>: $2 \times N^3$ arithmetic operations (multiplications and additions).</li>
+</ul>
+
+<p>Notice the ratio:</p>
 
 $$
 \frac{\text{Operations}}{\text{Memory Transfers}} = \frac{O(N^3)}{O(N^2)} = O(N)
 $$
 
-This is the holy grail of computer architecture, known as **high arithmetic intensity**! 
-For large matrices, a GPU loads a number from memory once and reuses it hundreds of times across different dot products.
+<p>This is the holy grail of computer architecture, known as <strong>high arithmetic intensity</strong>! For large matrices, a <abbr title="Graphics Processing Unit">GPU</abbr> loads a number from memory once and reuses it hundreds of times across different dot products.</p>
 
-Modern AI accelerators (such as NVIDIA H100 GPUs or Google TPUs) use **Systolic Arrays** of Tensor Cores. Data flows rhythmically through a physical 2D grid of silicon multipliers like blood pumping through a heart, executing trillions of matrix operations per second without waiting for slow memory transfers.
+<p>Modern <abbr title="Artificial Intelligence">AI</abbr> accelerators (such as NVIDIA H100 <abbr title="Graphics Processing Unit">GPUs</abbr> or Google <abbr title="Tensor Processing Unit">TPUs</abbr>) use <strong>Systolic Arrays</strong> of Tensor Cores. Data flows rhythmically through a physical 2D grid of silicon multipliers like blood pumping through a heart, executing trillions of matrix operations per second without waiting for slow memory transfers.</p>
+</details>
 
 ---
 
 <h2 id="step-5">Step 5: Concrete Toy Example</h2>
+
+<fieldset>
+  <legend><strong>Numerical Execution Pipeline Checklist</strong></legend>
+  <p><input type="checkbox" checked disabled> <strong>Step 5.1:</strong> Verify dimension compatibility: $(2 \times 2) \times (2 \times 1) \longrightarrow (2 \times 1)$</p>
+  <p><input type="checkbox" checked disabled> <strong>Step 5.2:</strong> Compute raw linear matrix-vector projection $\mathbf{W}\mathbf{x} = [5, 3]^\top$ via parallel dot products</p>
+  <p><input type="checkbox" checked disabled> <strong>Step 5.3:</strong> Apply bias translation $\mathbf{b} = [1, -1]^\top \longrightarrow \mathbf{y} = [6, 2]^\top$</p>
+  <p><input type="checkbox" checked disabled> <strong>Step 5.4:</strong> Inspect transformed basis axes $\mathbf{W}\hat{\mathbf{i}} = [2, 0]^\top$ and $\mathbf{W}\hat{\mathbf{j}} = [1, 3]^\top$</p>
+</fieldset>
 
 Let's step through an exact numerical example by hand.
 
