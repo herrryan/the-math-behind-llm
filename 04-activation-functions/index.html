@@ -267,22 +267,51 @@ Because $\sigma(\mathbf{A}\mathbf{B}) \ne \sigma(\mathbf{A})\sigma(\mathbf{B})$,
 
 ---
 
-### 2. Why the Derivative is Sacred: The Chain Rule Coupler
+### 2. Why the Derivative is Sacred: Parameter Sensitivity and the Chain Rule Coupler
 
 Why do deep learning practitioners obsess over the mathematical derivative $\sigma'(z)$ of an activation function?
 
 Because neural networks **do not learn during the forward pass**. The forward pass only calculates a prediction. The model learns exclusively during the **backward pass** via <dfn id="def-gradient-descent"><strong>Gradient Descent</strong></dfn> and <dfn id="def-backpropagation"><strong>Backpropagation</strong></dfn>.
 
-To teach a network, we calculate how much the loss (prediction error) $\mathcal{L}$ changes when we nudge a weight $w$:
+The central task of this phase is singular: **to calculate the exact sensitivity of the loss function (prediction error) $\mathcal{L}$ with respect to every single weight parameter $w$ in the network**.
+
+#### What Does "Sensitivity" Mean? (Taylor Expansion & Leverage Ratio)
+Mathematically, the sensitivity of the loss $\mathcal{L}$ to a specific weight $w$ is the partial derivative $\frac{\partial \mathcal{L}}{\partial w}$. According to the first-order Taylor approximation, when we introduce a tiny nudge $\Delta w$ to a weight, the change in loss $\Delta \mathcal{L}$ satisfies:
 
 $$
-w \leftarrow w - \eta \frac{\partial \mathcal{L}}{\partial w}
+\Delta \mathcal{L} \approx \frac{\partial \mathcal{L}}{\partial w} \cdot \Delta w
 $$
 
-where $\eta > 0$ is the learning rate.
+This partial derivative is literally the **leverage conversion rate** mapping parameter adjustments into error reductions. It provides two pieces of intelligence required to guide learning:
+1. **Direction of Correction (The Sign)**:
+   - If $\frac{\partial \mathcal{L}}{\partial w} > 0$: Increasing $w$ increases the error. To reduce error ($\Delta \mathcal{L} < 0$), we must **decrease** $w$ ($\Delta w < 0$).
+   - If $\frac{\partial \mathcal{L}}{\partial w} < 0$: Increasing $w$ decreases the error. To reduce error, we must **increase** $w$ ($\Delta w > 0$).
+   - This yields the negative gradient update rule: $w \leftarrow w - \eta \frac{\partial \mathcal{L}}{\partial w}$ (where $\eta > 0$ is the learning rate).
+2. **Magnitude of Leverage (The Absolute Value)**:
+   - A large $\left|\frac{\partial \mathcal{L}}{\partial w}\right|$ indicates high sensitivity: this weight is a high-leverage dial where a tiny adjustment creates a massive shift in model behavior.
+   - A near-zero $\left|\frac{\partial \mathcal{L}}{\partial w}\right|$ indicates that moving this weight has virtually zero effect on the current error.
+
+#### Why Must We Compute Sensitivity? (The Credit Assignment Dilemma & Computational Impossibility)
+Imagine a massive aircraft cockpit containing 70 billion individual control dials (corresponding to the 70 billion parameters $w_1, w_2, \dots, w_B$ in an LLM). The plane veers 500 meters off course, and the dashboard flashes a single scalar error number: $\mathcal{L} = 500$.
+
+Which dial among the 70 billion was set incorrectly? Did Dial #4,231 cause the deviation, or did Dial #12,890,442? This is the fundamental <dfn id="def-credit-assignment"><strong>Credit Assignment Problem</strong></dfn> of deep learning.
+
+Without calculus to measure parameter sensitivity, any non-derivative alternative collapses:
+- **Random Guessing (Monte Carlo Search)**: In a 70-billion-dimensional parameter space, the probability volume of viable configurations is effectively zero. Even if every atom in the observable universe performed a random search step per nanosecond, you would not discover a functioning language model before the heat death of the universe.
+- **Trial-by-Trial Perturbation (Finite Differences)**:
+  What if we tested dials empirically by wiggling each weight by $\epsilon$ and re-measuring the loss?
+  
+  $$
+  \frac{\partial \mathcal{L}}{\partial w_i} \approx \frac{\mathcal{L}(w_i + \epsilon) - \mathcal{L}(w_i)}{\epsilon}
+  $$
+
+  For a 70-billion-parameter model, measuring the sensitivity of every dial for a **single gradient step** would require **70 billion forward passes**. Even on a multi-GPU cluster evaluating 10 passes per second, one single optimization step would take **221 years**.
+
+**The Analytical Breakthrough of Backpropagation**:
+By applying the calculus chain rule, backpropagation reuses intermediate computations. In a single backward sweep taking roughly twice the time of one forward pass, it evaluates the exact analytical sensitivity $\frac{\partial \mathcal{L}}{\partial w_i}$ for all 70 billion weights simultaneously.
 
 #### The Chain Rule Anatomy
-Consider a single neuron computing an affine combination $z = \sum_k w_k x_k + b$ followed by an activation $a = \sigma(z)$. By the calculus chain rule, the gradient of the loss with respect to weight $w_k$ is:
+Consider a single neuron computing an affine combination $z = \sum_k w_k x_k + b$ followed by an activation $a = \sigma(z)$. By the calculus chain rule, the gradient (sensitivity) of the loss with respect to weight $w_k$ is:
 
 $$
 \frac{\partial \mathcal{L}}{\partial w_k} = \underbrace{\frac{\partial \mathcal{L}}{\partial a}}_{\text{Downstream Error } \delta} \cdot \underbrace{\frac{\partial a}{\partial z}}_{\mathbf{\sigma'(z)}} \cdot \underbrace{\frac{\partial z}{\partial w_k}}_{x_k}
@@ -978,22 +1007,51 @@ $$
 
 ---
 
-### 2. 为什么导数神圣不可侵犯：链式法则传导阀门
+### 2. 为什么导数神圣不可侵犯：参数敏感度与链式法则传导阀门
 
 为什么深度学习研究者如此痴迷于激活函数的数学导数 $\sigma'(z)$？
 
-因为神经网络**在前向传播过程中根本不发生任何学习行为**。前向传播仅仅是把输入向量层层变换，输出一个预测值。真正的智力进化发生于**反向传播（Backpropagation）**与**梯度下降（Gradient Descent）**阶段。
+因为神经网络**在前向传播过程中根本不发生任何学习行为**。前向传播仅仅是将输入向量层层变换，输出一个候选词的预测概率。真正的智力进化，完全发生于**反向传播（Backpropagation）**与**梯度下降（Gradient Descent）**阶段。
 
-为了更新网络中的参数，我们必须计算损失函数（预测误差）$\mathcal{L}$ 对每个权重参数 $w$ 的敏感程度：
+而这一阶段的核心任务只有一件事：**为网络中的每一个权重参数 $w$，精确计算损失函数（预测误差）$\mathcal{L}$ 对它的敏感程度（Sensitivity）**。
+
+#### 什么是“敏感程度”？（泰勒一阶展开与杠杆转化率）
+数学上，损失 $\mathcal{L}$ 对某个特定权重 $w$ 的敏感程度就是偏导数 $\frac{\partial \mathcal{L}}{\partial w}$。根据一阶泰勒展开式，当我们给权重施加一个微小扰动 $\Delta w$ 时，最终误差的变化量 $\Delta \mathcal{L}$ 满足：
 
 $$
-w \leftarrow w - \eta \frac{\partial \mathcal{L}}{\partial w}
+\Delta \mathcal{L} \approx \frac{\partial \mathcal{L}}{\partial w} \cdot \Delta w
 $$
 
-其中 $\eta > 0$ 为学习率。
+这个偏导数本质上就是**参数调整量向误差变动量映射的“杠杆转换率”**，它同时提供了参数更新的两大核心情报：
+1. **调整方向（符号指示）**：
+   - 若 $\frac{\partial \mathcal{L}}{\partial w} > 0$：说明 $w$ 越往大调，模型误差越大；为了让误差减小（$\Delta \mathcal{L} < 0$），我们必须**调小**该参数（$\Delta w < 0$）。
+   - 若 $\frac{\partial \mathcal{L}}{\partial w} < 0$：说明 $w$ 越大，模型误差反而越小；为了让误差减小，我们必须**调大**该参数（$\Delta w > 0$）。
+   - 这正是最经典的负梯度更新规则：$w \leftarrow w - \eta \frac{\partial \mathcal{L}}{\partial w}$（其中 $\eta > 0$ 为学习率）。
+2. **调整幅度（绝对值大小）**：
+   - 绝对值 $\left|\frac{\partial \mathcal{L}}{\partial w}\right|$ 越大，说明该参数是决定模型成败的“高杠杆命门”，稍有晃动就会带来误差巨幅变动；
+   - 绝对值趋近于 $0$，说明无论怎么拨动这个参数，对最终预测几乎毫无影响。
+
+#### 为什么非算敏感度不可？（责任归因困境与算力绝境）
+想象一架拥有 700 亿个控制旋钮的超巨型客机驾驶舱（对应 70B 权重参数 $w_1, w_2, \dots, w_B$）。飞机突然偏离航线 500 米（最终终端只产生了一个标量误差：$\mathcal{L} = 500$）。
+
+此时仪表盘上只跳动着这一个最终误差数字，你该如何调整旋钮？究竟是第 4,231 号旋钮拧偏了，还是第 12,890,442 号旋钮拧反了？这就是著名的<dfn id="def-credit-assignment"><strong>责任归因困境（Credit Assignment Problem）</strong></dfn>。
+
+如果我们不借助微积分求解敏感度，现实中只有两种绝望的替代路径：
+- **盲目试凑（蒙特卡洛随机搜索）**：在 700 亿维超高维空间中，最优解所在的超体积测度趋近于零。即便动用全宇宙的所有粒子进行并行随机抽样，到宇宙热寂也绝不可能试凑出一组能通顺交流的参数组合。
+- **逐个试探（有限差分数值扰动）**：
+  若采用物理测试法，即对每个参数单独施加微小扰动 $\epsilon$，通过两次前向传播相减测量敏感度：
+  
+  $$
+  \frac{\partial \mathcal{L}}{\partial w_i} \approx \frac{\mathcal{L}(w_i + \epsilon) - \mathcal{L}(w_i)}{\epsilon}
+  $$
+
+  对于 700 亿个参数的模型，仅仅为了进行**单次参数更新**，就需要执行整整 **700 亿次模型前向传播**！即便顶级超级集群以每秒 10 次前向传播极速运转，完成一次梯度更新也需要耗费整整 **221 年**。
+
+**微积分反向传播的降维打击**：
+借助微积分链式法则，反向传播算法仅需在模型前向运行后进行一次反向遍历（耗时仅约前向的 2 倍），就能在数毫秒内**同时、精确地解析出全部 700 亿个参数对损失的敏感程度**！
 
 #### 链式法则微观解剖
-考虑一个单神经元结构，它计算加权线性组合 $z = \sum_k w_k x_k + b$，随后经过激活函数 $a = \sigma(z)$。根据微积分链式法则，损失 $\mathcal{L}$ 对权重 $w_k$ 的偏导数可严格展开为：
+考虑一个单神经元结构，它计算加权线性组合 $z = \sum_k w_k x_k + b$，随后经过激活函数 $a = \sigma(z)$。根据微积分链式法则，损失 $\mathcal{L}$ 对权重 $w_k$ 的偏导数（敏感度）可严格展开为：
 
 $$
 \frac{\partial \mathcal{L}}{\partial w_k} = \underbrace{\frac{\partial \mathcal{L}}{\partial a}}_{\text{下游传回的误差 } \delta} \cdot \underbrace{\frac{\partial a}{\partial z}}_{\mathbf{\sigma'(z)}} \cdot \underbrace{\frac{\partial z}{\partial w_k}}_{x_k}
