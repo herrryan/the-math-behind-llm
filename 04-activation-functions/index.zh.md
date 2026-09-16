@@ -67,6 +67,31 @@
 
 导数赋予了计算机**触觉反馈**：它清晰地告诉优化算法**旋钮应当往哪个方向拧**、以及**用力该多大多猛**，才能有效减少预测误差。没有导数，计算机就宛如在漆黑绝境中失去了全部触觉与痛觉，根本无法展开学习。
 
+### 录音棚里的黄金搭档：主唱与调音师（门控与 SwiGLU 的物理直觉）
+
+在传统的激活函数（如 ReLU 或 GELU）中，每个神经元就像一个**既要唱歌又要自己按静音键的独唱歌手**：它只能看着自己的嗓门高低，孤零零地决定放行还是静默。
+
+但在现代最先进的大语言模型（如 LLaMA-3、Mistral、DeepSeek、Qwen）中，科学家们采用了更加精妙的**双人黄金搭档机制（门控机制，Gating）**：
+
+<figure>
+<pre>
+   主唱歌手 (候选分支 x * W_up) ──► 唱出丰满旋律与歌词内容 ──────┐
+                                                                 ▼
+                                                       [音量推子相乘 ⊙] ──► 震撼听众的最终音乐
+                                                                 ▲
+   调音专家 (门控分支 x * W_gate) ──► 监听全场氛围，推拉旋钮 ────┘
+</pre>
+<figcaption><strong>图 4.1b：</strong> 门控机制的物理协同。主唱只管竭尽全力产生内容，调音专家根据全场语境实时推拉音量推子，两者相乘输出完美声响。</figcaption>
+</figure>
+
+- **主唱歌手（候选内容分支）**：他的任务只有一件——竭尽全力、毫无保留地唱出所有可能的候选信息。
+- **调音专家（门控开关分支）**：他不需要发出任何歌声。他戴着耳机，冷静地感知整首乐曲的大局氛围，手里握着一个极为敏锐的连续音量推子（Swish 曲线）。
+- **麦克风最终输出的声音**，等于**主唱歌声 $\times$ 调音推子刻度**。
+  - 如果主唱唱出了一句跑调或无关紧要的杂音，调音师瞬间把推子拉到 $0$——音箱一片沉寂（静默过滤）。
+  - 如果主唱正好唱到了全曲最高潮的灵魂乐句，调音师不仅彻底放开闸门，甚至把推子推到了 $120\%$（信号放大）！
+
+这就是 **SwiGLU** 的核心直觉：**让内容归内容，让控制归控制**。通过两个分支的相乘交互，模型获得了自我调控信息流向的最高智能。
+
 ---
 
 <h2 id="step-2">第 2 步：计算跨越的桥梁问题</h2>
@@ -506,42 +531,159 @@ GELU 的三大数学优势：
 
 ---
 
-### 6. 当今前沿标准：SwiGLU（LLaMA-3、Mistral、Gemma、DeepSeek）
+### 6. 当今前沿标准：SwiGLU（第一性原理重构与深层解密）
 
-2020 年，原 Google Brain 架构科学家 Noam Shazeer 发表了一篇极具影响力的里程碑论文：*《GLU 变体全方位提升 Transformer（GLU Variants Improve Transformer）》*。
+今天，无论你打开开源社区如日中天的 **LLaMA-3**（Meta）、**Mistral**（欧洲开源标杆）、**Gemma**（Google）、**DeepSeek-V2/V3**，还是 **Qwen-2.5**（阿里），它们的前馈神经网络（<abbr title="Feed-Forward Network">FFN</abbr>）无一例外全部舍弃了传统的 ReLU 与 GELU，换上了统治现代大模型王座的核心组件：<dfn id="def-swiglu"><strong>SwiGLU</strong></dfn>。
 
-Shazeer 提出了根本性的构想：*为什么神经元的激活只能是一个固定的单输入标量函数？为什么不能让一条矩阵分支去充当动态阀门，实时调节另一条矩阵分支的信号强弱？*
+为什么 SwiGLU 能横扫全球顶尖大模型？让我们剥开复杂的公式包装，沿着人类认知的第一性原理，一步一步揭开它的演化全貌与底层物理机理。
 
-#### 门控线性单元（GLU）的演化
-Dauphin 等人在 2017 年率先提出了<dfn id="def-glu"><strong>门控线性单元（GLU, Gated Linear Unit）</strong></dfn>。它将输入向量经由两个独立的权重矩阵投影为两条并行支路：
+---
+
+#### 步骤 1：传统单神经元激活（ReLU/GELU）的“单兵孤立门禁”死局
+
+在传统的全连接前馈层中，神经元的计算逻辑是标量单输入映射（Univariate Scalar Mapping）：
+
+$$
+a_j = f(z_j) = f\left(\sum_{k=1}^d x_k W_{kj} + b_j\right)
+$$
+
+请停下来审视这个机制的物理局限：
+- 第 $j$ 个神经元是否激活（开门还是关门），**完全且仅仅取决于它自己计算出的标量加权和 $z_j$**！
+- 这是一个**单兵孤立门禁**：不管整个网络在其他维度上发现了多么惊天动地的上下文线索，第 $j$ 号神经元在做决策时也是“两耳不闻窗外事”，只能根据自己脚下的数值硬性切断或放行。
+
+人类自然语言中充斥着错综复杂的**条件逻辑（Conditional Logic）**：
+> *“如果上下文谈论的是‘苹果手机’，那么‘发布会’特征应该放大 10 倍，而‘水果营养’特征应该被彻底清零；但如果上下文谈论的是‘果园采摘’，控制规则必须瞬间反转！”*
+
+在传统架构中，加法神经元要想学会这种复杂的“如果……那么……”条件控制，必须依赖很多层深层网络的层层传递。这极大地浪费了网络的深度与表达能力。
+
+研究者们自然提出了根本性的疑问：**我们能否在单个网络层内部，就直接实现“一条通道负责产生候选信息，另一条通道负责动态审查并决定音量”的即时条件控制？**
+
+---
+
+#### 步骤 2：第一性原理破局——为什么“两支路乘法（$\odot$）”本身就是高阶非线性？
+
+为了实现条件控制，我们需要两条支路：
+1. **候选内容支路**：$\mathbf{u} = \mathbf{x}\mathbf{W}_{\text{up}}$
+2. **控制调节支路**：$\mathbf{v} = \mathbf{x}\mathbf{W}_{\text{gate}}$
+
+如何将这两条支路结合起来？
+
+##### 为什么加法（$\mathbf{u} + \mathbf{v}$）彻底失败？
+如果我们尝试最简单的加法结合：
+
+$$
+\mathbf{h}_{\text{add}} = \mathbf{x}\mathbf{W}_{\text{up}} + \mathbf{x}\mathbf{W}_{\text{gate}} = \mathbf{x}(\mathbf{W}_{\text{up}} + \mathbf{W}_{\text{gate}}) = \mathbf{x}\mathbf{W}_{\text{sum}}
+$$
+
+由线性代数的分配律可知：**两个线性矩阵相加，数学上完全等价于仅仅一个合并后的线性矩阵！**
+它没有产生任何非线性弯折，整个多层网络依旧会发生致命的“线性塌陷”。
+
+##### 为什么逐元素乘法（阿达马积 $\odot$）瞬间破局？
+现在，让我们执行**逐元素乘法（Hadamard Product，记作 $\odot$）**：
+
+$$
+\mathbf{h}_{\text{mul}} = \mathbf{u} \odot \mathbf{v}
+$$
+
+对输出向量的第 $j$ 个分量进行展开：
+
+$$
+h_j = u_j \cdot v_j = \left( \sum_{k=1}^d x_k W_{\text{up}, kj} \right) \cdot \left( \sum_{m=1}^d x_m W_{\text{gate}, mj} \right)
+$$
+
+请仔细观察这个乘积：
+展开后，它包含了所有的交叉乘积项 $x_k \cdot x_m$（即 $x$ 的二次方二次项 $\mathcal{O}(x^2)$）！
+
+在高等代数中，这被称为**双线性运算（Bilinear Operation）**。
+- **核心真相**：乘法本身就是一种极具穿透力的高阶非线性操作！
+- 哪怕 $\mathbf{u}$ 和 $\mathbf{v}$ 本身是纯粹平直的线性投影，一旦将它们**逐元素相乘**，输出空间就立刻脱离了平直超平面，弯曲成了极富弹性的二次高维双曲抛物面！
+- 同时，乘法在连续空间中天然就是连续平滑的“与门（AND Gate）”：只有当候选信息存在（$u_j \ne 0$）**且**门控认为重要（$v_j \ne 0$）时，最终信号才能汹涌而出！
+
+---
+
+#### 步骤 3：演化阶梯第 1 阶——门控线性单元 GLU（Dauphin 等人，2017）
+
+2017 年，Meta FAIR 的 Yann Dauphin 等人正式将上述双线性门控理念工程化，发表了里程碑论文《使用门控卷积网络的语言建模》，提出了<dfn id="def-glu"><strong>门控线性单元（GLU, Gated Linear Unit）</strong></dfn>：
 
 $$
 \operatorname{GLU}(\mathbf{x}, \mathbf{W}, \mathbf{V}) = (\mathbf{x}\mathbf{W}) \odot \sigma(\mathbf{x}\mathbf{V})
 $$
 
-其中：
-- $\mathbf{x}\mathbf{W}$ 为**候选值分支**（承载特征的候选信息信号）。
-- $\sigma(\mathbf{x}\mathbf{V})$ 为**门控分支**（通过 Sigmoid 生成在 $[0, 1]$ 之间浮动的连续门控系数）。
-- $\odot$ 代表逐元素阿达马积（Hadamard Product）。
+让我们拆解这个著名的名字：
+- **`LU` (Linear Unit，线性单元)**：候选内容分支 $\mathbf{x}\mathbf{W}$ **完全不经过任何非线性激活函数**！它是一根纯粹平直的“线性通道”，无拘无束地保留输入的全部几何信息。
+- **`G` (Gated，门控)**：非线性完全来自于门控分支 $\sigma(\mathbf{x}\mathbf{V})$。门控分支通过经典的 Sigmoid 函数 $\sigma(z) = \frac{1}{1 + e^{-z}}$，把每个数值规整压缩到 $(0, 1)$ 区间，充当纯粹的百分比开合度（0% 代表完全关死，100% 代表全通放行）。
 
-#### Swish / SiLU 激活函数
-在构建 SwiGLU 之前，Shazeer 将原本生硬饱和的 Sigmoid 门控替换成了更流畅的 <dfn id="def-swish"><strong>Swish</strong></dfn>（又称 <abbr title="Sigmoid Linear Unit">SiLU</abbr>，由 Ramachandran 等人于 2017 年提出）：
+##### GLU 撞上的两堵残酷高墙（为什么 Sigmoid 门控不够好？）
+尽管 GLU 惊艳了自然语言处理领域，但随着模型深度向数十层推进，它遭遇了 Sigmoid 带来的两大内生缺陷：
+1. **“最大只有 1.0”的抑制天花板**：
+   Sigmoid 的取值范围被死死锁死在 $(0, 1)$ 之内。这意味着门控只能起到**“削弱”或“阻断”**的作用（$u \times 0.8 = 0.8u$）。如果网络发现某个特征极其关键，想要将其**放大 2 倍或 3 倍**（信号增益 Boost），Sigmoid 在数学上根本无能为力！
+2. **两极梯度饱和（Vanishing Gradients）**：
+   正如我们在本章前面推导过的，当输入的绝对值较大时（$|z| > 4$），Sigmoid 曲线两端变得极度平坦，导数 $\sigma'(z) \to 0$。反向传播时，误差信号直接被门控本身的饱和带截杀，导致门控权重停止进化。
+
+---
+
+#### 步骤 4：演化阶梯第 2 阶——打破天花板的 Swish / SiLU 激活函数（2017）
+
+为了彻底破除 Sigmoid 的饱和天花板，2017 年，Google Brain 团队的 Prajit Ramachandran、Barret Zoph 与 Quoc V. Le 利用神经架构搜索（NAS）技术在海量数学候选公式中穷举测试，发现了惊人的 <dfn id="def-swish"><strong>Swish</strong></dfn>（又称 <abbr title="Sigmoid Linear Unit">SiLU</abbr>）：
 
 $$
 \operatorname{Swish}_1(z) = z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}
 $$
 
-#### SwiGLU 完整数学形式
-将 Swish 激活与双线性门控单元深度融合，便诞生了统治现代开源大语言模型的 <dfn id="def-swiglu"><strong>SwiGLU</strong></dfn>：
+<figure>
+<pre>
+   y ▲                                     Swish(z) = z * σ(z)
+     │                                            /
+   3 │                                           /  正半轴无天花板：
+   2 │                                          /   当 z -> +∞ 时，
+   1 │                                         /    σ(z) -> 1，Swish(z) -> z！
+     │                                      _--
+ ────┼───────────────────────────_───────_--──────────────────► z
+-3   │-2       -1            0  \       /    1       2       3
+     │                           \_____/
+-0.5 │                             ▲
+     │                      极小值谷底 ≈ -0.278 (位于 z ≈ -1.28)
+</pre>
+<figcaption><strong>图 4.6a：</strong> Swish 激活函数曲线。正向无界（突破 Sigmoid 1.0 的天花板），负向平滑趋零（阻断噪声），底部拥有一道温柔的负向谷底（永不彻底断死梯度）。</figcaption>
+</figure>
+
+Swish 的数学绝妙之处在于：
+1. **打破上界，拥抱自由（Unbounded Above）**：
+   当 $z \to +\infty$ 时，$\sigma(z) \to 1$，因此：
+   
+   $$
+   \lim_{z \to +\infty} \operatorname{Swish}_1(z) = z \times 1 = z
+   $$
+
+   它摆脱了 Sigmoid $\le 1.0$ 的死板束缚！当特征信号强烈时，Swish 输出可以达到 $2.0, 5.0, 10.0$，天然具备**动态倍率放大**的无上威能！
+2. **平滑压制负向噪音（Bounded Below）**：
+   当 $z \to -\infty$ 时，$\sigma(z) \to 0$，故 $\operatorname{Swish}_1(z) \to 0$。它像 ReLU 一样能够自然滤除无关杂质。
+3. **负轴温柔的活水之源（Smooth Non-monotonic Dip）**：
+   在 $z \approx -1.28$ 处，Swish 自然凹陷出一个约 $-0.278$ 的微小负极小值。这保证了在拐点附近导数始终非零且处处平滑一阶可导，不仅没有 ReLU 的“神经元猝死”，更赋予了网络自愈的能力。
+
+---
+
+#### 步骤 5：大一统王座——SwiGLU 的诞生（Noam Shazeer，2020）
+
+2020 年，Transformer 架构的关键奠基人之一、原 Google Brain 杰出科学家 **Noam Shazeer** 将前人的所有积淀融会贯通，发表了传世之作《GLU 变体全方位提升 Transformer》。
+
+Shazeer 做出了一记举重若轻的天才级替换：**如果把 GLU 中僵硬且饱和的 Sigmoid 门控，直接换成没有天花板、平滑可导的 Swish，会发生什么？**
+
+这就是正式登顶现代王座的 **SwiGLU**：
 
 $$
 \operatorname{SwiGLU}(\mathbf{x}) = \operatorname{Swish}_1(\mathbf{x}\mathbf{W}_{\text{gate}}) \odot (\mathbf{x}\mathbf{W}_{\text{up}})
 $$
 
-在现代大语言模型的前馈全连接层（<abbr title="Feed-Forward Network">FFN</abbr>）中，完整的 SwiGLU 模块首先将隐藏向量投影升维至超宽的中间维度 $d_{\text{ffn}}$，完成双分支交互后，再通过降维矩阵投影回模型主维度 $d_{\text{model}}$：
+让我们再次完整审视这个词的构词法拆解：
+- **`Swi`**：门控支路采用了 **`Swish`** 激活函数进行连续调音；
+- **`G`**：采用了双分支乘法阿达马积构成的 **`Gated`（门控机制）**；
+- **`LU`**：候选值支路是一根无激活、无畸变的纯粹 **`Linear Unit`（线性单元）**。
+
+在完整的前馈神经网络（FFN）模块中，输入向量首先经由 $\mathbf{W}_{\text{gate}}$ 和 $\mathbf{W}_{\text{up}}$ 两个矩阵同时升维并相互调制，最后通过下投影矩阵 $\mathbf{W}_{\text{down}}$ 压回主维度：
 
 $$
-\operatorname{FFN}_{\text{SwiGLU}}(\mathbf{x}) = \left(\operatorname{Swish}_1(\mathbf{x}\mathbf{W}_{\text{gate}}) \odot (\mathbf{x}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}
+\operatorname{FFN}_{\text{SwiGLU}}(\mathbf{x}) = \left( \operatorname{Swish}_1(\mathbf{x}\mathbf{W}_{\text{gate}}) \odot (\mathbf{x}\mathbf{W}_{\text{up}}) \right) \mathbf{W}_{\text{down}}
 $$
 
 <figure>
@@ -551,41 +693,122 @@ $$
                ┌───────────────┴───────────────┐
                ▼                               ▼
        W_gate [d_model × d_ffn]        W_up [d_model × d_ffn]
+        (调音师：大局语境门控)           (主唱歌手：纯线性候选内容)
                │                               │
                ▼                               │
-            Swish(·)                           │
+        Swish(·) 调音旋钮                      │
                │                               │
                └───────────────┬───────────────┘
                                ▼
                       逐元素哈达玛积 ⊙
+                      (双线性乘积调制)
                                │
                                ▼
                      中间特征向量 h  [1 × d_ffn]
                                │
                                ▼
                       W_down [d_ffn × d_model]
+                         (投射回主干通道)
                                │
                                ▼
                      最终输出向量 y  [1 × d_model]
 </pre>
-<figcaption><strong>图 4.6：</strong> LLaMA-3、Mistral、Gemma 和 DeepSeek 普遍采用的现代 SwiGLU 前馈网络拓扑。两条并行矩阵分别计算门控与候选值，经过双线性乘积调制后输出。</figcaption>
+<figcaption><strong>图 4.6b：</strong> 统治现代开源大模型的 SwiGLU 前馈网络完整数据流图。两条并行矩阵分别计算动态门控与纯线性候选值，通过双线性乘积融合，再由降维矩阵投射回主干空间。</figcaption>
 </figure>
 
-#### SwiGLU 的参数量对齐与缩放秘诀
-传统 GPT 风格的前馈网络仅仅包含**两**个矩阵：
-- 升维矩阵 $\mathbf{W}_1 \in \mathbb{R}^{d_{\text{model}} \times 4d_{\text{model}}}$
-- 降维矩阵 $\mathbf{W}_2 \in \mathbb{R}^{4d_{\text{model}} \times d_{\text{model}}}$
-- 总参数量为：$2 \times 4 d_{\text{model}}^2 = 8 d_{\text{model}}^2$。
+---
 
-但 SwiGLU 拥有**三**个矩阵（$\mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}}, \mathbf{W}_{\text{down}}$）。如果仍设定 $d_{\text{ffn}} = 4d_{\text{model}}$，参数量将暴涨 50%（$3 \times 4 = 12 d_{\text{model}}^2$）。
+#### 步骤 6：反向传播奇迹——双分支自监督的梯度高速公路
 
-为了确保模型总参数量与算力开销严格与传统模型对齐，Shazeer 将中间隐藏维度缩放为 $\frac{8}{3}d_{\text{model}}$：
+为什么 SwiGLU 在训练海量千亿 Token 语料时表现得异常稳健，几乎从不发生梯度消失或数值爆炸？
+
+答案藏在微积分的**乘法求导法则（Product Rule）**中。
+
+在反向传播过程中，设中间激活分量为 $h_j = u_j \cdot v_j$，其中：
+- $u_j = (\mathbf{x}\mathbf{W}_{\text{up}})_j$ 为候选值；
+- $v_j = \operatorname{Swish}_1(g_j) = \operatorname{Swish}_1((\mathbf{x}\mathbf{W}_{\text{gate}})_j)$ 为门控调节系数；
+- 设从上层回传而来的误差梯度信号为 $\frac{\partial \mathcal{L}}{\partial h_j}$。
+
+根据一元多变量微积分链式法则与乘积求导法则，误差回传向两条支路时的灵敏度分配为：
 
 $$
-d_{\text{ffn}} \approx \left\lfloor \frac{8}{3} d_{\text{model}} \right\rfloor = \left\lfloor \frac{2}{3} \times 4 d_{\text{model}} \right\rfloor
+\frac{\partial \mathcal{L}}{\partial u_j} = \frac{\partial \mathcal{L}}{\partial h_j} \cdot \frac{\partial h_j}{\partial u_j} = \frac{\partial \mathcal{L}}{\partial h_j} \cdot v_j = \frac{\partial \mathcal{L}}{\partial h_j} \cdot \operatorname{Swish}_1(g_j)
 $$
 
-在现代架构（如 LLaMA-3）中，这个数值还会进一步向上取整至 256 或 1024 的整倍数，以便完全契合英伟达 GPU Tensor Core 的内存硬件对齐规范。
+$$
+\frac{\partial \mathcal{L}}{\partial v_j} = \frac{\partial \mathcal{L}}{\partial h_j} \cdot \frac{\partial h_j}{\partial v_j} = \frac{\partial \mathcal{L}}{\partial h_j} \cdot u_j
+$$
+
+进一步回传到门控矩阵的线性加权和 $g_j = (\mathbf{x}\mathbf{W}_{\text{gate}})_j$ 时：
+
+$$
+\frac{\partial \mathcal{L}}{\partial g_j} = \frac{\partial \mathcal{L}}{\partial v_j} \cdot \operatorname{Swish}_1'(g_j) = \frac{\partial \mathcal{L}}{\partial h_j} \cdot u_j \cdot \operatorname{Swish}_1'(g_j)
+$$
+
+请凝视这两个优美的求导结果，它揭示了深度学习中最震撼的**双分支自监督生态（Co-Supervision Ecosystem）**：
+1. **候选分支的梯度通道，由门控分支的开合度决定**：
+   $$\frac{\partial \mathcal{L}}{\partial u_j} \propto v_j$$
+   如果门控分支在前向传播中判定该特征极其重要（$v_j$ 很大），那么在反向传播时，它会为候选分支拉开一条**宽阔无比的无阻碍绿色通道**，让误差梯度毫无阻力地灌入 $\mathbf{W}_{\text{up}}$！
+2. **门控分支的梯度更新，由候选分支的内容能量所驱动**：
+   $$\frac{\partial \mathcal{L}}{\partial g_j} \propto u_j$$
+   门控参数该学什么、该往哪里转动，直接取决于候选分支输送的信息量 $u_j$！如果候选分支产生了一个极具预测价值的强特征，它会瞬间激起巨大的梯度，强力促使门控网络学习：“记住这个语境，下次务必将门开得更大！”
+
+两条支路彼此互为导数系数，**互为导师，互相督促**！这彻底摆脱了单神经元孤军奋战时的冷启动困境与死区陷阱。
+
+---
+
+#### 步骤 7：算力与显存的精密守恒——黄金比例 $\frac{8}{3}d_{\text{model}}$ 的算术奥秘
+
+很多细心的学习者在查阅 LLaMA、Mistral 或 DeepSeek 的开源配置文件时，会发现一个耐人寻味的现象：
+在早期的标准 GPT-2 / GPT-3 中，FFN 的中间升维维度整整齐齐地等于模型主维度的 4 倍（即 $d_{\text{ffn}} = 4 d_{\text{model}}$）；
+然而在所有采用 SwiGLU 的现代大模型中，中间维度却离奇地缩减到了大约 $2.67$ 倍（即 $d_{\text{ffn}} \approx \frac{8}{3} d_{\text{model}}$）。
+
+这背后隐藏着严谨的**参数守恒法则**：
+
+##### 1. 传统 2 矩阵 FFN 的参数开销
+传统的 GPT 风格前馈层仅包含两个矩阵：
+- 升维矩阵 $\mathbf{W}_1 \in \mathbb{R}^{d_{\text{model}} \times (4d_{\text{model}})}$：参数量为 $d_{\text{model}} \times 4d_{\text{model}} = 4 d_{\text{model}}^2$
+- 降维矩阵 $\mathbf{W}_2 \in \mathbb{R}^{(4d_{\text{model}}) \times d_{\text{model}}}$：参数量为 $4d_{\text{model}} \times d_{\text{model}} = 4 d_{\text{model}}^2$
+- **双矩阵总参数量**：$4 d_{\text{model}}^2 + 4 d_{\text{model}}^2 = \mathbf{8 d_{\text{model}}^2}$。
+
+##### 2. SwiGLU 3 矩阵的参数通胀
+SwiGLU 必须维持三条并行的矩阵流水线：
+- 门控矩阵 $\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$
+- 候选矩阵 $\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$
+- 降维矩阵 $\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$
+- **三矩阵总参数量**：$3 \times (d_{\text{model}} \cdot d_{\text{ffn}})$。
+
+如果无脑保留传统的 $d_{\text{ffn}} = 4d_{\text{model}}$，参数量将瞬间飙升至：
+
+$$
+3 \times 4 d_{\text{model}}^2 = 12 d_{\text{model}}^2 \quad (\text{暴涨了整整 } 50\%!)
+$$
+
+参数量暴涨意味着显存消耗暴涨 50%、每秒浮点运算量（FLOPs）暴涨 50%，这对于万卡集群训练是不可接受的沉重负担。
+
+##### 3. Shazeer 的严谨代数平衡方程
+为了在严苛的科学评测中证明性能飞跃纯粹来自于**“SwiGLU 的双线性门控数学优越性”**，而不是靠“增加 50% 参数量的蛮力灌水”，Noam Shazeer 强令 SwiGLU 的总参数量必须严格等于传统 FFN 的 $8 d_{\text{model}}^2$：
+
+$$
+3 \cdot d_{\text{model}} \cdot d_{\text{ffn}} = 8 d_{\text{model}}^2
+$$
+
+两边同时除以 $3 d_{\text{model}}$，便自然诞生了震惊工业界的**黄金压缩比例**：
+
+$$
+d_{\text{ffn}} = \frac{8}{3} d_{\text{model}} = \frac{2}{3} \times (4 d_{\text{model}}) \approx 2.667 d_{\text{model}}
+$$
+
+##### 4. 工业级硬件对齐取整（Tensor Core 内存填充）
+在真实工业落地（如 Meta LLaMA-3）中，为了使矩阵乘法能完全贴合英伟达 GPU Tensor Core 的内存硬件 Warp 并行周期，这个数值还会执行向上取整至 256 或 1024 整数倍的微调运算：
+
+$$
+d_{\text{ffn}} = 256 \times \left\lfloor \frac{2 \times \frac{4}{3} d_{\text{model}} + 255}{256} \right\rfloor
+$$
+
+例如在 LLaMA-3 8B 中，$d_{\text{model}} = 4096$，理论 $\frac{8}{3} \times 4096 \approx 10922.67$，工程对齐取整后精准设定为 **$14336$**！
+
+这种极致的数学对称与工程克制，使得大语言模型在**分毫不增加计算代价与参数量**的前提下，纯享了 SwiGLU 带来的强大动态条件筛选智能。
 
 ---
 
