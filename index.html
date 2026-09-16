@@ -130,6 +130,7 @@
   <p>
     <strong>Curriculum Navigation:</strong>
     <a href="#pedagogy">Learning Ladder</a> &bull;
+    <a href="#evolution">Brain Evolution</a> &bull;
     <a href="#pipeline">Architecture Pipeline</a> &bull;
     <a href="#module-0">Module 0</a> &bull;
     <a href="#module-1">Module 1</a> &bull;
@@ -208,6 +209,50 @@ Every single chapter in this course follows an unshakeable 5-step learning ladde
 
 ---
 
+<h2 id="evolution">The 4-Stage Python Brain Evolution Chain</h2>
+
+<p>Parallel to the theoretical mathematics, ambitious learners follow an unbroken, hands-on engineering track: <strong>The Python Brain Evolution Chain</strong>. We build, test, and grow a single, zero-dependency Python neural language model across four major milestone labs:</p>
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table C.0:</strong> The 4-Stage Python Brain Evolution Milestone Roadmap.</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left" width="18%">Evolution Stage</th>
+      <th align="left" width="22%">Lab Location</th>
+      <th align="left" width="30%">Architecture Milestone</th>
+      <th align="left" width="30%">Bottleneck Unmasked</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Stage 1: The Micro-Brain</strong></td>
+      <td><a href="04b-lab-micro-brain/index.html">Lab 01 (Post Module 2)</a></td>
+      <td>80 lines pure Python: Bengio 2003 MLP with embeddings, dense projection, ReLU, and manual backpropagation.</td>
+      <td><mark>Severe Short-Term Amnesia</mark>: Markovian 1-word context horizon. Demands <strong>Attention</strong>.</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 2: The Attention Brain</strong></td>
+      <td><a href="08b-lab-attention-brain/index.html">Lab 02 (Post Module 3)</a></td>
+      <td>140 lines pure Python: Full self-attention with Query, Key, Value projections, scaled dot-products, and causal masking.</td>
+      <td><mark>Depth Instability</mark>: Stacking deep attention blocks triggers vanishing gradients and scale blowups. Demands <strong>Residuals &amp; RMSNorm</strong>.</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 3: The Transformer Brain</strong></td>
+      <td><a href="13b-lab-transformer-brain/index.html">Lab 03 (Post Module 5)</a></td>
+      <td>220 lines pure Python: Complete modern LLaMA-style Transformer block with SwiGLU gating, Pre-RMSNorm, and Residual highways.</td>
+      <td><mark>Mechanical Generation</mark>: Plain greedy decoding produces rigid, repetitive text loops. Demands <strong>Probabilistic Sampling</strong>.</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 4: The Complete LLM</strong></td>
+      <td><a href="17b-lab-complete-llm/index.html">Lab 04 (Post Module 7)</a></td>
+      <td>300 lines pure Python: Production-style autoregressive inference engine with KV Cache acceleration and Top-p (Nucleus) sampling.</td>
+      <td><mark>Completed Artifact</mark>: A fully interactive, zero-dependency LLM chat engine running in your terminal!</td>
+    </tr>
+  </tbody>
+</table>
+
+---
+
 <h2 id="pipeline">Complete Curriculum Overview</h2>
 
 Below is the complete roadmap of 19 chapters across 9 intuitive modules, covering the entire journey from raw words to deep alignment:
@@ -217,12 +262,12 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 [Raw Human Words]
        │
        ▼
-[01: Word Embeddings] ──► [02: Dot Product & Similarity]
+[01: Word Embeddings] ──► [02: Dot Product &amp; Similarity]
                                    │
                                    ▼
-[03: Matrix Multiplication] ──► [04: Non-linear Activations (SwiGLU)]
-                                   │
-                                   ▼
+[03: Matrix Multiplication] ──► [04: Non-linear Activations] ──► [Lab 01: The Micro-Brain (Bengio 2003)]
+                                                                               │
+                                                                               ▼
 [05: Queries, Keys, Values] ──► [06: Softmax] ──► [07: Attention Formula] ──► [08: Causal Masking]
                                                            │
                                                            ▼
@@ -235,7 +280,7 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 [14: Cross-Entropy Loss] ──► [15: Backpropagation] ──► [16: Adam Optimizer]
                                                               │
                                                               ▼
-[17: Sampling (Temperature / Top-p)] ──► [18: Alignment (RLHF & DPO)]
+[17: Sampling (Temperature / Top-p)] ──► [18: Alignment (RLHF &amp; DPO)]
 </pre>
 <figcaption><strong>Figure C.1:</strong> Master architectural dataflow pipeline from raw text to aligned model.</figcaption>
 </figure>
@@ -279,6 +324,11 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
   - **The Metaphor**: A secret one-way valve; why stacking flat sheets of glass never creates a curved magnifying lens.
   - **The Math**: Collapse of linear cascades $\mathbf{W}_2(\mathbf{W}_1 \mathbf{x}) = \mathbf{W}_{\text{comb}} \mathbf{x}$. Non-linear remedies: ReLU $\max(0, x)$, GELU $x \Phi(x)$, and SwiGLU $\text{Swish}(\mathbf{x}\mathbf{W}) \odot (\mathbf{x}\mathbf{V})$.
   - **Formula Origin**: Biological neuron thresholding (McCulloch-Pitts 1943) evolved into smooth gating (Hendrycks 2016, Shazeer 2020).
+
+- [Hands-on Lab 01: Training Your First Brain in 80 Lines of Pure Python (Bengio 2003)](04b-lab-micro-brain/index.html)
+  - **The Metaphor**: The clockwork punched-card music box that learns to strike tuned bells.
+  - **The Math**: End-to-end integration of Chapters 00–04 in pure Python: $\mathbf{x} = \mathbf{e}_i^\top \mathbf{E}$, $\mathbf{z}_1 = \mathbf{x} \mathbf{W}_1 + \mathbf{b}_1$, $\mathbf{a}_1 = \operatorname{ReLU}(\mathbf{z}_1)$, $\mathbf{z}_2 = \mathbf{a}_1 \mathbf{W}_2 + \mathbf{b}_2$, $\mathcal{L} = -\log(\hat{y})$, and manual reverse-mode gradient updates $w \leftarrow w - \eta \nabla_w \mathcal{L}$.
+  - **The Python Brain Evolution**: Stage 1 of 4. Proves a zero-dependency neural network can learn grammar and predict next words, while exposing the fatal 1-word horizon (amnesia) that necessitates Attention.
 
 ---
 
@@ -394,6 +444,7 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 
 > [!TIP] Ready to Begin the Journey?
 > Dive straight into [Chapter 00: The Next-Word Guessing Game](00-next-word-prediction/index.html) to build your first mathematical foundation!
+
   </script>
 
   <script>

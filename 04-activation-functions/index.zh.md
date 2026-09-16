@@ -859,6 +859,6 @@ SwiGLU 前馈模块的最终输出结果为：$\mathbf{y} = \begin{bmatrix} -2.3
   <p>
     <a href="../03-matrix-multiplication/index.html">&larr; 第 03 章：神奇拉伸盒（矩阵乘法）</a> &bull;
     <a href="../index.html">课程主页</a> &bull;
-    <a href="../05-queries-keys-values/index.html">第 05 章：图书馆寻宝记（查询、键与值） &rarr;</a>
+    <a href="../04b-lab-micro-brain/index.html">阶段实战工坊 01：80 行纯 Python 训练首个自研大脑（Bengio 2003） &rarr;</a>
   </p>
 </nav>

@@ -49,6 +49,7 @@ Or open any `index.html` directly in your browser. Whenever you edit `index.md`,
 - **Module 2: Transforming Spaces (Linear Algebra & Activations)**
   - [Chapter 03: The Magic Stretching Box (Matrix Multiplication)](03-matrix-multiplication/index.html)
   - [Chapter 04: The One-Way Gate (Activation Functions: ReLU, GELU, SwiGLU)](04-activation-functions/index.html)
+  - [Hands-on Lab 01: Training Your First Brain in 80 Lines of Pure Python (Bengio 2003)](04b-lab-micro-brain/index.html)
 - **Module 3: The Secret Sauce (The Attention Mechanism)**
   - [Chapter 05: The Library Clue Hunt (Queries, Keys, and Values)](05-queries-keys-values/index.html)
   - [Chapter 06: The Fair Voting Booth (The Softmax Function)](06-softmax-function/index.html)

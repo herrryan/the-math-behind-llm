@@ -858,6 +858,6 @@ Linear matrix multiplications can only rotate and stretch flat space; <strong>ac
   <p>
     <a href="../03-matrix-multiplication/index.html">&larr; Chapter 03: The Magic Stretching Box (Matrix Multiplication)</a> &bull;
     <a href="../index.html">Course Overview</a> &bull;
-    <a href="../05-queries-keys-values/index.html">Chapter 05: The Library Clue Hunt (Queries, Keys, and Values) &rarr;</a>
+    <a href="../04b-lab-micro-brain/index.html">Hands-on Lab 01: Training Your First Brain in 80 Lines of Pure Python (Bengio 2003) &rarr;</a>
   </p>
 </nav>
