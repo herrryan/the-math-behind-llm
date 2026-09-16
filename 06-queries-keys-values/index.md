@@ -1,4 +1,4 @@
-# Chapter 05: The Library Clue Hunt (Queries, Keys, and Values)
+# Chapter 06: The Library Clue Hunt (Queries, Keys, and Values)
 
 <nav aria-label="Table of Contents">
   <p>
@@ -545,7 +545,7 @@ Visualizing match intensity:
 
 Through the collaborative projection of $\mathbf{W}_Q$ and $\mathbf{W}_K$, `"bank"` successfully escaped the self-absorption trap and directed its highest attention score towards the pivotal clue word `"river"`.
 
-In the upcoming Chapter 06, we will discover how **Softmax** converts these raw logits $[4, 7, 6]$ into strict probability weights summing to 100%, which then aggregate the **Value vectors**.
+In the upcoming Chapter 07, we will discover how **Softmax** converts these raw logits $[4, 7, 6]$ into strict probability weights summing to 100%, which then aggregate the **Value vectors**.
 
 ---
 
@@ -563,8 +563,8 @@ Raw embeddings $\mathbf{X}$ are static and isolated; by projecting them through 
 
 <nav aria-label="Chapter Navigation">
   <p>
-    <a href="../04b-lab-micro-brain/index.html">&larr; Hands-on Lab 01: Training Your First Brain in 80 Lines of Pure Python</a> &bull;
+    <a href="../05-transformer-architecture/index.html">&larr; Chapter 05: The Transformer Architecture (The Big Picture)</a> &bull;
     <a href="../index.html">Course Overview</a> &bull;
-    <a href="../06-softmax-function/index.html">Chapter 06: The Fair Voting Booth (The Softmax Function) &rarr;</a>
+    <a href="../07-softmax-function/index.html">Chapter 07: The Fair Voting Booth (The Softmax Function) &rarr;</a>
   </p>
 </nav>

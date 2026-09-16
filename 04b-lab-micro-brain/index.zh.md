@@ -390,14 +390,14 @@ Generated: cat sat on the rug the rug
 
 **怎样才能打破单词输入的视野枷锁？怎样让模型能在长达几千个词的海洋里，瞬间精准定位并聚焦到最关键的信息？**
 
-带上这个激动人心的挑战，让我们正式推开下一模块的大门——**Module 3：注意力机制（Attention Mechanism）**！
+带上这个激动人心的挑战，让我们正式推开现代大语言模型最核心的基石大门——**第 05 章：大模型的全景图纸（Transformer 架构宏观巡览）**！
 
 ---
 
 <nav aria-label="章节导航">
   <p>
-    <a href="../04-activation-functions/index.html">&larr; 第 04 章：激活函数（ReLU、GELU 与 SwiGLU）</a> &bull;
+    <a href="../04-activation-functions/index.zh.html">&larr; 第 04 章：激活函数（ReLU、GELU 与 SwiGLU）</a> &bull;
     <a href="../index.html">课程主页</a> &bull;
-    <a href="../05-queries-keys-values/index.html">第 05 章：图书馆寻宝记（查询、键与值） &rarr;</a>
+    <a href="../05-transformer-architecture/index.zh.html">第 05 章：大模型的全景图纸（Transformer 架构宏观巡览） &rarr;</a>
   </p>
 </nav>

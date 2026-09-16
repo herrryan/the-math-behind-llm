@@ -1,0 +1,502 @@
+# Chapter 05: The Transformer Blueprint (The Bird's-Eye View & The Round Table)
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Architecture</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+
+---
+
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Round Table vs. The Whispering Line)</h2>
+
+In the previous hands-on lab (Lab 01), we built and trained our very first neural network brain in 80 lines of pure Python. It learned grammar and generated its first sentences! But we also discovered its fatal flaw: **severe short-term amnesia**. It could only look at the single preceding word, blindly looping on <samp>"the rug the rug"</samp> forever.
+
+To understand why modern AI solved this problem, let's look at three very different ways children can tell a story:
+
+<figure>
+<pre>
+1. The Horse with Blinkers (Bengio 2003 MLP):
+   [Word 1] [Word 2] ... [Word 98] | [Word 99] ===&gt; [Predict Word 100]
+                                   └─ Blind to anything further back!
+
+2. The Whispering Telephone Game (Recurrent Neural Networks / RNNs):
+   [Child 1] ──whisper──&gt; [Child 2] ──whisper──&gt; ... ──whisper──&gt; [Child 100]
+   "A puppy..."          "A puppy?"                              "A potato!"
+   (Message blurs, dilutes, and gets lost along the long chain)
+
+3. The Grand Round Table (The Transformer):
+   ┌─────────────────────────────────────────────────────────────┐
+   │                          Child 1                            │
+   │                        ("The puppy")                        │
+   │                          ▲         ▲                        │
+   │       direct eye contact │         │ direct eye contact     │
+   │                          ▼         ▼                        │
+   │   Child 25 ◄───────────► Child 50 ◄───────────► Child 100   │
+   │   ("fluffy")             ("barked")            ("loudly")   │
+   └─────────────────────────────────────────────────────────────┘
+   Every child sits at the round table simultaneously!
+   Anyone can look directly at anyone else across the room in zero seconds.
+</pre>
+<figcaption><strong>Figure 5.1:</strong> Three generations of sequence processing: the blind fixed window, the whispering telephone line, and the round-table conference.</figcaption>
+</figure>
+
+### Metaphor 1: The Horse with Blinkers (Fixed-Window Feed-Forward Networks)
+In our Lab 01 network (based on Bengio 2003), the model wore leather blinkers on both sides of its eyes. It could only see the word directly in front of its nose. 
+
+If we wanted it to look at 10 past words, we had to concatenate 10 vectors together, making the first weight matrix 10 times wider. If we wanted it to read an entire book with 100,000 words, the weight matrix would require trillions of numbers, consuming petabytes of memory before doing a single calculation! Fixed windows simply cannot scale to long stories.
+
+### Metaphor 2: The Whispering Telephone Game (Recurrent Networks / RNNs &amp; LSTMs)
+Before 2017, the AI world tried to fix this with **Recurrent Neural Networks (<abbr title="Recurrent Neural Network">RNN</abbr>)** and **Long Short-Term Memory (<abbr title="Long Short-Term Memory">LSTM</abbr>)**.
+
+Imagine 100 children standing in a single-file line.
+- Child 1 hears a secret: <samp>"A tiny golden puppy with fluffy ears lived in Paris."</samp>
+- Child 1 writes a hurried note in a tiny notebook (the hidden state vector $\mathbf{h}_1$) and passes it to Child 2.
+- Child 2 reads the note, adds their own word, rewrites the notebook, and whispers to Child 3.
+- By the time the notebook reaches Child 100 at the end of the line, the page is smeared with eraser marks and ink stains. What does Child 100 hear? <samp>"A potato lived in Paris."</samp>
+
+This breakdown suffered from two catastrophic structural flaws:
+1. **The Information Bottleneck**: Squeezing an entire unfolding novel into a single fixed-size vector $\mathbf{h}_t$ causes distant memories to dissolve and vanish.
+2. **The Sequential Prison**: Child 50 **cannot start whispering** until Child 49 finishes! Modern graphics cards (<abbr title="Graphics Processing Unit">GPU</abbr>s) have tens of thousands of tiny computational cores ready to work simultaneously, but an RNN forced them to sit idle, waiting for one word to process at a time.
+
+### Metaphor 3: The Grand Round Table (The Transformer)
+In 2017, a team of researchers at Google published a legendary paper with a bold title: <cite>"Attention Is All You Need"</cite>.
+
+They threw away the whispering line completely. Instead, they placed all the words around a **giant round conference table**:
+- **Simultaneous Arrival**: All 1,000 words of a document walk into the room at the exact same instant.
+- **Direct Eye Contact (Self-Attention)**: If word 800 (<kbd>"it"</kbd>) needs to know what noun it refers to, it does not wait for a whisper chain. It glances directly across the table at word 12 (<kbd>"puppy"</kbd>) in a single step!
+- **Parallel Speed**: Because everyone is at the table at once, the GPU can compute relationships between all words simultaneously in parallel.
+
+---
+
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+
+<fieldset>
+<legend><strong>The Computational Challenge</strong></legend>
+<p>
+How do we convert a round-table conference into concrete linear algebra?
+</p>
+<p>
+If all 1,000 words sit at the table simultaneously, what keeps the room from devolving into deafening chaos? How does each word know <em>who to listen to</em>, <em>what to absorb</em>, and <em>how to think about it privately</em> before speaking the next word?
+</p>
+</fieldset>
+
+To turn this intuitive round table into a working machine, modern large language models use an elegant alternating cycle:
+1. **Communication Phase (Self-Attention)**: Words look around the table, exchange notes with other words, and update their context.
+2. **Thinking Phase (Feed-Forward Network)**: Each word retreats into its private study, evaluates what it just learned, queries its long-term factual memory, and refines its meaning.
+
+Let's inspect the complete mathematical blueprint of this architecture.
+
+---
+
+<h2 id="step-3">Step 3: The Exact Math &amp; Architecture</h2>
+
+Modern frontier language models &mdash; including **GPT-4**, **LLaMA-3**, **Mistral**, **Gemma**, **Claude**, **DeepSeek**, and **Qwen** &mdash; are built upon the **Decoder-Only Autoregressive Transformer** architecture.
+
+The entire brain is a sequence of transformations mapping raw token IDs to probability distributions over the next token:
+
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                        THE TRANSFORMER PIPELINE                        │
+└────────────────────────────────────────────────────────────────────────┘
+
+ [Input Text]: "The cat sat on the"
+       │
+       ▼ (Tokenizer)
+ [Token IDs]: [464, 3797, 3334, 319, 262]  (Sequence Length T = 5)
+       │
+       ▼ (Embedding Matrix E + Positional Info P)
+ [Input Tensor X_0]  ───► Shape: [T × d_model]
+       │
+       ├───────────────────────────────────────────────────────┐
+       ▼                                                       │
+ ┌─────────────────────────────────────────────────────────┐   │
+ │               TRANSFORMER BLOCK (Layer 1)               │   │
+ │                                                         │   │
+ │   X_in ──► [RMSNorm] ──► [Causal Self-Attention] ──┐    │   │
+ │     │                                              │    │   │
+ │     └──────────────── (Residual Add) ◄─────────────┘    │   │
+ │                            │                            │   │
+ │                            ▼ H_1                        │   │
+ │     H_1 ──► [RMSNorm] ──► [SwiGLU Feed-Forward] ───┐    │   │
+ │     │                                              │    │   │
+ │     └──────────────── (Residual Add) ◄─────────────┘    │   │
+ │                            │                            │   │
+ └────────────────────────────┼────────────────────────────┘   │
+                              ▼ X_1                            │ Repeated
+                              │                                │ for L
+                             ... (Repeated across L layers)    │ Layers!
+                              │                                │
+ ┌────────────────────────────┼────────────────────────────┐   │
+ │               TRANSFORMER BLOCK (Layer L)               │   │
+ │                            │                            │   │
+ └────────────────────────────┼────────────────────────────┘   │
+                              ▼ X_L ◄──────────────────────────┘
+                              │
+                       [Final RMSNorm]
+                              │
+                              ▼ X_final ───► Shape: [T × d_model]
+                              │
+             [Output Unembedding Matrix E_U] ──► Shape: [d_model × |V|]
+                              │
+                              ▼
+                       [Logits Matrix Z]  ───► Shape: [T × |V|]
+                              │
+                      [Softmax Function]
+                              │
+                              ▼
+                 [Probability Distribution P]
+             P("rug" | "The cat sat on the") = 78.4%
+</pre>
+<figcaption><strong>Figure 5.2:</strong> Complete macro-architecture of a modern decoder-only Transformer. Raw text flows from bottom tokens through an embedding lookup, traverses L stacked blocks of alternating Communication (Attention) and Thinking (FFN), and terminates at vocabulary logits.</figcaption>
+</figure>
+
+Let's dissect each mathematical component in this pipeline from first principles.
+
+### 1. The Architectural Hyperparameters
+
+Every Transformer architecture is fully defined by five foundational scalar dimensions:
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">Symbol</th>
+      <th align="left">Name</th>
+      <th align="left">Concrete LLM Example (LLaMA-3-8B)</th>
+      <th align="left">Physical Meaning</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>$|V|$</td>
+      <td>Vocabulary Size</td>
+      <td>$128,256$</td>
+      <td>Total unique words/subwords the model knows.</td>
+    </tr>
+    <tr>
+      <td>$T$</td>
+      <td>Context Length</td>
+      <td>$8,192$ (up to $128\text{k}$)</td>
+      <td>Number of tokens sitting at the round table simultaneously.</td>
+    </tr>
+    <tr>
+      <td>$d_{\text{model}}$</td>
+      <td>Model Dimension</td>
+      <td>$4,096$</td>
+      <td>Width of the highway vector carrying meaning for each word.</td>
+    </tr>
+    <tr>
+      <td>$L$</td>
+      <td>Number of Layers</td>
+      <td>$32$</td>
+      <td>Number of Transformer blocks stacked vertically.</td>
+    </tr>
+    <tr>
+      <td>$d_{\text{ffn}}$</td>
+      <td>FFN Hidden Dim</td>
+      <td>$14,336$ ($\approx \frac{8}{3} d_{\text{model}}$)</td>
+      <td>Width of the private thinking chamber inside each block.</td>
+    </tr>
+  </tbody>
+</table>
+
+### 2. Stage 1: The Input Representation
+
+Given an input prompt consisting of $T$ discrete integer token IDs:
+
+$$
+\mathbf{w} = \begin{bmatrix} w_1 & w_2 & \dots & w_T \end{bmatrix}^\top \in \{1, \dots, |V|\}^T
+$$
+
+Each token ID $w_t$ indexes a row from the token embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ (as mastered in Chapter 01):
+
+$$
+\mathbf{x}_t^{(0)} = \mathbf{e}_{w_t}^\top \mathbf{E} + \mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}
+$$
+
+Where $\mathbf{p}_t$ represents positional information (which we will study in Chapter 10). Stacking all $T$ token row vectors creates the foundational **input tensor**:
+
+$$
+\mathbf{X}^{(0)} = \begin{bmatrix}
+\mathbf{x}_1^{(0)} \\
+\mathbf{x}_2^{(0)} \\
+\vdots \\
+\mathbf{x}_T^{(0)}
+\end{bmatrix} \in \mathbb{R}^{T \times d_{\text{model}}}
+$$
+
+### 3. Stage 2: The Core Transformer Block (Stacked $L$ Times)
+
+The input tensor $\mathbf{X}^{(0)}$ now embarks on a journey through $L$ identical blocks ($l = 1, 2, \dots, L$). 
+
+Each block contains two fundamental sub-layers connected by a continuous **Residual Stream**:
+
+#### Sub-Layer A: The Communication Chamber (Multi-Head Self-Attention)
+Words look across the sequence to discover who they need to talk to:
+
+$$
+\mathbf{H}^{(l)} = \mathbf{X}^{(l-1)} + \operatorname{SelfAttention}\left(\operatorname{RMSNorm}(\mathbf{X}^{(l-1)})\right)
+$$
+
+- $\operatorname{RMSNorm}(\cdot)$ normalizes the incoming vector scale so activations don't explode (Chapter 13).
+- $\operatorname{SelfAttention}(\cdot)$ uses Queries, Keys, and Values to calculate dynamic attention weights across all previous tokens $1 \le j \le t$ (Chapters 06–09).
+- The $+ \mathbf{X}^{(l-1)}$ is the **Residual Highway** (Chapter 12): it adds the newly gathered communication clues directly back into the original stream without erasing existing memory.
+
+#### Sub-Layer B: The Thinking Chamber (Feed-Forward Network / SwiGLU)
+Having collected information from its neighbors, each token processes that information privately and independently:
+
+$$
+\mathbf{X}^{(l)} = \mathbf{H}^{(l)} + \operatorname{FFN}\left(\operatorname{RMSNorm}(\mathbf{H}^{(l)})\right)
+$$
+
+- In modern models, $\operatorname{FFN}(\cdot)$ is a 3-matrix **SwiGLU** block (Chapter 04):
+  
+$$
+\operatorname{FFN}(\mathbf{h}) = \left(\operatorname{Swish}(\mathbf{h}\mathbf{W}_{\text{gate}}) \odot (\mathbf{h}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}
+$$
+
+- Notice a crucial property: **The FFN operates on each token independently!**
+  - Attention is **horizontal** (mixes tokens across time $T$).
+  - FFN is **vertical** (processes features within each token $d_{\text{model}}$).
+
+<figure>
+<pre>
+Token Position:      t = 1 ("The")         t = 2 ("bank")        t = 3 ("river")
+                          │                      │                     │
+Sub-Layer 1:              ▼                      ▼                     ▼
+[Self-Attention]  ◄── Horizontal ─────────── Communication ───────── Across Tokens ──►
+                          │                      │                     │
+Residual Add:             ▼ (+)                  ▼ (+)                 ▼ (+)
+                          │                      │                     │
+Sub-Layer 2:              ▼                      ▼                     ▼
+[SwiGLU FFN]      Vertical Thinking      Vertical Thinking     Vertical Thinking
+                   (Private Memory)       (Private Memory)      (Private Memory)
+                          │                      │                     │
+Residual Add:             ▼ (+)                  ▼ (+)                 ▼ (+)
+                          │                      │                     │
+Output to Next Block:    X^(l)_1                X^(l)_2               X^(l)_3
+</pre>
+<figcaption><strong>Figure 5.3:</strong> The alternating rhythm of a Transformer block: Attention allows tokens to communicate horizontally across time; FFN allows tokens to think vertically within their own feature space.</figcaption>
+</figure>
+
+### 4. Stage 3: The Output Unembedding Head
+
+After traversing all $L$ layers, the representation has been enriched by $L$ rounds of communication and thinking:
+
+$$
+\mathbf{X}_{\text{final}} = \operatorname{RMSNorm}(\mathbf{X}^{(L)}) \in \mathbb{R}^{T \times d_{\text{model}}}
+$$
+
+To turn these high-dimensional abstract thoughts back into words, the final tensor is multiplied by the **Unembedding Matrix** $\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$:
+
+$$
+\mathbf{Z} = \mathbf{X}_{\text{final}} \mathbf{E}_U \in \mathbb{R}^{T \times |V|}
+$$
+
+Each row $\mathbf{z}_t \in \mathbb{R}^{1 \times |V|}$ contains the raw, unnormalized prediction scores (called **logits**) for what word should come after position $t$.
+
+Passing the final row $\mathbf{z}_T$ through the **Softmax function** produces genuine probabilities:
+
+$$
+P(w_{T+1} = v_i \mid w_{\le T}) = \frac{\exp(z_{T, i})}{\sum_{j=1}^{|V|} \exp(z_{T, j})}
+$$
+
+The word with the highest probability is sampled, appended to the sequence, and the entire round table runs again to predict the next token. This is **Autoregressive Generation**.
+
+---
+
+<h2 id="step-4">Step 4: Where Did It Come From? (The Historical Lineage)</h2>
+
+The Transformer did not appear in a vacuum. It was the culmination of a 15-year battle against memory loss and sequential slowness:
+
+<dl>
+  <dt><time datetime="2003">2003</time> &mdash; <strong>Yoshua Bengio et al.</strong>: Neural Probabilistic Language Models</dt>
+  <dd>
+    Proved that continuous word embeddings $\mathbf{E}$ allow neural networks to generalize across unseen word combinations. However, the model relied on a <strong>fixed context window</strong> (like our Lab 01), leaving it blind to distant paragraphs.<br>
+    <cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>
+  </dd>
+
+  <dt><time datetime="2014">2014</time> &mdash; <strong>Kyunghyun Cho et al. / Ilya Sutskever et al.</strong>: Sequence-to-Sequence RNNs</dt>
+  <dd>
+    Introduced Encoder-Decoder RNNs/LSTMs for translation. While capable of arbitrary-length inputs in theory, they hit the <strong>fixed vector bottleneck</strong>: forcing an entire 100-word sentence into a single vector $\mathbf{h} \in \mathbb{R}^d$ caused catastrophic forgetting on sentences longer than 20 words.<br>
+    <cite>《Sequence to Sequence Learning with Neural Networks》, NeurIPS 2014</cite>
+  </dd>
+
+  <dt><time datetime="2015">2015</time> &mdash; <strong>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio</strong>: The Birth of Attention</dt>
+  <dd>
+    Proposed the breakthrough concept of <strong>Attention</strong>: instead of compressing the entire source text into one vector, allow the decoder to look back at <em>all intermediate encoder states</em> and compute a dynamic weighted average.<br>
+    <cite>《Neural Machine Translation by Jointly Learning to Align and Translate》, ICLR 2015</cite>
+  </dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Ashish Vaswani et al. (Google Brain / Research)</strong>: Attention Is All You Need</dt>
+  <dd>
+    Asked the radical question: <em>"If attention is so powerful, why do we still keep recurrence and convolutions around?"</em><br>
+    They eliminated recurrent loops entirely, creating the <strong>Transformer</strong>. For the first time, every token could attend to every other token in $\mathcal{O}(1)$ sequential path length and train with massive GPU parallelism.<br>
+    <cite>《Attention Is All You Need》, NeurIPS 2017</cite>
+  </dd>
+
+  <dt><time datetime="2018">2018&ndash;Present</time> &mdash; <strong>Alec Radford et al. (OpenAI) &amp; Modern Open-Source (Meta LLaMA)</strong>: The Decoder-Only Era</dt>
+  <dd>
+    OpenAI recognized that for generative language modeling, the complex two-sided Encoder-Decoder was unnecessary. A single stack of <strong>Causal Decoder Blocks</strong> (GPT-1, GPT-2, GPT-3, GPT-4) pretrained on next-token prediction could learn reasoning, coding, translation, and world knowledge. Modern open-weights titans like LLaMA-3, Mistral, and DeepSeek all refine this exact decoder-only architecture.<br>
+    <cite>《Improving Language Understanding by Generative Pre-Training》, OpenAI 2018</cite>
+  </dd>
+</dl>
+
+---
+
+<h2 id="step-5">Step 5: Concrete Toy Example (Tracing a 3-Word Sentence)</h2>
+
+Let's trace a tiny sentence through a single Transformer block by hand with tiny numbers.
+
+### Setup
+- Vocabulary: $|V| = 4$ with words $\{\text{"the"}: 0, \text{"bank"}: 1, \text{"river"}: 2, \text{"flows"}: 3\}$.
+- Sequence length: $T = 3$ with tokens <samp>["the", "bank", "river"]</samp>.
+- Model dimension: $d_{\text{model}} = 2$.
+- Target word to predict: position 4 (<samp>"flows"</samp>).
+
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step 1:</strong> Look up static embeddings $\mathbf{X}^{(0)} \in \mathbb{R}^{3 \times 2}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step 2:</strong> Communication (Self-Attention) updates the ambiguous meaning of "bank".</p>
+<p><input type="checkbox" checked disabled> <strong>Step 3:</strong> Residual connection preserves the original word identity.</p>
+<p><input type="checkbox" checked disabled> <strong>Step 4:</strong> Thinking (Feed-Forward Network) synthesizes the contextualized vector.</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5:</strong> Unembedding projection predicts the next token "flows".</p>
+</fieldset>
+
+### Step 1: Initial Static Embeddings
+Suppose our embedding table maps our 3 input tokens to 2D vectors:
+
+$$
+\mathbf{X}^{(0)} = \begin{bmatrix}
+\mathbf{x}_1^{(0)} \\
+\mathbf{x}_2^{(0)} \\
+\mathbf{x}_3^{(0)}
+\end{bmatrix} = \begin{bmatrix}
+0.2 & 0.1 \\
+0.5 & 0.5 \\
+0.1 & 0.9
+\end{bmatrix} \begin{matrix}
+\leftarrow \text{"the"} \\
+\leftarrow \text{"bank" (Ambiguous: 0.5 money, 0.5 river)} \\
+\leftarrow \text{"river" (Strong water feature: 0.9)}
+\end{matrix}
+$$
+
+Notice position 2 (<samp>"bank"</samp>): it starts as $[0.5, 0.5]$, completely undecided whether it refers to Wall Street or the edge of a water stream.
+
+### Step 2: The Communication Phase (Self-Attention)
+Position 2 (<samp>"bank"</samp>) looks back at position 1 (<samp>"the"</samp>) and position 2 (<samp>"bank"</samp>). Position 3 (<samp>"river"</samp>) looks back at all three tokens.
+
+When position 2 computes attention (which we will learn to calculate explicitly in Chapters 06–08), it discovers that position 3 (<samp>"river"</samp>) holds the critical clue! It assigns an attention weight of $0.8$ to <samp>"river"</samp> and $0.2$ to itself:
+
+$$
+\Delta \mathbf{x}_2 = 0.2 \times \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + 0.8 \times \begin{bmatrix} 0.1 & 0.9 \end{bmatrix} = \begin{bmatrix} 0.10 + 0.08 & 0.10 + 0.72 \end{bmatrix} = \begin{bmatrix} 0.18 & 0.82 \end{bmatrix}
+$$
+
+Look at what happened: $\Delta \mathbf{x}_2$ has absorbed the heavy water feature ($0.82$) from its neighbor <samp>"river"</samp>!
+
+### Step 3: The Residual Highway
+We add the communication update $\Delta \mathbf{x}_2$ back into the original embedding $\mathbf{x}_2^{(0)}$:
+
+$$
+\mathbf{h}_2 = \mathbf{x}_2^{(0)} + \Delta \mathbf{x}_2 = \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + \begin{bmatrix} 0.18 & 0.82 \end{bmatrix} = \begin{bmatrix} 0.68 & 1.32 \end{bmatrix}
+$$
+
+The residual highway ensures the model never forgets that the original token was <samp>"bank"</samp> ($0.68$), while now strongly infusing the hydrological context ($1.32$).
+
+### Step 4: The Thinking Phase (Feed-Forward Processing)
+Vector $\mathbf{h}_2 = [0.68, 1.32]$ now enters the private FFN chamber. 
+
+The FFN acts like an encyclopedic lookup table. Its weights are trained to recognize: *“When feature 2 is high ($\ge 1.0$) alongside bank, this represents a natural water current!”* 
+
+The FFN fires and outputs an updated thought vector:
+
+$$
+\mathbf{x}_2^{(1)} = \mathbf{h}_2 + \operatorname{FFN}(\mathbf{h}_2) = \begin{bmatrix} 0.68 & 1.32 \end{bmatrix} + \begin{bmatrix} -0.18 & 0.68 \end{bmatrix} = \begin{bmatrix} 0.50 & 2.00 \end{bmatrix}
+$$
+
+The representation has shifted from generic confusion into an intense, confident conceptual vector pointing directly toward flowing water.
+
+### Step 5: Unembedding to Next-Token Probabilities
+At the end of the sentence, the model takes the final contextualized vector and multiplies it by the Unembedding Matrix $\mathbf{E}_U \in \mathbb{R}^{2 \times 4}$:
+
+$$
+\mathbf{E}_U = \begin{bmatrix}
+-1.0 & 0.2 & 0.5 & 0.1 \\
+-0.5 & -0.8 & -0.2 & 1.5
+\end{bmatrix} \begin{matrix}
+\text{Row 1} \\
+\text{Row 2}
+\end{matrix}
+$$
+
+Multiplying our vector $[0.50, 2.00]$ by $\mathbf{E}_U$:
+
+$$
+\mathbf{z} = \begin{bmatrix} 0.50 & 2.00 \end{bmatrix} \begin{bmatrix}
+-1.0 & 0.2 & 0.5 & 0.1 \\
+-0.5 & -0.8 & -0.2 & 1.5
+\end{bmatrix}
+$$
+
+Let's compute each logit:
+- For token 0 (<samp>"the"</samp>): $0.50(-1.0) + 2.00(-0.5) = -0.5 - 1.0 = \mathbf{-1.50}$
+- For token 1 (<samp>"bank"</samp>): $0.50(0.2) + 2.00(-0.8) = 0.1 - 1.6 = \mathbf{-1.50}$
+- For token 2 (<samp>"river"</samp>): $0.50(0.5) + 2.00(-0.2) = 0.25 - 0.4 = \mathbf{-0.15}$
+- For token 3 (<samp>"flows"</samp>): $0.50(0.1) + 2.00(1.5) = 0.05 + 3.0 = \mathbf{+3.05}$
+
+Passing logits $\mathbf{z} = [-1.50, -1.50, -0.15, +3.05]$ through Softmax:
+- $e^{-1.50} \approx 0.223$
+- $e^{-1.50} \approx 0.223$
+- $e^{-0.15} \approx 0.861$
+- $e^{+3.05} \approx 21.115$
+- $\sum = 0.223 + 0.223 + 0.861 + 21.115 = 22.422$
+
+Resulting probabilities:
+- $P(\text{"the"}) = \frac{0.223}{22.422} \approx 1.0\%$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.010">1.0%</meter>
+- $P(\text{"bank"}) = \frac{0.223}{22.422} \approx 1.0\%$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.010">1.0%</meter>
+- $P(\text{"river"}) = \frac{0.861}{22.422} \approx 3.8\%$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.038">3.8%</meter>
+- $P(\text{"flows"}) = \frac{21.115}{22.422} \approx \mathbf{94.2\%}$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.942">94.2%</meter>
+
+<mark>The Transformer predicted <samp>"flows"</samp> with overwhelming 94.2% confidence!</mark>
+
+It succeeded where our Lab 01 micro-brain failed because it allowed <samp>"bank"</samp> to look at <samp>"river"</samp> across space, fuse the clues, process the factual meaning, and make an enlightened contextual prediction.
+
+---
+
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+
+<fieldset>
+<legend><strong>Core Memory Card</strong></legend>
+<p>
+<strong>A Transformer is an alternating factory of Communication and Thinking:</strong><br>
+1. <strong>Self-Attention is the Communication Phase</strong>: Tokens exchange clues horizontally across time, breaking the amnesia of fixed windows and the bottleneck of recurrent chains.<br>
+2. <strong>The Feed-Forward Network is the Thinking Phase</strong>: Tokens process what they just learned vertically and independently, retrieving facts from internal weights.<br>
+3. <strong>The Residual Stream is the Shared Central Highway</strong>: New clues and thoughts are added continuously onto the base vector without erasing earlier history.
+</p>
+<p>
+Now that you see the grand blueprint of the round table, the urgent question becomes: <em>How exactly do tokens choose who to listen to during the communication phase?</em><br>
+That brings us directly to the foundational mechanics of <strong>Queries, Keys, and Values</strong> in Chapter 06!
+</p>
+</fieldset>
+
+---
+
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../04b-lab-micro-brain/index.html">&larr; Hands-on Lab 01: Training Your First Brain in 80 Lines of Pure Python</a> &bull;
+    <a href="../index.html">Course Overview</a> &bull;
+    <a href="../06-queries-keys-values/index.html">Chapter 06: The Library Clue Hunt (Queries, Keys, and Values) &rarr;</a>
+  </p>
+</nav>

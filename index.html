@@ -230,28 +230,25 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <p>Below is the complete roadmap of 19 chapters across 9 intuitive modules, covering the entire journey from raw words to deep alignment:</p>
 <figure>
 <pre>
-[Raw Human Words]
-       │
-       ▼
-[01: Word Embeddings] ──► [02: Dot Product &amp; Similarity]
-                                   │
-                                   ▼
-[03: Matrix Multiplication] ──► [04: Non-linear Activations] ──► [Lab 01: The Micro-Brain (Bengio 2003)]
-                                                                               │
-                                                                               ▼
-[05: Queries, Keys, Values] ──► [06: Softmax] ──► [07: Attention Formula] ──► [08: Causal Masking]
-                                                           │
-                                                           ▼
-[09: RoPE Positional Encoding] ◄────────────── [10: Multi-Head Attention]
-       │
-       ▼
-[11: Residual Connections] ──► [12: RMSNorm] ──► [13: Feed-Forward Blocks]
+[00: Next-Word Prediction] ──► [01: Vectors & Embeddings] ──► [02: Dot Product & Similarity]
+                                                                        │
+                                                                        ▼
+[05: Transformer Blueprint] ◄── [Lab 01: Micro-Brain] ◄── [04: Activations] ◄── [03: Matrix Mult]
+         │
+         ▼
+[06: Queries, Keys, Values] ──► [07: Softmax] ──► [08: Attention Formula] ──► [09: Causal Masking]
+                                                                                      │
+                                                                                      ▼
+[12: Residual Connections] ◄── [11: Multi-Head Attention] ◄── [10: Positional Encodings & RoPE]
+         │
+         ▼
+[13: RMSNorm] ──► [14: Feed-Forward Blocks] ──► [15: Cross-Entropy Loss]
                                                         │
                                                         ▼
-[14: Cross-Entropy Loss] ──► [15: Backpropagation] ──► [16: Adam Optimizer]
-                                                              │
-                                                              ▼
-[17: Sampling (Temperature / Top-p)] ──► [18: Alignment (RLHF &amp; DPO)]
+[18: Sampling (Temp/Top-p)] ◄── [17: Adam Optimizer] ◄── [16: Backpropagation]
+         │
+         ▼
+[19: Alignment (RLHF & DPO)]
 </pre>
 <figcaption><strong>Figure C.1:</strong> Master architectural dataflow pipeline from raw text to aligned model.</figcaption>
 </figure>
@@ -271,7 +268,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <ul>
 <li><a href="01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings)</a></li>
 <li><strong>The Metaphor</strong>: A giant playground map where similar toys sit in neighboring sandboxes.</li>
-<li><strong>The Math</strong>: Vector coordinates $\mathbf{x} \in \mathbb{R}^d$, one-hot vectors $\mathbf{e}_i$, and the embedding lookup matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d}$.</li>
+<li><strong>The Math</strong>: Vector coordinates $\mathbf{x} \in \mathbb{R}^{d}$, one-hot vectors $\mathbf{e}_i$, and the embedding lookup matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d}$.</li>
 <li>
 <p><strong>Formula Origin</strong>: Distributional Semantics (<em>"You shall know a word by the company it keeps"</em> — J.R. Firth, 1957) and Word2Vec (Mikolov et al., 2013).</p>
 </li>
@@ -311,14 +308,22 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <h3 id="module-3">Module 3: The Secret Sauce (The Attention Mechanism)</h3>
 <p><em>The engine of the Transformer: dynamic, context-aware information routing.</em></p>
 <ul>
-<li><a href="05-queries-keys-values/index.html">Chapter 05: The Library Clue Hunt (Queries, Keys, and Values)</a></li>
+<li><a href="05-transformer-architecture/index.html">Chapter 05: The Transformer Blueprint (The Bird's-Eye View &amp; The Round Table)</a></li>
+<li><strong>The Metaphor</strong>: The round-table conference where every scholar can make direct eye contact with everyone else, versus the whispering telephone game (RNNs) and horse blinkers (MLPs).</li>
+<li><strong>The Math</strong>: Macro-architecture of modern decoder-only LLMs: Input embeddings $\mathbf{X}^{(0)} \in \mathbb{R}^{T \times d_{\text{model}}}$, stacked Transformer blocks alternating between communication (Self-Attention) and thinking (FFN/SwiGLU) with residual streams $\mathbf{X}^{(l)} = \mathbf{X}^{(l-1)} + \text{Sublayer}(\text{RMSNorm}(\mathbf{X}^{(l-1)}))$, and unembedding projection to vocabulary logits $\mathbf{z} \in \mathbb{R}^{T \times |V|}$.</li>
+<li>
+<p><strong>Formula Origin</strong>: The information bottleneck of Seq2Seq RNNs (Sutskever, Cho 2014) broken by <em>Attention Is All You Need</em> (Vaswani et al. 2017) and refined into the modern decoder-only standard (Radford 2018, Touvron 2023).</p>
+</li>
+<li>
+<p><a href="06-queries-keys-values/index.html">Chapter 06: The Library Clue Hunt (Queries, Keys, and Values)</a></p>
+</li>
 <li><strong>The Metaphor</strong>: You hold a clue card (Query), shelves have label cards (Keys), and books contain treasure stories (Values).</li>
 <li><strong>The Math</strong>: Projection matrices $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{d \times d_k}$ and projection outputs $\mathbf{Q} = \mathbf{X}\mathbf{W}_Q, \mathbf{K} = \mathbf{X}\mathbf{W}_K, \mathbf{V} = \mathbf{X}\mathbf{W}_V$.</li>
 <li>
 <p><strong>Formula Origin</strong>: Database query-key-value retrieval made fully differentiable for gradient descent.</p>
 </li>
 <li>
-<p><a href="06-softmax-function/index.html">Chapter 06: The Fair Voting Booth (The Softmax Function)</a></p>
+<p><a href="07-softmax-function/index.html">Chapter 07: The Fair Voting Booth (The Softmax Function)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: Turning loud shouting matches into fair percentages of a pizza that sum to exactly 100%.</li>
 <li><strong>The Math</strong>: $\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}$.</li>
@@ -326,7 +331,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <p><strong>Formula Origin</strong>: Ludwig Boltzmann's statistical mechanics (1868) for particle thermal states adapted by Luce (1959).</p>
 </li>
 <li>
-<p><a href="07-attention-formula/index.html">Chapter 07: The Attention Formula &amp; Why We Divide by $\sqrt{d_k}$</a></p>
+<p><a href="08-attention-formula/index.html">Chapter 08: The Attention Formula &amp; Why We Divide by $\sqrt{d_k}$</a></p>
 </li>
 <li><strong>The Metaphor</strong>: Why whispering in a crowded hall needs a volume damper so the loudest child doesn't drown out everyone else.</li>
 <li><strong>The Math</strong>: $\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^T}{\sqrt{d_k}}\right)\mathbf{V}$.</li>
@@ -334,7 +339,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <p><strong>Formula Origin</strong>: Vaswani et al. (2017). Dot product variance scales as $d_k$; dividing by $\sqrt{d_k}$ prevents vanishing softmax gradients.</p>
 </li>
 <li>
-<p><a href="08-causal-masking/index.html">Chapter 08: Blindfolds on Future Words (Causal Masking)</a></p>
+<p><a href="09-causal-masking/index.html">Chapter 09: Blindfolds on Future Words (Causal Masking)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: Taking a reading quiz without being allowed to peek at the answers on tomorrow's page.</li>
 <li><strong>The Math</strong>: Mask matrix $\mathbf{M} \in \mathbb{R}^{T \times T}$ where $M_{ij} = -\infty$ for $j > i$. Since $e^{-\infty} = 0$, attention weights to future tokens strictly vanish.</li>
@@ -344,14 +349,14 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <h3 id="module-4">Module 4: Order and Multi-Perspective Processing</h3>
 <p><em>Teaching transformers word order and looking at sentences through multiple lenses.</em></p>
 <ul>
-<li><a href="09-positional-encodings/index.html">Chapter 09: Where in the Sentence Am I? (Positional Encodings &amp; RoPE)</a></li>
+<li><a href="10-positional-encodings/index.html">Chapter 10: Where in the Sentence Am I? (Positional Encodings &amp; RoPE)</a></li>
 <li><strong>The Metaphor</strong>: Number tags on runner shirts and clock hands spinning at different speeds.</li>
 <li><strong>The Math</strong>: Sinusoidal encodings $\sin(\text{pos}/10000^{2i/d})$ and Rotary Position Embedding (RoPE) 2D rotation blocks $\mathbf{R}_{\Theta, m}$.</li>
 <li>
 <p><strong>Formula Origin</strong>: Fourier harmonic analysis (Vaswani 2017) and complex geometric rotations (Su et al. 2021).</p>
 </li>
 <li>
-<p><a href="10-multi-head-attention/index.html">Chapter 10: Looking Through Different Glasses (Multi-Head Attention)</a></p>
+<p><a href="11-multi-head-attention/index.html">Chapter 11: Looking Through Different Glasses (Multi-Head Attention)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: A detective squad: one tracks grammar, one tracks feelings, one tracks timestamps.</li>
 <li><strong>The Math</strong>: $\text{MHA}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\mathbf{W}_O$ with subspace dimension $d_k = d_{\text{model}} / h$.</li>
@@ -361,14 +366,14 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <h3 id="module-5">Module 5: Putting the Transformer Block Together</h3>
 <p><em>How modern transformers stack 100+ layers without exploding or collapsing.</em></p>
 <ul>
-<li><a href="11-residual-connections/index.html">Chapter 11: The Shortcut Bridge (Residual Connections)</a></li>
+<li><a href="12-residual-connections/index.html">Chapter 12: The Shortcut Bridge (Residual Connections)</a></li>
 <li><strong>The Metaphor</strong>: An express highway running alongside a twisty mountain path so you never get stuck in a traffic jam.</li>
 <li><strong>The Math</strong>: $\mathbf{x}_{\text{out}} = \mathbf{x}_{\text{in}} + \mathcal{F}(\mathbf{x}_{\text{in}})$. Gradient propagation: $\frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{in}}} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{out}}} \left(\mathbf{I} + \frac{\partial \mathcal{F}}{\partial \mathbf{x}_{\text{in}}}\right)$.</li>
 <li>
 <p><strong>Formula Origin</strong>: ResNet (He et al., 2015) solving the vanishing gradient dilemma in deep architectures.</p>
 </li>
 <li>
-<p><a href="12-layer-norm-and-rmsnorm/index.html">Chapter 12: Keeping Everyone Calm (LayerNorm &amp; RMSNorm)</a></p>
+<p><a href="13-layer-norm-and-rmsnorm/index.html">Chapter 13: Keeping Everyone Calm (LayerNorm &amp; RMSNorm)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: A volume limiter in a concert hall that keeps sound at a pleasant listening level so speakers never pop.</li>
 <li><strong>The Math</strong>: $\text{LayerNorm}(\mathbf{x}) = \frac{\mathbf{x} - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \boldsymbol{\gamma} + \boldsymbol{\beta}$ and $\text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum x_i^2 + \epsilon}} \odot \boldsymbol{\gamma}$.</li>
@@ -376,7 +381,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <p><strong>Formula Origin</strong>: Ba, Kiros, &amp; Hinton (2016) and Zhang &amp; Sennrich (2019) demonstrating root-mean-square scale invariance.</p>
 </li>
 <li>
-<p><a href="13-feed-forward-networks/index.html">Chapter 13: The Thinking Chamber (Feed-Forward Networks)</a></p>
+<p><a href="14-feed-forward-networks/index.html">Chapter 14: The Thinking Chamber (Feed-Forward Networks)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: Sitting quietly in your room to digest what you just heard and store facts into long-term memory.</li>
 <li><strong>The Math</strong>: $\text{FFN}(\mathbf{x}) = \sigma(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1)\mathbf{W}_2 + \mathbf{b}_2$. Projection from $d_{\text{model}} \to 4d_{\text{model}} \to d_{\text{model}}$.</li>
@@ -386,14 +391,14 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <h3 id="module-6">Module 6: How the Model Learns (Training Math)</h3>
 <p><em>How billions of knobs are tuned from trillions of text tokens.</em></p>
 <ul>
-<li><a href="14-cross-entropy-loss/index.html">Chapter 14: How Wrong Was I? (Cross-Entropy Loss &amp; Perplexity)</a></li>
+<li><a href="15-cross-entropy-loss/index.html">Chapter 15: How Wrong Was I? (Cross-Entropy Loss &amp; Perplexity)</a></li>
 <li><strong>The Metaphor</strong>: The penalty points you get during a guessing game when your guess was far off the mark.</li>
 <li><strong>The Math</strong>: Cross-entropy $\mathcal{L} = -\sum_{i=1}^{|V|} y_i \log p_i = -\log p_{\text{correct}}$ and Perplexity $\text{PPL} = e^{\mathcal{L}}$.</li>
 <li>
 <p><strong>Formula Origin</strong>: Information theory (Shannon entropy 1948) and Kullback-Leibler (KL) divergence minimization.</p>
 </li>
 <li>
-<p><a href="15-gradients-and-backpropagation/index.html">Chapter 15: Walking Down the Mountain (Gradients &amp; Backpropagation)</a></p>
+<p><a href="16-gradients-and-backpropagation/index.html">Chapter 16: Walking Down the Mountain (Gradients &amp; Backpropagation)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: Feeling the steepness of the ground with your toes while walking down a foggy mountain.</li>
 <li><strong>The Math</strong>: Multivariable gradients $\nabla_\theta \mathcal{L}$, chain rule $\frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \frac{\partial \mathbf{y}}{\partial \mathbf{W}}$, gradient descent step $\theta \leftarrow \theta - \eta \nabla_\theta \mathcal{L}$.</li>
@@ -401,7 +406,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <p><strong>Formula Origin</strong>: Leibniz calculus meets reverse-mode automatic differentiation (Rumelhart, Hinton, &amp; Williams 1986).</p>
 </li>
 <li>
-<p><a href="16-adam-optimizer/index.html">Chapter 16: The Smart Walker (Momentum and the Adam Optimizer)</a></p>
+<p><a href="17-adam-optimizer/index.html">Chapter 17: The Smart Walker (Momentum and the Adam Optimizer)</a></p>
 </li>
 <li><strong>The Metaphor</strong>: A heavy bowling ball rolling downhill (momentum) wearing shoes that adjust their grip depending on mud vs rocks (adaptive rates).</li>
 <li><strong>The Math</strong>: First moment $m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t$, second moment $v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2$, updates $\theta_{t} = \theta_{t-1} - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t$.</li>
@@ -411,7 +416,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <h3 id="module-7">Module 7: Speaking to the World (Inference & Sampling)</h3>
 <p><em>How the model turns probabilities into fluid sentences.</em></p>
 <ul>
-<li><a href="17-sampling-and-temperature/index.html">Chapter 17: Turning Up the Heat (Temperature, Top-k, &amp; Top-p Sampling)</a></li>
+<li><a href="18-sampling-and-temperature/index.html">Chapter 18: Turning Up the Heat (Temperature, Top-k, &amp; Top-p Sampling)</a></li>
 <li><strong>The Metaphor</strong>: A creativity knob: freezing cold gives the safest, most boring answer; boiling hot gives wild, unpredictable dreams.</li>
 <li><strong>The Math</strong>: Temperature scaling $p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}$, Top-$k$ restriction, and Top-$p$ (Nucleus) cumulative cutoff $\sum_{i \in V^{(p)}} p_i \ge p$.</li>
 <li><strong>Formula Origin</strong>: Statistical physics annealing and Holtzman et al. (2019) truncating the degenerated distribution tail.</li>
@@ -420,7 +425,7 @@ Mathematics is simply the blueprint of those knobs and gears. It tells us how th
 <h3 id="module-8">Module 8: Aligning and Refining (Post-Training Math)</h3>
 <p><em>Teaching the model to be helpful, honest, and harmless.</em></p>
 <ul>
-<li><a href="18-rlhf-and-dpo/index.html">Chapter 18: Teaching Good Manners (RLHF, Reward Modeling, and DPO)</a></li>
+<li><a href="19-rlhf-and-dpo/index.html">Chapter 19: Teaching Good Manners (RLHF, Reward Modeling, and DPO)</a></li>
 <li><strong>The Metaphor</strong>: Giving gold stars for kind answers, gentle penalties for rude answers, and keeping the child from forgetting who they are.</li>
 <li><strong>The Math</strong>: Reward objective with KL penalty $\mathbb{E}[r_\theta(x, y)] - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$, and Direct Preference Optimization (DPO) closed-form loss:</li>
 </ul>

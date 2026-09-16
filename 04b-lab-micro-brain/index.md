@@ -390,7 +390,7 @@ Why did it fall into an infinite loop of <samp>"the rug the rug"</samp>?
 
 **How can a neural network break past the 1-word horizon? How can a model look back across thousands of past words and instantly shine a spotlight on the single most relevant clue?**
 
-That urgent question leads us directly to the foundational breakthrough of modern artificial intelligence: **Module 3: The Attention Mechanism**!
+That urgent question leads us directly to the architecture that powers every modern frontier LLM: **Chapter 05: The Transformer Architecture**!
 
 ---
 
@@ -398,6 +398,6 @@ That urgent question leads us directly to the foundational breakthrough of moder
   <p>
     <a href="../04-activation-functions/index.html">&larr; Chapter 04: The One-Way Gate (ReLU, GELU, SwiGLU)</a> &bull;
     <a href="../index.html">Course Home</a> &bull;
-    <a href="../05-queries-keys-values/index.html">Chapter 05: The Library Clue Hunt (Queries, Keys, Values) &rarr;</a>
+    <a href="../05-transformer-architecture/index.html">Chapter 05: The Transformer Architecture (The Big Picture) &rarr;</a>
   </p>
 </nav>

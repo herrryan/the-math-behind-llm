@@ -1,4 +1,4 @@
-# 第 05 章：图书馆寻宝记——查询、键与值（Q、K、V 投影矩阵）
+# 第 06 章：图书馆寻宝记——查询、键与值（Q、K、V 投影矩阵）
 
 <nav aria-label="目录导航">
   <p>
@@ -557,7 +557,7 @@ $$
 
 通过投影矩阵 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 的协同，多义词 `"bank"` 成功跨越了自恋陷阱，把全场最高的注意力精准投射到了决定其真正语义的关键词 `"river"` 上！
 
-在接下来的第 06 章中，我们将学习如何通过 **Softmax** 把这组得分 $[4, 7, 6]$ 转化为严格相加等于 100% 的概率权重，并最终加权融合 **Value 向量**。
+在接下来的第 07 章中，我们将学习如何通过 **Softmax** 把这组得分 $[4, 7, 6]$ 转化为严格相加等于 100% 的概率权重，并最终加权融合 **Value 向量**。
 
 ---
 
@@ -575,8 +575,8 @@ $$
 
 <nav aria-label="章节导航">
   <p>
-    <a href="../04b-lab-micro-brain/index.html">&larr; 阶段实战工坊 01：80 行纯 Python 训练首个自研大脑</a> &bull;
+    <a href="../05-transformer-architecture/index.zh.html">&larr; 第 05 章：大模型的全景图纸（Transformer 架构宏观巡览）</a> &bull;
     <a href="../index.html">课程主页</a> &bull;
-    <a href="../06-softmax-function/index.html">第 06 章：公平投票箱（Softmax 函数） &rarr;</a>
+    <a href="../07-softmax-function/index.zh.html">第 07 章：公平投票箱（Softmax 函数） &rarr;</a>
   </p>
 </nav>
