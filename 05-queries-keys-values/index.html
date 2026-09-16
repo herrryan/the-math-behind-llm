@@ -4,11 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chapter 05: The Library Clue Hunt (Queries, Keys, and Values) - The Math Behind LLMs</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/lib/marked.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@1.0.2/lib/index.umd.js"></script>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <!-- Marked.js for in-browser Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Marked KaTeX Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
   <style>
     body {
       max-width: 800px;
@@ -1404,7 +1409,13 @@ $$
       });
 
       const container = document.getElementById('content');
-      container.innerHTML = marked.parse(mdText);
+      try {
+        container.innerHTML = marked.parse(mdText);
+      } catch (err) {
+        console.error('Markdown rendering error:', err);
+        container.innerHTML = '<p>Error rendering content: ' + err.message + '</p>';
+        return;
+      }
 
       // 3. Enhance tables with native HTML borders and cell padding
       container.querySelectorAll('table').forEach(tbl => {
@@ -1426,7 +1437,11 @@ $$
     }
 
     initLanguage();
-    window.addEventListener('DOMContentLoaded', renderPage);
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', renderPage);
+    } else {
+      renderPage();
+    }
   </script>
 </body>
 </html>
