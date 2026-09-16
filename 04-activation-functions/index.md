@@ -1066,6 +1066,44 @@ Final Output of the SwiGLU block: $\mathbf{y} = \begin{bmatrix} -2.300 & -1.076 
 
 Notice the sheer expressiveness: feature 1 was modulated by a suppressed gate ($\approx -0.269$), while feature 2 passed through an amplified, wide-open gate ($1.762$). The neural network dynamically controlled its own computational circuits!
 
+#### Deep Dive: How the Final Output Vector $\mathbf{y}$ is Mechanically Tied to Gating Decisions
+
+A crucial question arises: *"We computed the gating multipliers ($-0.269$ and $1.762$), but how do these decisions directly dictate the final output $\mathbf{y}$?"*
+
+The answer lies in the **linear combination mechanism of down-projection matrix rows**:
+
+$$
+\mathbf{y} = \mathbf{h} \mathbf{W}_{\text{down}}
+$$
+
+In linear algebra, multiplying a row vector by a matrix is fundamentally a **weighted linear combination of the matrix's row vectors**:
+
+$$
+\mathbf{y} = \begin{bmatrix} h_1 & h_2 \end{bmatrix} \begin{bmatrix} \mathbf{w}_{\text{down}, 1}^\top \\ \mathbf{w}_{\text{down}, 2}^\top \end{bmatrix} = h_1 \mathbf{w}_{\text{down}, 1}^\top + h_2 \mathbf{w}_{\text{down}, 2}^\top
+$$
+
+In our numerical toy example:
+- **Concept Pattern 1** (Row 1 of $\mathbf{W}_{\text{down}}$): $\mathbf{w}_{\text{down}, 1}^\top = \begin{bmatrix} 1 & 2 \end{bmatrix}$
+- **Concept Pattern 2** (Row 2 of $\mathbf{W}_{\text{down}}$): $\mathbf{w}_{\text{down}, 2}^\top = \begin{bmatrix} 1 & 0 \end{bmatrix}$
+
+Substituting our modulated activations $h_1 = -0.538$ and $h_2 = -1.762$:
+
+$$
+\mathbf{y} = \underbrace{(-0.538) \begin{bmatrix} 1 & 2 \end{bmatrix}}_{\text{Channel 1 Contribution}} + \underbrace{(-1.762) \begin{bmatrix} 1 & 0 \end{bmatrix}}_{\text{Channel 2 Contribution}} = \begin{bmatrix} -0.538 & -1.076 \end{bmatrix} + \begin{bmatrix} -1.762 & 0 \end{bmatrix} = \begin{bmatrix} -2.300 & -1.076 \end{bmatrix}
+$$
+
+Examining the structural dominance:
+1. **Dominance of Channel 2**: In output component $y_1 = -2.300$, Channel 2 contributed $-1.762$, accounting for over **$76.6\%$** of the absolute magnitude! Because the gate gave Channel 2 a $1.762\times$ amplification green light, its concept pattern $[1, 0]$ was aggressively imprinted onto the final output.
+2. **The Counterfactual Test (If the Gate Inverts)**: Suppose the gate determined Channel 2 was completely irrelevant ($g_2 = -5.0 \implies \operatorname{Swish}(g_2) \approx 0 \implies h_2 = 0$). Channel 2's pattern would be **completely silenced**, causing $y_1$ to collapse from $-2.300$ down to just $-0.538$. The gating decision is the sole steering wheel.
+3. **The Big Picture: How $\mathbf{y}$ Updates the LLM Residual Stream**:
+   In modern Transformers (LLaMA, Mistral, GPT-4), the FFN output $\mathbf{y}$ is never discarded into a vacuum; it acts as an **actionable delta vector ($\Delta \mathbf{x}$)** added directly back to the residual stream:
+
+$$
+\mathbf{x}_{\text{new}} = \mathbf{x}_{\text{old}} + \mathbf{y} = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix} + \begin{bmatrix} -2.300 & -1.076 \end{bmatrix} = \begin{bmatrix} -1.300 & 0.924 \end{bmatrix}
+$$
+
+The gating decisions determine exactly **which memory patterns to inject into or subtract from the token's consciousness**, steering its conceptual trajectory before entering the next layer.
+
 ---
 
 <h2 id="step-6">Step 6: Core Takeaway</h2>

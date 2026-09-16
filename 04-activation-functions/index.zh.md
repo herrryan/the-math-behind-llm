@@ -1067,6 +1067,44 @@ SwiGLU 前馈模块的最终输出结果为：$\mathbf{y} = \begin{bmatrix} -2.3
 
 观察其中的智能逻辑：第 1 个特征由于门控值为负值而被大幅收窄压制（仅留下 $-0.269$），而第 2 个特征却获得了大幅度的开放通行权（放行倍率为 $1.762$）。模型自主决定了哪些信息应当放大，哪些应当退火静默！
 
+#### 深度解析：最终输出向量 $\mathbf{y}$ 与门控决策的因果绑定
+
+许多初学者在这里会追问：*“我们算出了门控放行倍率（$-0.269$ 和 $1.762$），但这究竟是如何直接操纵最终输出 $\mathbf{y}$ 的？”*
+
+答案藏在**降维矩阵 $\mathbf{W}_{\text{down}}$ 的行向量线性组合机制**中：
+
+$$
+\mathbf{y} = \mathbf{h} \mathbf{W}_{\text{down}}
+$$
+
+在线性代数中，一个行向量乘以一个矩阵，其本质是**该矩阵各个行向量的加权线性组合**：
+
+$$
+\mathbf{y} = \begin{bmatrix} h_1 & h_2 \end{bmatrix} \begin{bmatrix} \mathbf{w}_{\text{down}, 1}^\top \\ \mathbf{w}_{\text{down}, 2}^\top \end{bmatrix} = h_1 \mathbf{w}_{\text{down}, 1}^\top + h_2 \mathbf{w}_{\text{down}, 2}^\top
+$$
+
+在我们的数值示例中：
+- **特征模式 1**（$\mathbf{W}_{\text{down}}$ 的第 1 行）：$\mathbf{w}_{\text{down}, 1}^\top = \begin{bmatrix} 1 & 2 \end{bmatrix}$
+- **特征模式 2**（$\mathbf{W}_{\text{down}}$ 的第 2 行）：$\mathbf{w}_{\text{down}, 2}^\top = \begin{bmatrix} 1 & 0 \end{bmatrix}$
+
+将调制后的特征值 $h_1 = -0.538$ 与 $h_2 = -1.762$ 代入：
+
+$$
+\mathbf{y} = \underbrace{(-0.538) \begin{bmatrix} 1 & 2 \end{bmatrix}}_{\text{通道 1 贡献的特征}} + \underbrace{(-1.762) \begin{bmatrix} 1 & 0 \end{bmatrix}}_{\text{通道 2 贡献的特征}} = \begin{bmatrix} -0.538 & -1.076 \end{bmatrix} + \begin{bmatrix} -1.762 & 0 \end{bmatrix} = \begin{bmatrix} -2.300 & -1.076 \end{bmatrix}
+$$
+
+透视其中的统治力：
+1. **主导输出的第 2 通道**：对于输出向量的第 1 个维度（$y_1 = -2.300$），通道 2 贡献了 $-1.762$，占据了总输出绝对值的 **$76.6\%$**！正是因为门控给通道 2 亮起了 $1.762$ 倍的放大绿灯，该通道携带的知识模式 $[1, 0]$ 才以压倒性声量烙印在了最终输出中。
+2. **反事实检验（如果门控反转）**：假设门控判定通道 2 与当前语境无关，将其完全关闭（$g_2 = -5.0 \implies \operatorname{Swish}(g_2) \approx 0$），则 $h_2 = 0$。通道 2 的特征模式将被**完全静音**，$y_1$ 瞬间从 $-2.300$ 塌缩为仅仅 $-0.538$。门控是唯一的总控方向盘！
+3. **宏观全局：$\mathbf{y}$ 如何重塑大模型的思维流（Residual Stream）**：
+   在大语言模型（如 LLaMA 或 GPT）的完整主干中，前馈层的输出 $\mathbf{y}$ 从不单独存在，而是作为**增量修正向量（Delta $\Delta \mathbf{x}$）**，通过残差连接直接加回主干思维流中：
+
+$$
+\mathbf{x}_{\text{new}} = \mathbf{x}_{\text{old}} + \mathbf{y} = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix} + \begin{bmatrix} -2.300 & -1.076 \end{bmatrix} = \begin{bmatrix} -1.300 & 0.924 \end{bmatrix}
+$$
+
+门控决策决定了**在这一层，大模型应该从记忆库中抽取哪些知识特征注入残差流，又应该彻底截断哪些无关特征**，从而精准更新该 Token 的思维表征。
+
 ---
 
 <h2 id="step-6">第 6 步：全章核心精髓与记忆锚点</h2>
