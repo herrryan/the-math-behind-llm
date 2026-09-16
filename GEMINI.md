@@ -46,9 +46,18 @@ Every chapter written in this project **MUST** follow this structured learning s
   - Content is authored purely in standard Markdown (`.md`).
   - No build scripts (`build.py`) or compilation commands are needed. Focus 100% on crafting the mathematical content.
   - Pages are rendered on the fly in the browser using `marked.js` with `marked-katex-extension` and `KaTeX`.
-- **Pure Semantic HTML & Readability (Strictly Zero Custom CSS)**:
-  - The website relies strictly on native semantic HTML5 tags (`<header>`, `<nav>`, `<main>`, `<fieldset>`, `<legend>`, `<blockquote>`, `<table border="1">`, `<details>`, `<summary>`, `<mark>`, `<pre>`, `<footer>`, `<meter>`, `<progress>`, `<figure>`, `<figcaption>`, `<kbd>`, `<samp>`, `<dl>`, `<dt>`, `<dd>`, `<abbr>`, `<dfn>`, `<cite>`, `<time>`, `<input type="checkbox">`, `<ins>`, `<del>`, `<var>`).
-  - No custom CSS stylesheets or `<style>` tags are permitted; only KaTeX's official CSS is included for mathematical typography.
+- **Pure Semantic HTML & Minimal Modern Clean Tech Styling (Zero External CSS / Zero Build Step)**:
+  - The website relies strictly on native semantic HTML5 tags structured with a standardized, minimal Modern Clean Tech `<style>` block embedded directly in the `<head>` of each `index.html`.
+  - Zero external CSS files, zero CSS frameworks, and zero build compilation steps are permitted. Content authors write pure Markdown (`.md`) and native semantic HTML elements; the embedded `<style>` block automatically styles raw element tags (`body`, `fieldset`, `legend`, `table`, `pre`, `kbd`, `a`, `details`, `.katex-display`).
+  - **Modern Clean Tech Style Specifications**:
+    - **Layout**: `max-width: 820px; margin: 0 auto; padding: 2rem 1.25rem;` for optimal ergonomic reading line length.
+    - **Typography**: System sans-serif stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.68; color: #1f2328; background-color: #ffffff;`).
+    - **Callout Containers (`fieldset`)**: Subtle GitHub-style callout box (`background-color: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 1.15rem 1.35rem;`).
+    - **Legends**: `font-weight: 600; color: #1f2328; padding: 0 0.5rem;`.
+    - **Accordions (`details`)**: Border `1px solid #d0d7de; border-radius: 6px; background-color: #ffffff; padding: 0.75rem 1.15rem;`.
+    - **Code & ASCII Diagrams (`pre`, `code`, `kbd`, `samp`)**: Monospaced font (`ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace`), `<pre>` with `#f6f8fa` background, `1px solid #d0d7de` border, `6px` radius, and `overflow-x: auto;`.
+    - **Tables**: `border-collapse: collapse; width: 100%;` with `#f6f8fa` headers and `1px solid #d0d7de` grid lines.
+    - **Links**: Modern tech blue (`#0969da; text-decoration: none;`) with underline on hover.
   - Readability is achieved purely through 14 native semantic HTML design standards:
     1. **Visual Probability Bars**: Use native `<meter min="0" max="1" low="0.33" high="0.66" optimum="0.9" value="...">` and `<progress max="100" value="...">` to give instant graphical and color-coded feedback on distributions.
     2. **Architecture & Equation Diagrams**: Wrap diagrams, dataflows, and ASCII art in `<figure><pre>...</pre><figcaption><strong>Figure X.Y:</strong> ...</figcaption></figure>`.
