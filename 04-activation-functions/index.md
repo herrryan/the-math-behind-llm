@@ -850,12 +850,8 @@ The story of activation functions is the quest to find a mathematical gate that 
 <dl>
   <dt><time datetime="1943">1943</time> &mdash; <strong>Warren McCulloch &amp; Walter Pitts</strong>: The Binary Step Neuron</dt>
   <dd>
-    The first mathematical model of a biological brain cell used the Heaviside step function:
-
-$$
-f(z) = \begin{cases} 1 & \text{if } z \ge \theta \\ 0 & \text{if } z < \theta \end{cases}
-$$
-
+    The first mathematical model of a biological brain cell used the Heaviside step function: $f(z) = \begin{cases} 1 & \text{if } z \ge \theta \\ 0 & \text{if } z \lt \theta \end{cases}$.
+    <br>
     <strong>Why it broke:</strong> The derivative of a step function is zero everywhere ($f'(z) = 0$), and undefined at the threshold $\theta$. Gradient descent cannot work if the slope is always zero!
   </dd>
 

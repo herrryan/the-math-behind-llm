@@ -854,12 +854,8 @@ $$
 <dl>
   <dt><time datetime="1943">1943年</time> &mdash; <strong>Warren McCulloch 与 Walter Pitts</strong>：阶跃生物神经元</dt>
   <dd>
-    诞生了历史上第一个神经元数学模型，基于单位阶跃阈值函数（Heaviside step function）：
-
-$$
-f(z) = \begin{cases} 1 & \text{若 } z \ge \theta \\ 0 & \text{若 } z < \theta \end{cases}
-$$
-
+    诞生了历史上第一个神经元数学模型，基于单位阶跃阈值函数（Heaviside step function）：$f(z) = \begin{cases} 1 & \text{若 } z \ge \theta \\ 0 & \text{若 } z \lt \theta \end{cases}$。
+    <br>
     <strong>为什么受挫：</strong> 阶跃函数除了跳跃点外，其余所有位置的导数恒为零（$f'(z) = 0$）。当梯度处处为零时，基于微积分的梯度下降算法根本无法启动！
   </dd>
 
