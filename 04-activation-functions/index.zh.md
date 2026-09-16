@@ -733,6 +733,26 @@ $$
 
 清晰可见：ReLU 将负分量 $z_3 = -1.5$ 粗暴地归零；而 GELU 与 Swish 则放行了微弱的负向涓流（分别为 $-0.100$ 与 $-0.274$），从而让该特征在反向传播中依旧保留了苏醒的学习能力！
 
+#### 真实反向传导实测：为什么 GELU 能防止神经元死亡？
+假设在反向传播中，从深层网络传回该神经元输出端的累积误差信号为 $\delta = \frac{\partial \mathcal{L}}{\partial a} = 1.0$。我们来检验负输入分量 $z_3 = -1.5$ 处的反向传导状况：
+
+1. **ReLU 的反向反馈**：
+   由于 $z_3 = -1.5 < 0$，根据导数定义 $\operatorname{ReLU}'(-1.5) = 0$：
+
+$$
+\frac{\partial \mathcal{L}}{\partial z_3} = \delta \cdot \operatorname{ReLU}'(-1.5) = 1.0 \times 0 = 0.0
+$$
+
+   传导阀门被完全焊死！上游所有相连权重的梯度全被归零（$\frac{\partial \mathcal{L}}{\partial w} = 0$），该神经元陷入永久死亡。
+2. **GELU 的反向反馈**：
+   在 $z_3 = -1.5$ 处，通过导数公式可得局部导数 $\operatorname{GELU}'(-1.5) \approx -0.045$：
+
+$$
+\frac{\partial \mathcal{L}}{\partial z_3} = \delta \cdot \operatorname{GELU}'(-1.5) = 1.0 \times (-0.045) = -0.045
+$$
+
+   阀门并未锁死！一个虽微弱但非零的修正信号成功渗透传回，使上游权重在梯度下降中得以微调（$w \leftarrow w - \eta \cdot (-0.045 x)$），为神经元苏醒保留了生命火种。
+
 ---
 
 ### 第 C 部分：完整 SwiGLU 模块前向计算全流程

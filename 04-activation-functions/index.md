@@ -732,6 +732,26 @@ $$
 
 Notice how ReLU completely silences $z_3 = -1.5$ to $0.0$, while GELU and Swish allow a tiny negative trickle ($-0.100$ and $-0.274$) to flow through, maintaining gradient sensitivity!
 
+#### Backward Transmission Test: Why GELU Saves Neurons from Permanent Death
+Suppose the downstream error signal flowing back from the deeper layers to this neuron's output is $\delta = \frac{\partial \mathcal{L}}{\partial a} = 1.0$. Let us trace how the negative feature $z_3 = -1.5$ behaves during backpropagation:
+
+1. **ReLU Backward Flow**:
+   Because $z_3 = -1.5 < 0$, its derivative is $\operatorname{ReLU}'(-1.5) = 0$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial z_3} = \delta \cdot \operatorname{ReLU}'(-1.5) = 1.0 \times 0 = 0.0
+$$
+
+   The conduit is completely severed. The incoming weights receive zero gradient ($\frac{\partial \mathcal{L}}{\partial w} = 0$) and are permanently frozen.
+2. **GELU Backward Flow**:
+   At $z_3 = -1.5$, the local derivative is non-zero: $\operatorname{GELU}'(-1.5) \approx -0.045$:
+
+$$
+\frac{\partial \mathcal{L}}{\partial z_3} = \delta \cdot \operatorname{GELU}'(-1.5) = 1.0 \times (-0.045) = -0.045
+$$
+
+   The conduit remains slightly open! A faint but living corrective gradient leaks backward through the network, allowing upstream weights to adjust ($w \leftarrow w - \eta \cdot (-0.045 x)$) and revitalizing the neuron in subsequent training steps.
+
 ---
 
 ### Part C: A Complete SwiGLU Block Walkthrough

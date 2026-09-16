@@ -35,6 +35,13 @@ Every chapter written in this project **MUST** follow this structured learning s
 6. **Core Takeaway**
    - A 1-2 sentence punchline summarizing why this formula matters to the overall LLM brain.
 
+### Concept Explanation & The Dependency Ladder (Strictly Zero Unexplained Concepts)
+- **Ground Every Prerequisite from First Principles**:
+  - We are educating ambitious learners who may lack prior machine learning, advanced calculus, or linear algebra background.
+  - Never introduce or rely on a helper concept (e.g., Backpropagation, Computational Graph, Local Derivatives, Chain Rule, Taylor Expansion, Loss Function, Logits, Dot Product) to explain a primary topic without first breaking down that helper concept from first principles.
+  - If Concept B is needed to explain Concept A, you must explicitly construct and ground Concept B with intuitive physical metaphors and foundational mechanics before or alongside using it.
+  - Never assume prior domain knowledge or leave any prerequisite concept unexplained. Every explanation must form an unbroken, continuous ladder of understanding.
+
 ---
 
 ## 3. Strict Technical Guardrails
