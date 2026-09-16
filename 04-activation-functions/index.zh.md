@@ -169,18 +169,18 @@ $$
 
 <figure>
 <pre>
-     下游反向传回的误差信号 $\frac{\partial \mathcal{L}}{\partial a}$
-                     │
-                     ▼
-             ┌───────────────┐
-             │  $\sigma'(z)$ │  ◄─── 激活函数的导数扮演了物理阀门角色！
-             └───────┬───────┘
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-   若 $\sigma'(z) = 0$     若 $\sigma'(z) \approx 1$
-   梯度通道被彻底切断      误差信号畅通无阻
-   $\frac{\partial \mathcal{L}}{\partial w} = 0$（网络冻结） 权重平稳更新进化
+              下游反向传回的误差信号 (∂L/∂a)
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │     σ'(z)     │  ◄─── 激活函数的导数扮演了物理阀门角色！
+                  └───────┬───────┘
+                          │
+              ┌───────────┴───────────┐
+              ▼                       ▼
+        若 σ'(z) = 0            若 σ'(z) ≈ 1
+       梯度通道被彻底切断        误差信号畅通无阻
+     ∂L/∂w = 0（网络冻结）      权重平稳更新进化
 </pre>
 <figcaption><strong>图 4.2：</strong> 激活函数的导数 $\sigma'(z)$ 是误差梯度回传的传动阀门。若导数为零，误差信号将在此瞬间中断，连接前端的权重完全丧失更新能力。</figcaption>
 </figure>
@@ -236,11 +236,11 @@ $$
 
 <figure>
 <pre>
-   激活输出值 $\sigma(z)$                      导数值 $\sigma'(z)$
+       激活输出值 σ(z)                             导数值 σ'(z)
  1.0 ┌───────────────────----┐         0.25 ┌─────────/\─────────┐  最大峰值仅为 0.25
-     │                     / │              │        /  \        │  在 $z = 0$ 处
+     │                     / │              │        /  \        │  在 z = 0 处
  0.5 │........./‾‾‾‾‾........│              │       /    \       │
-     │        /              │              │     /        \     │  当 $|z| > 4$ 时
+     │        /              │              │     /        \     │  当 |z| > 4 时
  0.0 └───----────────────────┘         0.00 └───/────────────\───┘  导数迅速衰减为 0
     -6  -4  -2   0   2   4   6             -6  -4  -2   0   2   4   6
 </pre>
@@ -406,27 +406,27 @@ $$
 
 <figure>
 <pre>
-                      输入 Token 隐藏向量 $\mathbf{x} \in \mathbb{R}^{1 \times d_{\text{model}}}$
-                                 │
-                 ┌───────────────┴───────────────┐
-                 ▼                               ▼
-         $\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$    $\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$
-                 │                               │
-                 ▼                               │
-          $\operatorname{Swish}_1(\cdot)$                │
-                 │                               │
-                 └───────────────┬───────────────┘
-                                 ▼
-                      逐元素哈达玛积 $\odot$
-                                 │
-                                 ▼
-                     中间特征向量 $\mathbf{h} \in \mathbb{R}^{1 \times d_{\text{ffn}}}$
-                                 │
-                                 ▼
-         $\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$
-                                 │
-                                 ▼
-                      最终输出 $\mathbf{y} \in \mathbb{R}^{1 \times d_{\text{model}}}$
+                    输入 Token 隐藏向量 x  [1 × d_model]
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       W_gate [d_model × d_ffn]        W_up [d_model × d_ffn]
+               │                               │
+               ▼                               │
+            Swish(·)                           │
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+                      逐元素哈达玛积 ⊙
+                               │
+                               ▼
+                     中间特征向量 h  [1 × d_ffn]
+                               │
+                               ▼
+                      W_down [d_ffn × d_model]
+                               │
+                               ▼
+                     最终输出向量 y  [1 × d_model]
 </pre>
 <figcaption><strong>图 4.5：</strong> LLaMA-3、Mistral、Gemma 和 DeepSeek 普遍采用的现代 SwiGLU 前馈网络拓扑。两条并行矩阵分别计算门控与候选值，经过双线性乘积调制后输出。</figcaption>
 </figure>

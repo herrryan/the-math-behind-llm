@@ -167,18 +167,18 @@ $$
 
 <figure>
 <pre>
-   Backward Error Signal $\frac{\partial \mathcal{L}}{\partial a}$
-                     │
-                     ▼
-             ┌───────────────┐
-             │  $\sigma'(z)$ │  ◄─── The Derivative is the Physical Valve!
-             └───────┬───────┘
-                     │
-         ┌───────────┴───────────┐
-         ▼                       ▼
-  If $\sigma'(z) = 0$     If $\sigma'(z) \approx 1$
-  Gradients Extinguished   Gradients Flow Freely
-  $\frac{\partial \mathcal{L}}{\partial w} = 0$ (Frozen)   Weights Update &amp; Learn
+             Backward Error Signal (∂L/∂a)
+                          │
+                          ▼
+                  ┌───────────────┐
+                  │     σ'(z)     │  ◄─── The Derivative is the Physical Valve!
+                  └───────┬───────┘
+                          │
+              ┌───────────┴───────────┐
+              ▼                       ▼
+        If σ'(z) = 0            If σ'(z) ≈ 1
+   Gradient Extinguished    Gradient Flows Freely
+     ∂L/∂w = 0 (Frozen)     Weights Update & Learn
 </pre>
 <figcaption><strong>Figure 4.2:</strong> The activation derivative $\sigma'(z)$ acts as a physical coupler or conduit for the backpropagating error signal. If the derivative is zero, the conduit is severed and no learning can occur.</figcaption>
 </figure>
@@ -234,12 +234,12 @@ $$
 
 <figure>
 <pre>
-   Activation Value $\sigma(z)$                Derivative $\sigma'(z)$
- 1.0 ┌───────────────────----┐         0.25 ┌─────────/\─────────┐  Peak = 0.25
-     │                     / │              │        /  \        │  at $z = 0$
+       Activation Value σ(z)                       Derivative σ'(z)
+ 1.0 ┌───────────────────----┐         0.25 ┌─────────/\─────────┐  Peak is 0.25
+     │                     / │              │        /  \        │  at z = 0
  0.5 │........./‾‾‾‾‾........│              │       /    \       │
      │        /              │              │     /        \     │  Crushed to 0
- 0.0 └───----────────────────┘         0.00 └───/────────────\───┘  when $|z| > 4$
+ 0.0 └───----────────────────┘         0.00 └───/────────────\───┘  when |z| > 4
     -6  -4  -2   0   2   4   6             -6  -4  -2   0   2   4   6
 </pre>
 <figcaption><strong>Figure 4.3:</strong> The Vanishing Gradient crisis: For large positive or negative inputs, Sigmoid derivative drops to zero. Multiplying these small derivatives across layers extinguishes training.</figcaption>
@@ -404,27 +404,27 @@ $$
 
 <figure>
 <pre>
-                        Input Vector $\mathbf{x} \in \mathbb{R}^{1 \times d_{\text{model}}}$
-                                 │
-                 ┌───────────────┴───────────────┐
-                 ▼                               ▼
-         $\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$    $\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$
-                 │                               │
-                 ▼                               │
-          $\operatorname{Swish}_1(\cdot)$                │
-                 │                               │
-                 └───────────────┬───────────────┘
-                                 ▼
-                     Hadamard Product $\odot$
-                                 │
-                                 ▼
-                        $\mathbf{h} \in \mathbb{R}^{1 \times d_{\text{ffn}}}$
-                                 │
-                                 ▼
-         $\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$
-                                 │
-                                 ▼
-                       Output $\mathbf{y} \in \mathbb{R}^{1 \times d_{\text{model}}}$
+                     Input Vector x  [1 × d_model]
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       W_gate [d_model × d_ffn]        W_up [d_model × d_ffn]
+               │                               │
+               ▼                               │
+            Swish(·)                           │
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+                      Hadamard Product ⊙
+                               │
+                               ▼
+                     Hidden State h  [1 × d_ffn]
+                               │
+                               ▼
+                      W_down [d_ffn × d_model]
+                               │
+                               ▼
+                     Output Vector y  [1 × d_model]
 </pre>
 <figcaption><strong>Figure 4.5:</strong> Architecture of the modern SwiGLU FFN block used in LLaMA-3, Gemma, Mistral, and DeepSeek. Two parallel matrices produce the gate and the value, which modulate each other multiplicatively before the down-projection.</figcaption>
 </figure>
