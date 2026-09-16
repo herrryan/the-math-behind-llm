@@ -49,13 +49,18 @@ Every chapter written in this project **MUST** follow this structured learning s
 - **Strictly Zero Emojis**:
   - Do NOT use emojis anywhere in the project (no emojis in headings, callouts, text, symbol tables, flowcharts, or navigation links).
   - Maintain an elegant, clean, academic, and readable typography relying strictly on semantic HTML structure and mathematical clarity.
-- **Dynamic In-Browser Rendering (Zero Build Step)**:
-  - Content is authored purely in standard Markdown (`.md`).
-  - No build scripts (`build.py`) or compilation commands are needed. Focus 100% on crafting the mathematical content.
-  - Pages are rendered on the fly in the browser using `marked.js` with `marked-katex-extension` and `KaTeX`.
-- **Pure Semantic HTML & Minimal Compact High-Density Styling (Zero External CSS / Zero Build Step)**:
-  - The website relies strictly on native semantic HTML5 tags structured with a standardized, minimal Compact High-Density `<style>` block (~38 lines) embedded directly in the `<head>` of each `index.html`.
-  - Zero external CSS files, zero CSS frameworks, and zero build compilation steps are permitted. Content authors write pure Markdown (`.md`) and native semantic HTML elements; the embedded `<style>` block automatically styles raw element tags (`body`, `fieldset`, `legend`, `table`, `pre`, `kbd`, `a`, `details`, `.katex-display`).
+- **Static Pre-Rendering via `build.py` (Zero Client-Side Markdown Parsing)**:
+  - Content is authored purely in standard Markdown (`.md` and `.zh.md`) and native semantic HTML elements.
+  - A single, fast, self-contained Python script (`./build.py` or `uv run build.py`) statically pre-renders all Markdown into production-ready semantic HTML files (`index.html` and `index.zh.html`).
+  - **Zero Client-Side Markdown Parser**: No client-side `marked.js`, no client-side `marked-katex-extension`, and no dynamic `fetch()` calls. The HTML is 100% pre-compiled.
+  - **Zero "Loading..." Flash & 100% Offline/CORS-Free**: Pages load instantly on the first byte, whether hosted on a web server or opened directly via the local `file://` protocol.
+  - **Automated Quality Gate Checks**: `build.py` automatically asserts:
+    1. Zero emojis across all content files.
+    2. Protection and isolation of display math formulas.
+    3. Detection of unintended 4-space indented code blocks leaking escaped HTML tags (`&lt;strong&gt;`, `&lt;samp&gt;`).
+- **Pure Semantic HTML & Minimal Compact High-Density Styling (Zero External CSS)**:
+  - The website relies strictly on native semantic HTML5 tags structured with a standardized, minimal Compact High-Density `<style>` block (~38 lines) embedded directly in the `<head>` of each page.
+  - Zero external CSS files, zero CSS frameworks. Content authors write pure Markdown (`.md`) and native semantic HTML elements; the embedded `<style>` block automatically styles raw element tags (`body`, `fieldset`, `legend`, `table`, `pre`, `kbd`, `a`, `details`, `.katex-display`).
   - **Compact High-Density Style Specifications**:
     - **Layout**: `max-width: 800px; margin: 0 auto; padding: 1rem 0.75rem;` for a compact, readable reading column.
     - **Typography**: System sans-serif stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13.5px; line-height: 1.48; color: #222222; background-color: #f6f6ef;`).
@@ -108,20 +113,24 @@ Every chapter written in this project **MUST** follow this structured learning s
       ```
     - **NEVER** place LaTeX formula content on the same line as `$$` (e.g., avoid `$$\mathbf{E} = ...$$` or `$$\begin{aligned}...$$`).
     - *Why this is mandatory*: When `$$` shares a line with LaTeX code, `marked.js` treats the block as standard inline markdown rather than a block math token. `marked`'s inline tokenizer then misinterprets LaTeX underscores (`_`) as markdown italic tags (`<em>`), mangling subscripts (e.g. `\mathbf{x}_1^\top \dots \mathbf{x}_2^\top` becomes `<em>...</em>`) and escaping `&` into `&amp;`, which fatally breaks KaTeX parsing in the browser.
-  - **KaTeX Extension Configuration**:
-    - Always configure `marked-katex-extension` with `nonStandard: true` in `index.html`:
+  - **KaTeX Auto-Render Client Configuration**:
+    - Equations are rendered on page load using KaTeX's official `auto-render.js` extension:
       ```javascript
-      marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false
+      });
       ```
-      This ensures non-standard or edge-case multi-line delimiters are safely intercepted before markdown parsing runs.
   - **Vector and Transpose Dimensional Rigor**:
     - Maintain strict dimensional compatibility in linear algebra equations:
       - If embedding matrix is $\mathbf{E} \in \mathbb{R}^{|V| \times d}$, row lookup must be expressed as $\mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E} \in \mathbb{R}^{1 \times d}$.
       - If using column-vector orientation $\mathbf{x}_i \in \mathbb{R}^{d \times 1}$, lookup is $\mathbf{x}_i = \mathbf{E}^\top \mathbf{e}_i$.
       - Never equate a row vector to a column vector without explicit transpose notation.
-- **Local Portability & Fallback**:
-  - Supports live editing via local HTTP server (`python3 -m http.server 8000`).
-  - Includes embedded fallback markdown in `index.html` so direct opening via `file://` renders without browser CORS blocks.
+- **Local Portability**:
+  - All HTML files are fully pre-rendered and statically self-contained. Opening any `index.html` or `index.zh.html` directly via the `file://` protocol or any static HTTP server (`python3 -m http.server 8000`) works instantaneously with zero CORS restrictions.
 
 ---
 

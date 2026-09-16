@@ -10,10 +10,6 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <!-- KaTeX Auto-Render Extension -->
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-  <!-- Marked.js for in-browser Markdown parsing -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Marked KaTeX Extension -->
-  <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
   <style>
     /* Compact High-Density Minimal Style (~38 lines) */
     body {
@@ -98,30 +94,17 @@
 
   <nav aria-label="Site and Language Navigation">
     <p>
-      <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
-      <strong>Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map &rarr;</a>
+      <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors & Embeddings) &rarr;</a>
       &nbsp;|&nbsp;
       <strong>Language:</strong> 
-      <a href="?lang=en" id="lang-btn-en" onclick="setLanguage('en'); return false;">English</a> &bull; 
-      <a href="?lang=zh" id="lang-btn-zh" onclick="setLanguage('zh'); return false;">中文</a>
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
     </p>
   </nav>
   <hr>
 
   <main id="content">
-    <p><em>Loading chapter content...</em></p>
-  </main>
-
-  <footer>
-    <hr>
-    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • Dynamic Markdown &amp; KaTeX • Zero Build Step.</p>
-    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
-  </footer>
-
-  <!-- Fallback content if opened directly via file:// protocol -->
-  <script type="text/markdown" id="fallback-content-en">
-# Chapter 00: The Next-Word Guessing Game
-
+<h1>Chapter 00: The Next-Word Guessing Game</h1>
 <nav aria-label="Table of Contents">
   <p>
     <strong>Table of Contents:</strong> 
@@ -136,106 +119,133 @@
 
 <hr>
 
-<a id="step-1"></a>
-> [!INTUITION] 3-Year-Old Intuition: The Animal Mystery Box
-> Imagine you and your best friend are playing a game with a mystery box.
-> 
-> You give your friend a clue: <kbd>"It is fluffy..."</kbd>  
-> Your friend thinks: *"Could it be a bunny? A kitten? A cloud?"*
-> 
-> Then you whisper a second clue into their ear: <kbd>"It is fluffy... and it says meow!"</kbd>  
-> 
-> Instantly, your friend laughs and shouts: <samp>"Kitten!"</samp>
-> 
-> Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities until only one answer made sense.
-> 
-> A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it prompt tokens: <kbd>"The"</kbd> <kbd>"sky"</kbd> <kbd>"is"</kbd> <kbd>"very"</kbd> and it looks through its giant toy chest of words to pick the next one: <samp>"blue"</samp>.
+<p><a id="step-1"></a></p>
+<fieldset><legend><strong>3-Year-Old Intuition: The Animal Mystery Box</strong></legend>
 
----
+Imagine you and your best friend are playing a game with a mystery box.
 
+You give your friend a clue: <kbd>"It is fluffy..."</kbd>  
+Your friend thinks: *"Could it be a bunny? A kitten? A cloud?"*
+
+Then you whisper a second clue into their ear: <kbd>"It is fluffy... and it says meow!"</kbd>  
+
+Instantly, your friend laughs and shouts: <samp>"Kitten!"</samp>
+
+Did your friend know the answer before the word "meow"? No! But every single clue narrowed down the possibilities until only one answer made sense.
+
+A Large Language Model (LLM) is playing this exact same game every single millisecond. You give it prompt tokens: <kbd>"The"</kbd> <kbd>"sky"</kbd> <kbd>"is"</kbd> <kbd>"very"</kbd> and it looks through its giant toy chest of words to pick the next one: <samp>"blue"</samp>.
+
+</fieldset>
+
+<hr />
 <h2 id="step-2">Step 2: The Bridging Question (From Whispers to Numbers)</h2>
 
-How does a computer play this guessing game mathematically?
-
-A computer cannot "feel" what word comes next. It cannot say: *"Well, kitten feels cozy."* 
-
-Instead, a computer needs a **mathematical ruler**. It must assign a precise numerical score—a **probability** between 0% and 100%—to every single word in human language, measuring how likely that word is to follow the previous clues.
-
----
-
+<p>How does a computer play this guessing game mathematically?</p>
+<p>A computer cannot "feel" what word comes next. It cannot say: <em>"Well, kitten feels cozy."</em> </p>
+<p>Instead, a computer needs a <strong>mathematical ruler</strong>. It must assign a precise numerical score—a <strong>probability</strong> between 0% and 100%—to every single word in human language, measuring how likely that word is to follow the previous clues.</p>
+<hr />
 <h2 id="step-3">Step 3: The Exact Math &amp; Formulas</h2>
 
-### 1. The Vocabulary Box ($V$)
+<h3>1. The Vocabulary Box ($V$)</h3>
+<p>Before the model can make a guess, we must write down a master catalog of every word or subword it is allowed to speak. We call this catalog the <strong>Vocabulary Set</strong>, denoted by the symbol $V$:</p>
 
-Before the model can make a guess, we must write down a master catalog of every word or subword it is allowed to speak. We call this catalog the **Vocabulary Set**, denoted by the symbol $V$:
 
-$$V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}$$
+$$
+V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}
+$$
 
-The total count of distinct words in this box is called the **Vocabulary Size**, written as $|V|$:
+
+<p>The total count of distinct words in this box is called the <strong>Vocabulary Size</strong>, written as $|V|$:
 - In toy models: $|V| = 4$ or $|V| = 10$.
-- In production models (GPT-4, LLaMA-3): $|V|$ is typically between $32{,}000$ and $128{,}000$ tokens.
+- In production models (GPT-4, LLaMA-3): $|V|$ is typically between $32{,}000$ and $128{,}000$ tokens.</p>
+<hr />
+<h3>2. The Conditional Probability Rule</h3>
+<p>When the model has already observed a sequence of $t-1$ words:</p>
 
----
 
-### 2. The Conditional Probability Rule
+$$
+w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{<t})
+$$
 
-When the model has already observed a sequence of $t-1$ words:
 
-$$w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{<t})$$
+<p>it calculates the probability that the next word at position $t$ is a specific candidate word $w \in V$. We write this as:</p>
 
-it calculates the probability that the next word at position $t$ is a specific candidate word $w \in V$. We write this as:
 
-$$P(w_t = w \mid w_1, w_2, \dots, w_{t-1})$$
+$$
+P(w_t = w \mid w_1, w_2, \dots, w_{t-1})
+$$
 
-The vertical bar $\mid$ translates into plain English as **"given that we already observed"**.
 
-Every valid probability distribution in an LLM must satisfy two unbreakable mathematical laws:
+<p>The vertical bar $\mid$ translates into plain English as <strong>"given that we already observed"</strong>.</p>
+<p>Every valid probability distribution in an LLM must satisfy two unbreakable mathematical laws:</p>
+<ol>
+<li><strong>Non-negativity &amp; Boundedness</strong>: No word can have a negative chance, and no word can have more than a 100% chance:</li>
+</ol>
 
-1. **Non-negativity & Boundedness**: No word can have a negative chance, and no word can have more than a 100% chance:
-   $$0 \le P(w_t = w \mid w_{<t}) \le 1 \quad \text{for all } w \in V$$
 
-2. **Total Probability Conservation**: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ (100% of the pie):
-   $$\sum_{w \in V} P(w_t = w \mid w_{<t}) = 1$$
+$$
+0 \le P(w_t = w \mid w_{<t}) \le 1 \quad \text{for all } w \in V
+$$
 
----
 
-### 3. The Chain Rule of Probability
+<ol start="2">
+<li><strong>Total Probability Conservation</strong>: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ (100% of the pie):</li>
+</ol>
 
-How does an LLM generate an entire essay, a poem, or a computer program? It strings individual next-word guesses together using the **Chain Rule of Joint Probability**:
 
-$$P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})$$
+$$
+\sum_{w \in V} P(w_t = w \mid w_{<t}) = 1
+$$
 
-Using compact mathematical product notation ($\prod$):
 
-$$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
+<hr />
+<h3>3. The Chain Rule of Probability</h3>
+<p>How does an LLM generate an entire essay, a poem, or a computer program? It strings individual next-word guesses together using the <strong>Chain Rule of Joint Probability</strong>:</p>
 
-> [!MATH] Decoding the Mathematical Symbols
-> - $\sum$ (Capital Sigma): Means **"Add them all up"**.
-> - $\prod$ (Capital Pi): Means **"Multiply them all together"**.
-> - The total probability of a paragraph is the chance of the first word, multiplied by the chance of the second word given the first, multiplied by the third word given the first two, and so on until the final period.
 
-### Why Do We Calculate the Joint Probability of a Full Sentence?
+$$
+P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})
+$$
 
-Why can't an LLM simply stop at guessing the next single word? Why do researchers care about the joint probability $P(w_1, w_2, \dots, w_T)$ of the entire paragraph?
 
-There are three foundational reasons:
+<p>Using compact mathematical product notation ($\prod$):</p>
 
-1. **Training the Brain (Maximum Likelihood Estimation)**:  
-   When an LLM trains on billions of sentences from libraries and the internet, how does it know whether its parameters are improving? It measures the joint probability it assigns to real human sentences. Training an LLM is mathematically defined as adjusting internal weights so that $P(w_1, \dots, w_T)$ is as close to $1.0$ as possible for coherent language, while assigning near-zero probability to scrambled words. (This forms the exact foundation of Cross-Entropy Loss in Chapter 14).
 
-2. **Comparing and Ranking Competing Thoughts**:  
+$$
+P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})
+$$
+
+
+<fieldset><legend><strong>Decoding the Mathematical Symbols</strong></legend>
+
+- $\sum$ (Capital Sigma): Means **"Add them all up"**.
+- $\prod$ (Capital Pi): Means **"Multiply them all together"**.
+- The total probability of a paragraph is the chance of the first word, multiplied by the chance of the second word given the first, multiplied by the third word given the first two, and so on until the final period.
+
+</fieldset>
+
+<h3>Why Do We Calculate the Joint Probability of a Full Sentence?</h3>
+<p>Why can't an LLM simply stop at guessing the next single word? Why do researchers care about the joint probability $P(w_1, w_2, \dots, w_T)$ of the entire paragraph?</p>
+<p>There are three foundational reasons:</p>
+<ol>
+<li>
+<p><strong>Training the Brain (Maximum Likelihood Estimation)</strong>:<br />
+   When an LLM trains on billions of sentences from libraries and the internet, how does it know whether its parameters are improving? It measures the joint probability it assigns to real human sentences. Training an LLM is mathematically defined as adjusting internal weights so that $P(w_1, \dots, w_T)$ is as close to $1.0$ as possible for coherent language, while assigning near-zero probability to scrambled words. (This forms the exact foundation of Cross-Entropy Loss in Chapter 14).</p>
+</li>
+<li>
+<p><strong>Comparing and Ranking Competing Thoughts</strong>:<br />
    When generating text or translating between languages, the model often considers multiple candidate sentences:
    - Candidate A: <samp>"The cat sat on the warm rug."</samp>
-   - Candidate B: <samp>"The cat sat on the warm rug rug."</samp>  
-   Evaluating the joint probability across all tokens allows the model to score and rank complete hypotheses, picking the one that makes the most cohesive sense as a whole.
-
-3. **Preventing Short-Sighted "Greedy" Traps**:  
-   A word that looks highly probable in the short term might lead into a grammatical dead-end two words later. Calculating or approximating the joint probability over sequence paths allows algorithms like Beam Search to steer clear of dead ends.
-
----
-
-### Mathematical Symbol Breakdown Table
-
+   - Candidate B: <samp>"The cat sat on the warm rug rug."</samp><br />
+   Evaluating the joint probability across all tokens allows the model to score and rank complete hypotheses, picking the one that makes the most cohesive sense as a whole.</p>
+</li>
+<li>
+<p><strong>Preventing Short-Sighted "Greedy" Traps</strong>:<br />
+   A word that looks highly probable in the short term might lead into a grammatical dead-end two words later. Calculating or approximating the joint probability over sequence paths allows algorithms like Beam Search to steer clear of dead ends.</p>
+</li>
+</ol>
+<hr />
+<h3>Mathematical Symbol Breakdown Table</h3>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 0.1:</strong> Formal mathematical symbols, dimensions, and operational definitions.</caption>
   <thead>
@@ -298,38 +308,35 @@ There are three foundational reasons:
   </tbody>
 </table>
 
-<br>
-
+<p><br></p>
 <details>
 <summary><strong>Symbol Glossary (Definition List)</strong></summary>
 
 <dl>
   <dt><strong>Vocabulary Set ($V$)</strong></dt>
   <dd>The finite set of all unique words, subwords, or characters recognized by the tokenizer.</dd>
-  
+
   <dt><strong>Vocabulary Cardinality ($|V|$)</strong></dt>
   <dd>The total count of tokens in $V$. Modern LLMs typically range from 32,000 to 128,000 tokens.</dd>
-  
+
   <dt><strong>Sequential Index ($t$)</strong></dt>
   <dd>The discrete time step or token position along the sequence axis ($t \in \{1, 2, \dots, T\}$).</dd>
-  
+
   <dt><strong>Target Token ($w_t$)</strong></dt>
   <dd>The specific word chosen or predicted at sequence position $t$.</dd>
-  
+
   <dt><strong>Prefix History / Context ($w_{<t}$)</strong></dt>
   <dd>The ordered tuple of all tokens preceding step $t$: $(w_1, w_2, \dots, w_{t-1})$.</dd>
-  
+
   <dt><strong>Conditional Probability ($P(w_t \mid w_{<t})$)</strong></dt>
   <dd>A real scalar between $0.0$ and $1.0$ satisfying $\sum_{w \in V} P(w \mid w_{<t}) = 1.0$.</dd>
 </dl>
 </details>
 
----
-
+<hr />
 <h2 id="step-4">Step 4: Where Does This Formula Come From?</h2>
 
-Why do all modern LLMs formulate language generation as a chain of conditional probabilities rather than predicting the whole sentence at once?
-
+<p>Why do all modern LLMs formulate language generation as a chain of conditional probabilities rather than predicting the whole sentence at once?</p>
 <details>
 <summary><strong>Historical Origins: Andrey Markov (1913) & Claude Shannon (1948)</strong></summary>
 
@@ -340,28 +347,39 @@ Why do all modern LLMs formulate language generation as a chain of conditional p
 <p>Thirty-five years later, in 1948, <strong>Claude Shannon</strong> published his landmark paper <em>"A Mathematical Theory of Communication"</em>. Shannon formalized human language as a statistical stochastic process where each successive symbol is chosen according to conditional probability distributions conditioned on preceding symbols.</p>
 </details>
 
-<br>
-
+<p><br></p>
 <details>
 <summary><strong>What Broke When Researchers Tried Simpler Ideas?</strong></summary>
 
 <p>Why can't we just assume words are independent? That is, why not compute:</p>
-$$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
+
+
+
+
+$$
+P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)
+$$
+
+
+
+
 
 <p>If words were independent, the sentence <em>"The dog bit the man"</em> would have the exact same probability as <em>"Bit man dog the the"</em>, because both contain identical words! Language relies entirely on word order and context. Therefore, conditioning on the past prefix $w_{<t}$ is mathematically essential.</p>
 </details>
 
----
-
+<hr />
 <h2 id="step-5">Step 5: Concrete Toy Example (Step-by-Step Arithmetic)</h2>
 
-Let's walk through the exact arithmetic using our tiny toy language:
+<p>Let's walk through the exact arithmetic using our tiny toy language:</p>
 
-$$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)$$
 
-We want to calculate the probability of generating the complete sentence:  
-**"I love ice cream"**
+$$
+V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)
+$$
 
+
+<p>We want to calculate the probability of generating the complete sentence:<br />
+<strong>"I love ice cream"</strong></p>
 <figure>
 <pre>
 Step 1: P("I")                                        = 0.50  (50% chance)
@@ -377,12 +395,9 @@ Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
 <figcaption><strong>Figure 0.1:</strong> Sequential probability conditioning across four time steps.</figcaption>
 </figure>
 
----
-
-### Step-by-Step Probability Distribution at Step 4
-
-At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate word in $V$:
-
+<hr />
+<h3>Step-by-Step Probability Distribution at Step 4</h3>
+<p>At step $t=4$, after hearing <em>"I love ice"</em>, the model evaluates every candidate word in $V$:</p>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 0.2:</strong> Candidate word probability distribution conditioned on prefix context <kbd>"I love ice"</kbd>.</caption>
   <thead>
@@ -433,689 +448,160 @@ At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate
   </tbody>
 </table>
 
----
+<hr />
+<h3>Step-by-Step Multiplication</h3>
+<p>Now we multiply the 4 probabilities together using the Chain Rule:</p>
 
-### Step-by-Step Multiplication
 
-Now we multiply the 4 probabilities together using the Chain Rule:
+$$
+P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90
+$$
 
-$$P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90$$
 
-Let's compute each multiplication by hand:
+<p>Let's compute each multiplication by hand:</p>
+<ol>
+<li>Multiply the first two words:</li>
+</ol>
 
-1. Multiply the first two words:
-   $$0.50 \times 0.40 = 0.20$$
 
-2. Multiply by the third word:
-   $$0.20 \times 0.30 = 0.06$$
+$$
+0.50 \times 0.40 = 0.20
+$$
 
-3. Multiply by the fourth word:
-   $$0.06 \times 0.90 = \mathbf{0.054}$$
 
-The full sentence has an overall probability of <mark><strong>0.054</strong></mark> (or <mark><strong>5.4%</strong></mark>).
+<ol start="2">
+<li>Multiply by the third word:</li>
+</ol>
 
----
 
-### The Paradox of 5.4%: Why Does It Look So Low, and Why Is It Actually Huge?
+$$
+0.20 \times 0.30 = 0.06
+$$
 
-At first glance, a probability of <mark><strong>5.4%</strong></mark> looks tiny. You might wonder: *"If the model is so smart, shouldn't the probability of 'I love ice cream' be 80% or 90%?"*
 
-Here is the deep mathematical secret: **In sequence probability, 5.4% is an astonishingly massive number.**
+<ol start="3">
+<li>Multiply by the fourth word:</li>
+</ol>
 
-Let's see why:
 
-#### 1. The 256-Sentence Universe (Combinatorial Explosion)
-In our tiny toy language with only 4 words ($|V| = 4$), how many unique 4-word sentences can you write?
+$$
+0.06 \times 0.90 = \mathbf{0.054}
+$$
 
-$$\text{Total Possible Sentences} = |V|^T = 4^4 = 256 \text{ sentences}$$
 
-These include sentences like:
+<p>The full sentence has an overall probability of <mark><strong>0.054</strong></mark> (or <mark><strong>5.4%</strong></mark>).</p>
+<hr />
+<h3>The Paradox of 5.4%: Why Does It Look So Low, and Why Is It Actually Huge?</h3>
+<p>At first glance, a probability of <mark><strong>5.4%</strong></mark> looks tiny. You might wonder: <em>"If the model is so smart, shouldn't the probability of 'I love ice cream' be 80% or 90%?"</em></p>
+<p>Here is the deep mathematical secret: <strong>In sequence probability, 5.4% is an astonishingly massive number.</strong></p>
+<p>Let's see why:</p>
+<h4>1. The 256-Sentence Universe (Combinatorial Explosion)</h4>
+<p>In our tiny toy language with only 4 words ($|V| = 4$), how many unique 4-word sentences can you write?</p>
+
+
+$$
+\text{Total Possible Sentences} = |V|^T = 4^4 = 256 \text{ sentences}
+$$
+
+
+<p>These include sentences like:
 - <samp>"I I I I"</samp>
 - <samp>"cream cream cream cream"</samp>
 - <samp>"love ice cream I"</samp>
 - <samp>"I love ice cream"</samp>
-- ...and 252 other candidate combinations!
+- ...and 252 other candidate combinations!</p>
+<h4>2. Comparison With Pure Random Chance</h4>
+<p>If a child randomly picked 4 word blocks out of the box, every sentence would have an identical chance of:</p>
 
-#### 2. Comparison With Pure Random Chance
-If a child randomly picked 4 word blocks out of the box, every sentence would have an identical chance of:
 
-$$P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)$$
+$$
+P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)
+$$
 
-Our language model assigns <mark><strong>5.4%</strong></mark> to <samp>"I love ice cream"</samp>. Let's compare our model to random chance:
 
-$$\frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{ higher than random chance!}}$$
+<p>Our language model assigns <mark><strong>5.4%</strong></mark> to <samp>"I love ice cream"</samp>. Let's compare our model to random chance:</p>
 
-In a crowded stadium of 256 competing sentences, one single sentence captured over 5% of all the probability mass in the entire universe. That is an overwhelming statistical endorsement.
 
-#### 3. What Happens in Real LLMs? The Microscopic Decay & Log-Space
-Now imagine a production LLM like GPT-4 or LLaMA-3:
+$$
+\frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{ higher than random chance!}}
+$$
+
+
+<p>In a crowded stadium of 256 competing sentences, one single sentence captured over 5% of all the probability mass in the entire universe. That is an overwhelming statistical endorsement.</p>
+<h4>3. What Happens in Real LLMs? The Microscopic Decay &amp; Log-Space</h4>
+<p>Now imagine a production LLM like GPT-4 or LLaMA-3:
 - The vocabulary contains about $|V| \approx 100{,}000$ tokens.
-- A typical paragraph has $T = 50$ tokens.
+- A typical paragraph has $T = 50$ tokens.</p>
+<p>The number of possible 50-token sequences is:</p>
 
-The number of possible 50-token sequences is:
 
-$$|V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}$$
+$$
+|V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}
+$$
 
-By comparison, the entire observable universe contains only about $10^{80}$ atoms!
 
-When you multiply 50 numbers that are each less than 1 (for instance, even if the model were 90% confident at every step, $0.90^{50} \approx 0.00515$; if it is 30% confident, $0.30^{50} \approx 10^{-26}$), the raw joint probability becomes microscopic.
+<p>By comparison, the entire observable universe contains only about $10^{80}$ atoms!</p>
+<p>When you multiply 50 numbers that are each less than 1 (for instance, even if the model were 90% confident at every step, $0.90^{50} \approx 0.00515$; if it is 30% confident, $0.30^{50} \approx 10^{-26}$), the raw joint probability becomes microscopic.</p>
+<p><strong>The Hardware Engineering Problem:</strong>
+If a computer chip tries to store a number like $10^{-250}$ using standard floating-point hardware (<code>float32</code>), the number is too tiny to represent. The chip encounters <strong>arithmetic underflow</strong> and rounds the number down to absolute $0.0$!</p>
+<p><strong>The Mathematical Solution (Log-Probabilities):</strong>
+To prevent this underflow, AI researchers never multiply probabilities directly. Instead, they convert probabilities into logarithms. Because $\log(a \times b) = \log(a) + \log(b)$, dangerous multiplication turns into safe, stable addition:</p>
 
-**The Hardware Engineering Problem:**
-If a computer chip tries to store a number like $10^{-250}$ using standard floating-point hardware (`float32`), the number is too tiny to represent. The chip encounters **arithmetic underflow** and rounds the number down to absolute $0.0$!
 
-**The Mathematical Solution (Log-Probabilities):**
-To prevent this underflow, AI researchers never multiply probabilities directly. Instead, they convert probabilities into logarithms. Because $\log(a \times b) = \log(a) + \log(b)$, dangerous multiplication turns into safe, stable addition:
+$$
+\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{<t})
+$$
 
-$$\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{<t})$$
 
-We will explore this logarithmic superpower in depth when we train models with **Cross-Entropy Loss** in Module 6!
-
----
-
+<p>We will explore this logarithmic superpower in depth when we train models with <strong>Cross-Entropy Loss</strong> in Module 6!</p>
+<hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
 
-> [!TIP] Core Takeaway
-> A Large Language Model has no magical human consciousness. At its core, it is a **probabilistic guessing machine**:
-> 
-> At every single position, it computes a probability distribution over its vocabulary $V$, selects a candidate word, appends that word to its prompt, and repeats.
-> 
-> But this brings us to the next big mystery: **Computers cannot understand raw letters or English words. How does an LLM convert words into numbers that silicon chips can compute?**
+<fieldset><legend><strong>Core Takeaway</strong></legend>
 
----
+A Large Language Model has no magical human consciousness. At its core, it is a **probabilistic guessing machine**:
 
+At every single position, it computes a probability distribution over its vocabulary $V$, selects a candidate word, appends that word to its prompt, and repeats.
+
+But this brings us to the next big mystery: **Computers cannot understand raw letters or English words. How does an LLM convert words into numbers that silicon chips can compute?**
+
+</fieldset>
+
+<hr />
 <nav aria-label="Chapter Navigation">
   <p>
     <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
     <strong>Next Chapter:</strong> <a href="../01-vectors-and-spaces/index.html">Chapter 01: The Word Map (Vectors &amp; Embeddings) &rarr;</a>
   </p>
 </nav>
-
-  </script>
-
-  <script type="text/markdown" id="fallback-content-zh">
-# 第00章：猜词游戏（自回归下一个词预测）
-
-<nav aria-label="Table of Contents">
-  <p>
-    <strong>目录导航：</strong> 
-    <a href="#step-1">1. 3岁小孩的直觉</a> &bull; 
-    <a href="#step-2">2. 承上启下的问题</a> &bull; 
-    <a href="#step-3">3. 精确数学公式</a> &bull; 
-    <a href="#step-4">4. 公式从何而来？</a> &bull; 
-    <a href="#step-5">5. 具象微型算例</a> &bull; 
-    <a href="#step-6">6. 核心精髓</a>
-  </p>
-</nav>
-
----
-
-<a id="step-1"></a>
-> [!INTUITION] 3岁小孩的直觉：神秘的动物盲盒
-> 想象一下，你正和最好的朋友玩一个“猜盲盒”的游戏。
-> 
-> 你给朋友一个线索：<kbd>“它毛茸茸的……”</kbd>  
-> 朋友开动脑筋：*“会是一只小兔子？一只小猫咪？还是一朵白云？”*
-> 
-> 接着，你附在他们耳边轻声说出第二个线索：<kbd>“它毛茸茸的……而且会‘喵喵’叫！”</kbd>  
-> 
-> 刹那间，朋友开心地笑出声并大喊：<samp>“是小猫！”</samp>
-> 
-> 在你说出“喵喵”之前，朋友百分之百确信答案吗？并不！但每一个新线索都在逐步缩小猜测的范围，直到最后只有一个答案最为合理。
-> 
-> 大语言模型（LLM）在每一毫秒内，都在玩一模一样的猜谜游戏。你给它一串提示词（Prompt）：<kbd>“The”</kbd> <kbd>“sky”</kbd> <kbd>“is”</kbd> <kbd>“very”</kbd>，它就在自己的巨大词汇玩具箱里翻找，挑选出最可能出现的下一个词：<samp>“blue”</samp>。
-
----
-
-<h2 id="step-2">Step 2: 承上启下的问题（从耳语到数字）</h2>
-
-计算机在数学层面上究竟是如何玩这个猜词游戏的？
-
-计算机没有人类的“直觉”，它无法凭空感叹：*“哎呀，‘小猫’听起来真暖心。”*
-
-相反，计算机需要一把**数学标尺**。它必须为人类语言中的每一个单词计算出一个精确的数字评分——即介于 0% 到 100% 之间的**概率值**（Probability），用来度量在给定上文线索的前提下，该词出现的可能性有多大。
-
----
-
-<h2 id="step-3">Step 3: 精确数学公式</h2>
-
-### 1. 词汇表箱子（$V$）
-
-在模型能够做出预测之前，我们必须先写下一份它被允许使用的完整词汇清单。在数学中，我们称这个清单为**词汇集合**（Vocabulary Set），记作符号 $V$：
-
-$$
-V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}
-$$
-
-这个箱子里不同单词的总数量，称为**词汇表大小**（Vocabulary Size），记作 $|V|$：
-- 在玩具模型中：$|V| = 4$ 或 $|V| = 10$。
-- 在工业级生产模型中（如 GPT-4、LLaMA-3）：$|V|$ 通常在 $32{,}000$ 到 $128{,}000$ 个词元（Token）之间。
-
----
-
-### 2. 条件概率规则
-
-当模型已经观察到前 $t-1$ 个单词组成的序列时：
-
-$$
-w_1, w_2, \dots, w_{t-1} \quad (\text{通常简写为 } w_{<t})
-$$
-
-它会计算在第 $t$ 个位置出现的下一个词是某个特定候选词 $w \in V$ 的概率。数学上记作：
-
-$$
-P(w_t = w \mid w_1, w_2, \dots, w_{t-1})
-$$
-
-其中的竖线 $\mid$ 在自然语言中读作**“在已知……的前提条件下”**。
-
-在 LLM 中，任何合法的概率分布都必须严格服从两条不可打破的数学铁律：
-
-1. **非负性与有界性**：任何单词的概率都不能为负数，也不能超过 100%：
-   $$
-   0 \le P(w_t = w \mid w_{<t}) \le 1 \quad (\forall w \in V)
-   $$
-
-2. **全概率守恒律**：如果把词典中所有候选词的概率加在一起，总和必须严格等于 $1$（即整张披萨的 100%）：
-   $$
-   \sum_{w \in V} P(w_t = w \mid w_{<t}) = 1
-   $$
-
----
-
-### 3. 概率链式法则
-
-LLM 是如何生成一整篇文章、一首诗或一段计算机程序的？它通过**联合概率链式法则**（Chain Rule of Probability），将每一次预测下一个词的概率连乘起来：
-
-$$
-P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})
-$$
-
-利用紧凑的数学连乘符号（$\prod$）可写作：
-
-$$
-P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})
-$$
-
-> [!MATH] 数学符号解读
-> - $\sum$（大写 Sigma）：表示**“将它们全部加起来”**。
-> - $\prod$（大写 Pi）：表示**“将它们全部乘起来”**。
-> - 整个段落的总联合概率，就是第一个词的概率，乘上在第一个词前提下出现第二个词的概率，再乘上前两个词前提下出现第三个词的概率，一直连乘到句号为止。
-
-### 为什么我们要计算整句话的联合概率？
-
-为什么 LLM 不能只停留在单步猜词上？为什么研究人员必须关注整个段落的联合概率 $P(w_1, w_2, \dots, w_T)$？
-
-主要有三大核心原因：
-
-1. **训练模型大脑（极大似然估计 Maximum Likelihood Estimation）**：  
-   当 LLM 在互联网海量文本上进行训练时，它如何判断内部参数是否在变聪明？它正是通过测量它赋予真实人类语言句子的联合概率。训练 LLM 的本质目标，就是调整模型内部权重，使得符合人类逻辑的真实语篇的 $P(w_1, \dots, w_T)$ 尽可能逼近 $1.0$，同时让胡言乱语的乱序句子概率趋近于零（这正是第14章交叉熵损失函数的数学基石）。
-
-2. **对比与挑选更合理的表达**：  
-   在文本生成或机器翻译时，模型往往会面临多个候选句子：
-   - 候选 A：<samp>"The cat sat on the warm rug."</samp>
-   - 候选 B：<samp>"The cat sat on the warm rug rug."</samp>  
-   评估整条序列的联合概率，能让模型横向对比完整假设，挑出语义最为通顺协调的最佳句子。
-
-3. **防止短视的“贪婪”陷阱（Greedy Traps）**：  
-   某个词在单步预测时可能概率最高，但它可能会让后面的句子走向语无伦次的死胡同。计算或估算序列路径上的联合概率，可以让类似束搜索（Beam Search）等解码算法提前规划全局，避开局部最优陷阱。
-
----
-
-### 数学符号拆解速查表
-
-<table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>表 0.1：</strong> 形式化数学符号、维度与操作定义</caption>
-  <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="left">符号</th>
-      <th align="left">正式名称</th>
-      <th align="left">3岁小孩的理解</th>
-      <th align="left">微型算例</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>$V$</td>
-      <td>词汇集合（Vocabulary）</td>
-      <td>模型认识的所有单词玩具箱</td>
-      <td>$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$</td>
-    </tr>
-    <tr>
-      <td>$|V|$</td>
-      <td>词汇表大小（Cardinality）</td>
-      <td>玩具箱里总共有几块积木</td>
-      <td>$|V| = 4$ 个单词</td>
-    </tr>
-    <tr>
-      <td>$t$</td>
-      <td>时间步 / 位置（Time Step）</td>
-      <td>当前正在猜第几个单词</td>
-      <td>$t = 4$（正在猜第4个单词）</td>
-    </tr>
-    <tr>
-      <td>$w_t$</td>
-      <td>位置 $t$ 处的词元（Token）</td>
-      <td>当前正在考量的候选单词</td>
-      <td>$w_4 = \text{"cream"}$</td>
-    </tr>
-    <tr>
-      <td>$w_{<t}$</td>
-      <td>上文语境（Prefix Context）</td>
-      <td>之前已经耳语过的所有上无线索</td>
-      <td>$w_{<4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
-    </tr>
-    <tr>
-      <td>$P(w_t \mid w_{<t})$</td>
-      <td>条件概率（Conditional Prob）</td>
-      <td>模型对该词信心的指示计（$0.0$ 到 $1.0$）</td>
-      <td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
-    </tr>
-    <tr>
-      <td>$\sum$</td>
-      <td>求和符号（Sigma）</td>
-      <td>把整张概率披萨的所有切片加起来</td>
-      <td>4个候选词概率之和 $= 1.00$（100%）</td>
-    </tr>
-    <tr>
-      <td>$\prod$</td>
-      <td>求积符号（Capital Pi）</td>
-      <td>将链条上每一步的几率全部乘起来</td>
-      <td>$0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$</td>
-    </tr>
-  </tbody>
-</table>
-
-<br>
-
-<details>
-<summary><strong>符号词汇表（定义列表）</strong></summary>
-
-<dl>
-  <dt><strong>词汇集合（Vocabulary Set, $V$）</strong></dt>
-  <dd>分词器（Tokenizer）所能识别的全部独立单词、子词或字符构成的有限离散集合。</dd>
-  
-  <dt><strong>词表基数（Vocabulary Cardinality, $|V|$）</strong></dt>
-  <dd>集合 $V$ 中的词元总数。现代主流 LLM 的词表规模通常在 32,000 到 128,000 之间。</dd>
-  
-  <dt><strong>序列索引（Sequential Index, $t$）</strong></dt>
-  <dd>序列轴上的离散时间步或词元所处位置编号（$t \in \{1, 2, \dots, T\}$）。</dd>
-  
-  <dt><strong>目标词元（Target Token, $w_t$）</strong></dt>
-  <dd>在序列位置 $t$ 处被选中或被预测的具体词元。</dd>
-  
-  <dt><strong>前缀历史 / 上文（Prefix History, $w_{<t}$）</strong></dt>
-  <dd>在时间步 $t$ 之前出现的所有词元的有序元组：$(w_1, w_2, \dots, w_{t-1})$。</dd>
-  
-  <dt><strong>条件概率（Conditional Probability, $P(w_t \mid w_{<t})$）</strong></dt>
-  <dd>介于 $0.0$ 和 $1.0$ 之间的实数标量，在词汇集合上严格满足归一化条件 $\sum_{w \in V} P(w \mid w_{<t}) = 1.0$。</dd>
-</dl>
-</details>
-
----
-
-<h2 id="step-4">Step 4: 公式从何而来？</h2>
-
-为什么现代所有 LLM 都会将语言生成建模为条件概率的链条，而不是直接一次性预测一整句话？
-
-<details>
-<summary><strong>历史溯源：安德雷·马尔可夫（1913）与克劳德·香农（1948）</strong></summary>
-
-<p>1913年，俄国数学家<strong>安德雷·马尔可夫（Andrey Markov）</strong>点亮烛光，手捧亚历山大·普希金的诗体小说《叶甫盖尼·奥涅金》。他耗时数月，以惊人的毅力手工统计了小说中的20,000个俄文字母，证明了一个惊人的事实：一个字母是元音的概率，极大程度取决于它前一个字母是辅音还是元音。</p>
-
-<p>这一发现证明了人类语言具有强烈的<strong>时序依赖性</strong>：字母与词语并不是杂乱无章随机出现的，每个词都在深刻依赖紧随其前的词。这一数学结构被后世命名为<strong>马尔可夫链（Markov Chain）</strong>。</p>
-
-<p>35年后的1948年，信息论之父<strong>克劳德·香农（Claude Shannon）</strong>发表了划时代的论文《通信的数学理论》。香农将自然语言形式化为一种统计随机过程，每个连续出现的符号，都是根据以其先前符号为条件的概率分布选择而来的。</p>
-</details>
-
-<br>
-
-<details>
-<summary><strong>当研究者尝试更简单的公式时，发生了什么？</strong></summary>
-
-<p>我们为什么不能直接假定单词之间是完全独立的？也就是说，为什么不直接计算：</p>
-$$
-P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)
-$$
-
-<p>如果各个词之间彼此独立，那么英文句子 <em>"The dog bit the man"（狗咬了人）</em> 与 <em>"Bit man dog the the"（乱序单词）</em> 的概率将完全一样，因为它们包含的单词完全相同！但语言的本质在于语序和语境。因此，以上文历史 $w_{<t}$ 为条件是不可或缺的数学前提。</p>
-</details>
-
----
-
-<h2 id="step-5">Step 5: 具象微型算例（手把手算术演示）</h2>
-
-让我们在一个极简的玩具语言环境中，一步一步验证实际乘法过程：
-
-$$
-V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)
-$$
-
-我们希望计算生成完整句子 **"I love ice cream"** 的概率：
-
-<figure>
-<pre>
-第1步: P("I")                                         = 0.50  (50% 概率)
-             │
-第2步: P("love"  │ "I")                               = 0.40  (40% 概率)
-             │
-第3步: P("ice"   │ "I", "love")                       = 0.30  (30% 概率)
-             │
-第4步: P("cream" │ "I", "love", "ice")                = 0.90  (90% 概率)
-──────────────────────────────────────────────────────────────────────────
-全句联合概率: 0.50 × 0.40 × 0.30 × 0.90               = 0.054 (5.4%)
-</pre>
-<figcaption><strong>图 0.1:</strong> 四个连续时间步上的序列概率条件展开图。</figcaption>
-</figure>
-
----
-
-### 第4步的具体条件概率分布
-
-在第 $t=4$ 步，当模型接收到前缀 *"I love ice"* 后，它会遍历评估词表 $V$ 中的每一个候选词：
-
-<table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>表 0.2:</strong> 在前缀语境 <kbd>"I love ice"</kbd> 下各候选词的条件概率分布</caption>
-  <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="left">候选词 $w \in V$</th>
-      <th align="right">条件概率 $P(w \mid \text{"I love ice"})$</th>
-      <th align="right">百分比</th>
-      <th align="center">图形化概率槽</th>
-      <th align="left">含义解读</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="left"><strong><kbd>"cream"</kbd></strong></td>
-      <td align="right"><strong>0.90</strong></td>
-      <td align="right"><mark><strong>90%</strong></mark></td>
-      <td align="center"><meter min="0" max="1" value="0.90" optimum="0.8">90%</meter></td>
-      <td align="left">压倒性首选</td>
-    </tr>
-    <tr>
-      <td align="left"><strong><kbd>"ice"</kbd></strong></td>
-      <td align="right">0.05</td>
-      <td align="right">5%</td>
-      <td align="center"><meter min="0" max="1" value="0.05">5%</meter></td>
-      <td align="left">极不自然（"ice ice"）</td>
-    </tr>
-    <tr>
-      <td align="left"><strong><kbd>"love"</kbd></strong></td>
-      <td align="right">0.03</td>
-      <td align="right">3%</td>
-      <td align="center"><meter min="0" max="1" value="0.03">3%</meter></td>
-      <td align="left">语法不通（"ice love"）</td>
-    </tr>
-    <tr>
-      <td align="left"><strong><kbd>"I"</kbd></strong></td>
-      <td align="right">0.02</td>
-      <td align="right">2%</td>
-      <td align="center"><meter min="0" max="1" value="0.02">2%</meter></td>
-      <td align="left">毫无道理（"ice I"）</td>
-    </tr>
-    <tr>
-      <td align="left"><strong>全概率总和 ($\sum$)</strong></td>
-      <td align="right"><strong>1.00</strong></td>
-      <td align="right"><mark><strong>100%</strong></mark></td>
-      <td align="center"><progress max="100" value="100">100%</progress></td>
-      <td align="left"><strong>概率严格守恒</strong></td>
-    </tr>
-  </tbody>
-</table>
-
----
-
-### 连乘算术过程
-
-依据链式法则，我们将这 4 个单步概率相乘：
-
-$$
-P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90
-$$
-
-我们通过笔算分解每一步乘积：
-
-1. 前两个词相乘：
-   $$
-   0.50 \times 0.40 = 0.20
-   $$
-
-2. 乘上第三个词：
-   $$
-   0.20 \times 0.30 = 0.06
-   $$
-
-3. 乘上第四个词：
-   $$
-   0.06 \times 0.90 = \mathbf{0.054}
-   $$
-
-整句话生成的全局概率为 <mark><strong>0.054</strong></mark>（即 <mark><strong>5.4%</strong></mark>）。
-
----
-
-### 5.4% 的悖论：看似很低，为何在统计学上极其巨大？
-
-初看之下，<mark><strong>5.4%</strong></mark> 似乎很小。很多初学者会疑惑：*“如果模型真的聪明，生成这句常识的概率不应该达到 80% 或 90% 吗？”*
-
-这揭示了一个深刻的概率论真谛：**在序列概率的世界里，5.4% 是一个极其庞大的天文级数字。**
-
-我们来看看原因：
-
-#### 1. 256 句话构成的全集宇宙（组合爆炸）
-在我们只有 4 个单词的微型世界（$|V| = 4$）里，总共可以写出多少句互不相同的 4 词句子？
-
-$$
-\text{总候选句数} = |V|^T = 4^4 = 256 \text{ 种组合}
-$$
-
-这包括了各种语序：
-- <samp>"I I I I"</samp>
-- <samp>"cream cream cream cream"</samp>
-- <samp>"love ice cream I"</samp>
-- <samp>"I love ice cream"</samp>
-- ……以及其他 252 种候选可能！
-
-#### 2. 与完全随机猜想的对比
-如果一个小孩在箱子里完全闭着眼睛随机抓取 4 个积木拼成句子，每句话的概率都严格均等：
-
-$$
-P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)
-$$
-
-而我们的语言模型给 <samp>"I love ice cream"</samp> 赋予了 <mark><strong>5.4%</strong></mark> 的概率。对比一下：
-
-$$
-\frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{（是随机几率的近 14 倍！）}}
-$$
-
-在容纳了 256 句竞争者的庞大宇宙里，单单这一句话就霸占了全宇宙超过 5% 的概率质量。这是一个压倒性的统计支持。
-
-#### 3. 在真实大规模 LLM 中会发生什么？微观衰减与对数空间
-再来看看像 GPT-4 或 LLaMA-3 这样的工业级大模型：
-- 词表大小 $|V| \approx 100{,}000$ 个词元。
-- 一个标准段落约包含 $T = 50$ 个词元。
-
-可能拼出的 50 词序列总数是：
-
-$$
-|V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}
-$$
-
-作为对比，整个可观测宇宙中的原子总数才不过区区 $10^{80}$ 个！
-
-当你把 50 个小于 1 的概率乘在一起时（即使模型在每一步都拥有高达 90% 的超强确信度，$0.90^{50} \approx 0.00515$；而若每步仅有 30% 信心，$0.30^{50} \approx 10^{-26}$），原始联合概率就会衰减为极其微小的微观数字。
-
-**工程硬件上的难题：**
-如果计算机试图用标准的单精度浮点数（`float32`）存储 $10^{-250}$ 这样的微观数字，硬件会发生**算术下溢**（Arithmetic Underflow），直接把这个数字当作绝对的 $0.0$ 丢弃！
-
-**数学上的破解之道（对数概率 Log-Probabilities）：**
-为了彻底避免下溢，AI 研究人员在实践中从不直接做概率连乘。相反，他们会将概率取对数（Logarithm）。由于对数具有神奇的性质 $\log(a \times b) = \log(a) + \log(b)$，原本极易崩盘的连乘法，瞬间化为了安全稳定的**对数加法**：
-
-$$
-\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{<t})
-$$
-
-在第6模块探讨**交叉熵损失函数（Cross-Entropy Loss）**时，我们将深入领略对数空间的非凡威力！
-
----
-
-<h2 id="step-6">Step 6: 核心精髓</h2>
-
-> [!TIP] 核心精髓
-> 大语言模型并没有超自然的人类意识。在其数学本质上，它是一台精密运转的**概率推断机器**：
-> 
-> 在每一个时间步上，它都在词表集合 $V$ 上推算出一套概率分布，据此选出一个候选词，拼入上文提示，然后周而复始。
-> 
-> 但这立刻引出了下一个巨大的数学谜题：**计算机芯片根本不懂人类英文字母或汉字，LLM 究竟是如何将具象的词语转化为可以在芯片上进行高速运算的数字的？**
-
----
-
-<nav aria-label="Chapter Navigation">
-  <p>
-    <a href="../index.html">课程总览 / 目录</a> &nbsp;|&nbsp; 
-    <strong>下一章：</strong> <a href="../01-vectors-and-spaces/index.html">第01章：词汇地图（向量与词嵌入） &rarr;</a>
-  </p>
-</nav>
-
-  </script>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
 
   <script>
-    const defaultTitles = {
-      en: {
-        INTUITION: "3-Year-Old Intuition",
-        MATH: "The Exact Math",
-        ORIGIN: "Where Does This Formula Come From?",
-        EXAMPLE: "Concrete Toy Example",
-        TIP: "Core Takeaway",
-        NOTE: "Note",
-        WARNING: "Common Pitfall"
-      },
-      zh: {
-        INTUITION: "3岁小孩的直觉",
-        MATH: "精确数学公式",
-        ORIGIN: "公式从何而来？",
-        EXAMPLE: "具象微型算例",
-        TIP: "核心精髓",
-        NOTE: "注解",
-        WARNING: "常见陷阱"
-      }
-    };
-
-    function getInitialLanguage() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const langParam = urlParams.get("lang");
-      if (langParam === "zh" || langParam === "en") {
-        return langParam;
-      }
-      return localStorage.getItem("llm_math_lang") || "en";
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
     }
 
-    let currentLang = getInitialLanguage();
-
-    function setLanguage(lang) {
-      currentLang = lang;
-      try {
-        localStorage.setItem("llm_math_lang", lang);
-        const url = new URL(window.location.href);
-        url.searchParams.set("lang", lang);
-        window.history.replaceState({}, "", url.toString());
-      } catch (e) {
-        // Fallback for file:// or quota restrictions
-      }
-      updateLanguageUI();
-      renderPage();
-    }
-
-    function updateLanguageUI() {
-      const btnEn = document.getElementById("lang-btn-en");
-      const btnZh = document.getElementById("lang-btn-zh");
-      if (btnEn && btnZh) {
-        if (currentLang === "zh") {
-          btnEn.innerHTML = "English";
-          btnZh.innerHTML = "<strong><mark>中文</mark></strong>";
-          document.documentElement.lang = "zh";
-        } else {
-          btnEn.innerHTML = "<strong><mark>English</mark></strong>";
-          btnZh.innerHTML = "中文";
-          document.documentElement.lang = "en";
-        }
-      }
-    }
-
-    function parseCallout(body) {
-      const match = body.match(/^<p>\[!(INTUITION|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\]([^\n<]*)(?:\n|<br\s*\/?>)?([\s\S]*)/i);
-      if (!match) return null;
-      const type = match[1].toUpperCase();
-      let customTitle = match[2].trim();
-      const langTitles = defaultTitles[currentLang] || defaultTitles.en;
-      let title = customTitle || langTitles[type] || "Note";
-      const remaining = match[3];
-      const content = remaining.trim() ? (remaining.startsWith("<p>") ? remaining : "<p>" + remaining) : "";
-      return `<fieldset><legend><strong>${title}</strong></legend>${content}</fieldset>\n`;
-    }
-
-    async function renderPage() {
-      updateLanguageUI();
-      let mdText = "";
-      const mdFileName = (currentLang === "zh") ? "index.zh.md" : "index.md";
-      const fallbackId = (currentLang === "zh") ? "fallback-content-zh" : "fallback-content-en";
-
-      try {
-        const res = await fetch(mdFileName);
-        if (res.ok) {
-          mdText = await res.text();
-        } else {
-          throw new Error("HTTP " + res.status);
-        }
-      } catch (e) {
-        const fallback = document.getElementById(fallbackId);
-        if (fallback) {
-          mdText = fallback.textContent.trim();
-        }
-      }
-
-      if (!mdText) return;
-
-      // 1. Configure marked with KaTeX
-      if (typeof markedKatex !== "undefined") {
-        marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
-      }
-
-      // 2. Configure marked with custom blockquote renderer for callouts
-      marked.use({
-        renderer: {
-          blockquote(token) {
-            const body = this.parser.parse(token.tokens);
-            const callout = parseCallout(body);
-            return callout || `<blockquote>${body}</blockquote>\n`;
-          }
-        }
+    // KaTeX equation rendering pass
+    if (typeof renderMathInElement !== 'undefined') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false
       });
-
-      const container = document.getElementById("content");
-      container.innerHTML = marked.parse(mdText);
-
-      // 3. Enhance tables with native HTML borders and comfortable cell padding
-      container.querySelectorAll("table").forEach(tbl => {
-        tbl.setAttribute("border", "1");
-        tbl.setAttribute("cellpadding", "8");
-        tbl.setAttribute("cellspacing", "0");
-      });
-
-      // 4. Secondary pass for any remaining KaTeX blocks
-      if (typeof renderMathInElement !== "undefined") {
-        renderMathInElement(container, {
-          delimiters: [
-            { left: "$$", right: "$$", display: true },
-            { left: "$", right: "$", display: false }
-          ],
-          throwOnError: false
-        });
-      }
     }
-
-    window.addEventListener("DOMContentLoaded", renderPage);
   </script>
 </body>
 </html>

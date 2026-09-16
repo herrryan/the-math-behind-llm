@@ -10,10 +10,6 @@
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <!-- KaTeX Auto-Render Extension -->
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-  <!-- Marked.js for in-browser Markdown parsing -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- Marked KaTeX Extension -->
-  <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
   <style>
     /* Compact High-Density Minimal Style (~38 lines) */
     body {
@@ -98,31 +94,17 @@
 
   <nav aria-label="Site and Language Navigation">
     <p>
-      <a href="../00-next-word-prediction/index.html">&larr; Chapter 00: The Next-Word Guessing Game</a> &nbsp;|&nbsp; 
-      <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; 
-      <strong>Next:</strong> <a href="../02-dot-product-and-similarity/index.html">Chapter 02: Measuring Closeness &rarr;</a>
+      <a href="../00-next-word-prediction/index.html">&larr; Chapter 00: The Next-Word Guessing Game</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../02-dot-product-and-similarity/index.html">Chapter 02: Measuring Closeness (Dot Product & Cosine Similarity) &rarr;</a>
       &nbsp;|&nbsp;
       <strong>Language:</strong> 
-      <a href="?lang=en" id="lang-btn-en" onclick="setLanguage('en'); return false;">English</a> &bull; 
-      <a href="?lang=zh" id="lang-btn-zh" onclick="setLanguage('zh'); return false;">中文</a>
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
     </p>
   </nav>
   <hr>
 
   <main id="content">
-    <p><em>Loading chapter content...</em></p>
-  </main>
-
-  <footer>
-    <hr>
-    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • Dynamic Markdown &amp; KaTeX • Zero Build Step.</p>
-    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
-  </footer>
-
-  <!-- Fallback content if opened directly via file:// protocol -->
-  <script type="text/markdown" id="fallback-content-en">
-# Chapter 01: The Word Map (Vectors & Embeddings)
-
+<h1>Chapter 01: The Word Map (Vectors &amp; Embeddings)</h1>
 <nav aria-label="Table of Contents">
   <p>
     <strong>Table of Contents:</strong> 
@@ -139,90 +121,94 @@
 
 <h2 id="step-1">Step 1: 3-Year-Old Intuition (The Giant Playground Map)</h2>
 
-> [!INTUITION] 3-Year-Old Intuition: The Giant Playground Map
-> Imagine you bring all your toys outside into a giant grassy playground.
-> 
-> You arrange the playground into large sandboxes where similar toys sit side by side in neighboring sandboxes: teddy bears, kittens, and puppies in the soft cuddly sandbox; wooden airplanes and racecars in the zoom-machine sandbox; and bananas and apples in the snack sandbox.
-> 
-> Now imagine drawing chalk grid lines across the playground:
-> - Walk 2 steps North and 8 steps East: you reach the kitten in the cuddly animal sandbox.
-> - Walk 9 steps North and 1 step East: you reach the airplane in the machine sandbox.
-> 
-> Every toy now has an exact **address** on the playground map. 
-> 
-> If two toys are similar, their addresses sit close together in neighboring sandboxes. If two toys have nothing in common (like a fluffy kitten and a giant Boeing 747 airplane), their addresses are far apart on opposite sides of the playground.
-> 
-> This is what an LLM does with human language. It gives every word an address on a giant mathematical playground map so words with similar meanings sit right next to each other!
+<fieldset><legend><strong>3-Year-Old Intuition: The Giant Playground Map</strong></legend>
 
----
+Imagine you bring all your toys outside into a giant grassy playground.
 
+You arrange the playground into large sandboxes where similar toys sit side by side in neighboring sandboxes: teddy bears, kittens, and puppies in the soft cuddly sandbox; wooden airplanes and racecars in the zoom-machine sandbox; and bananas and apples in the snack sandbox.
+
+Now imagine drawing chalk grid lines across the playground:
+- Walk 2 steps North and 8 steps East: you reach the kitten in the cuddly animal sandbox.
+- Walk 9 steps North and 1 step East: you reach the airplane in the machine sandbox.
+
+Every toy now has an exact **address** on the playground map. 
+
+If two toys are similar, their addresses sit close together in neighboring sandboxes. If two toys have nothing in common (like a fluffy kitten and a giant Boeing 747 airplane), their addresses are far apart on opposite sides of the playground.
+
+This is what an LLM does with human language. It gives every word an address on a giant mathematical playground map so words with similar meanings sit right next to each other!
+
+</fieldset>
+
+<hr />
 <h2 id="step-2">Step 2: The Bridging Question (From Words to Numbers)</h2>
 
-In Chapter 00, we learned that a Large Language Model predicts probabilities over words. 
-
-However, computer chips and GPUs are built from silicon and electric circuits. They do not know what the English letters <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> mean. A computer processor cannot multiply the word <kbd>"kitten"</kbd> by $0.90$.
-
-**How do we convert human words into physical coordinates (lists of numbers) that a computer chip can store, add, and multiply?**
-
-### The Failed Shortcut: Why We Cannot Simply Number Words 1, 2, 3
-
-A tempting first idea is to assign a single integer ID to each word:
+<p>In Chapter 00, we learned that a Large Language Model predicts probabilities over words. </p>
+<p>However, computer chips and GPUs are built from silicon and electric circuits. They do not know what the English letters <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> mean. A computer processor cannot multiply the word <kbd>"kitten"</kbd> by $0.90$.</p>
+<p><strong>How do we convert human words into physical coordinates (lists of numbers) that a computer chip can store, add, and multiply?</strong></p>
+<h3>The Failed Shortcut: Why We Cannot Simply Number Words 1, 2, 3</h3>
+<p>A tempting first idea is to assign a single integer ID to each word:
 - $\text{"cat"} = 1$
 - $\text{"dog"} = 2$
 - $\text{"kitten"} = 3$
-- $\text{"airplane"} = 4$
+- $\text{"airplane"} = 4$</p>
+<p>This simple scalar numbering fails catastrophically for two fundamental reasons:</p>
+<ol>
+<li>
+<p><strong>False Numerical Ordering</strong>:<br />
+   Computers treat numbers with natural order: $1 < 2 < 3 < 4$. Does it make sense to claim that an airplane is "greater than" a cat, or that a dog sits "halfway between" a cat and a kitten? Of course not! Words are distinct categorical concepts, not ranked quantities.</p>
+</li>
+<li>
+<p><strong>False Arithmetic Equalities</strong>:<br />
+   In mathematics, $1 + 2 = 3$. If we used scalar IDs, the computer would conclude:</p>
+</li>
+</ol>
 
-This simple scalar numbering fails catastrophically for two fundamental reasons:
 
-1. **False Numerical Ordering**:  
-   Computers treat numbers with natural order: $1 < 2 < 3 < 4$. Does it make sense to claim that an airplane is "greater than" a cat, or that a dog sits "halfway between" a cat and a kitten? Of course not! Words are distinct categorical concepts, not ranked quantities.
+$$
+\text{"cat"} (1) + \text{"dog"} (2) = \text{"kitten"} (3)
+$$
 
-2. **False Arithmetic Equalities**:  
-   In mathematics, $1 + 2 = 3$. If we used scalar IDs, the computer would conclude:
-   $$\text{"cat"} (1) + \text{"dog"} (2) = \text{"kitten"} (3)$$
-   This is meaningless nonsense. Adding a cat and a dog does not produce a baby cat!
 
-### The True Solution: Multi-Dimensional Vectors
-
-Instead of a single scalar number, we describe each word using an entire **list of coordinates**, where each coordinate measures an independent semantic property (e.g., cuddliness, size, living creature, mechanical nature).
-
-This list of coordinates is called a **Vector** ($\mathbf{x} \in \mathbb{R}^d$), and the geometric space it lives in is called the **Embedding Space**.
-
----
-
+<p>This is meaningless nonsense. Adding a cat and a dog does not produce a baby cat!</p>
+<h3>The True Solution: Multi-Dimensional Vectors</h3>
+<p>Instead of a single scalar number, we describe each word using an entire <strong>list of coordinates</strong>, where each coordinate measures an independent semantic property (e.g., cuddliness, size, living creature, mechanical nature).</p>
+<p>This list of coordinates is called a <strong>Vector</strong> ($\mathbf{x} \in \mathbb{R}^d$), and the geometric space it lives in is called the <strong>Embedding Space</strong>.</p>
+<hr />
 <h2 id="step-3">Step 3: The Exact Math &amp; Formulas</h2>
 
-### 1. The One-Hot Representation Vector ($\mathbf{e}_i$)
+<h3>1. The One-Hot Representation Vector ($\mathbf{e}_i$)</h3>
+<p>Before a word receives its multi-dimensional coordinates, it starts as an entry in the vocabulary $V$ of size $|V|$.</p>
+<p>Each word at index $i \in \{1, 2, \dots, |V|\}$ is formally represented as a <strong>one-hot vector</strong> $\mathbf{e}_i \in \{0, 1\}^{|V|}$. This is a tall column vector filled entirely with zeros, except for a single $1$ at the word's designated position:</p>
 
-Before a word receives its multi-dimensional coordinates, it starts as an entry in the vocabulary $V$ of size $|V|$.
-
-Each word at index $i \in \{1, 2, \dots, |V|\}$ is formally represented as a **one-hot vector** $\mathbf{e}_i \in \{0, 1\}^{|V|}$. This is a tall column vector filled entirely with zeros, except for a single $1$ at the word's designated position:
 
 $$
 \mathbf{e}_i = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix} \leftarrow \text{index } i
 $$
 
-Formally, the $j^{\text{th}}$ entry of one-hot vector $\mathbf{e}_i$ is defined by the Kronecker delta:
+
+<p>Formally, the $j^{\text{th}}$ entry of one-hot vector $\mathbf{e}_i$ is defined by the Kronecker delta:</p>
+
 
 $$
 (\mathbf{e}_i)_j = \begin{cases} 1 & \text{if } j = i \\ 0 & \text{if } j \neq i \end{cases}
 $$
 
----
 
-### 2. The Embedding Matrix ($\mathbf{E}$)
+<hr />
+<h3>2. The Embedding Matrix ($\mathbf{E}$)</h3>
+<p>The master word map of an LLM is stored as a large 2D parameter matrix called the <strong>Embedding Matrix</strong>, denoted by $\mathbf{E}$:</p>
 
-The master word map of an LLM is stored as a large 2D parameter matrix called the **Embedding Matrix**, denoted by $\mathbf{E}$:
 
 $$
 \mathbf{E} \in \mathbb{R}^{|V| \times d}
 $$
 
-Where:
-- $|V|$ is the total number of words in the vocabulary (the number of rows).
-- $d$ is the **embedding dimension** or **hidden size** (the number of columns).
 
-Each row $i$ of the matrix $\mathbf{E}$, written as $\mathbf{E}[i, :]$, is the dense vector embedding for word $i$:
+<p>Where:
+- $|V|$ is the total number of words in the vocabulary (the number of rows).
+- $d$ is the <strong>embedding dimension</strong> or <strong>hidden size</strong> (the number of columns).</p>
+<p>Each row $i$ of the matrix $\mathbf{E}$, written as $\mathbf{E}[i, :]$, is the dense vector embedding for word $i$:</p>
+
 
 $$
 \mathbf{E} = \begin{bmatrix} 
@@ -233,26 +219,27 @@ $$
 \end{bmatrix} \in \mathbb{R}^{|V| \times d}
 $$
 
----
 
-### 3. The Embedding Lookup Equation
+<hr />
+<h3>3. The Embedding Lookup Equation</h3>
+<p>How does the neural network retrieve the coordinate vector $\mathbf{x}_i \in \mathbb{R}^d$ for word $i$?</p>
+<p>Mathematically, word lookup is defined as the matrix multiplication of the transposed one-hot vector $\mathbf{e}_i^\top$ with the embedding matrix $\mathbf{E}$:</p>
 
-How does the neural network retrieve the coordinate vector $\mathbf{x}_i \in \mathbb{R}^d$ for word $i$?
-
-Mathematically, word lookup is defined as the matrix multiplication of the transposed one-hot vector $\mathbf{e}_i^\top$ with the embedding matrix $\mathbf{E}$:
 
 $$
 \mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E} \in \mathbb{R}^{1 \times d}
 $$
 
-If written in standard column-vector orientation:
+
+<p>If written in standard column-vector orientation:</p>
+
 
 $$
 \mathbf{x}_i = \mathbf{E}^\top \mathbf{e}_i \in \mathbb{R}^{d \times 1}
 $$
 
-Because $\mathbf{e}_i$ contains all zeros except for a $1$ at position $i$, this matrix multiplication acts like an **optical selector switch**: it zeros out every other row and extracts precisely row $i$ from matrix $\mathbf{E}$:
 
+<p>Because $\mathbf{e}_i$ contains all zeros except for a $1$ at position $i$, this matrix multiplication acts like an <strong>optical selector switch</strong>: it zeros out every other row and extracts precisely row $i$ from matrix $\mathbf{E}$:</p>
 <figure>
 <pre>
 One-Hot Vector e_i^T (1 × |V|)           Embedding Matrix E (|V| × d)          Output Vector x_i (1 × d)
@@ -267,15 +254,16 @@ One-Hot Vector e_i^T (1 × |V|)           Embedding Matrix E (|V| × d)         
 <figcaption><strong>Figure 1.1:</strong> Vector lookup formulated as one-hot matrix multiplication: the solitary 1 selects row i.</figcaption>
 </figure>
 
-> [!NOTE] Practical Engineering Note: Lookup vs. Matrix Multiply
-> In mathematical theory, vector lookup is expressed as $\mathbf{e}_i^\top \mathbf{E}$ because neural networks are defined as continuous differentiable matrix operations.
-> 
-> In production code (such as PyTorch's `torch.nn.Embedding`), multiplying a 100,000-element sparse vector on GPU is wasteful. Hardware libraries instead perform an instantaneous direct array index `E[i]`, which runs in $O(1)$ time and produces the exact same numerical result.
+<fieldset><legend><strong>Practical Engineering Note: Lookup vs. Matrix Multiply</strong></legend>
 
----
+In mathematical theory, vector lookup is expressed as $\mathbf{e}_i^\top \mathbf{E}$ because neural networks are defined as continuous differentiable matrix operations.
 
-### Mathematical Symbol Breakdown Table
+In production code (such as PyTorch's `torch.nn.Embedding`), multiplying a 100,000-element sparse vector on GPU is wasteful. Hardware libraries instead perform an instantaneous direct array index `E[i]`, which runs in $O(1)$ time and produces the exact same numerical result.
 
+</fieldset>
+
+<hr />
+<h3>Mathematical Symbol Breakdown Table</h3>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 1.1:</strong> Mathematical symbols, dimensions, and physical meanings for vector embeddings.</caption>
   <thead>
@@ -333,98 +321,99 @@ One-Hot Vector e_i^T (1 × |V|)           Embedding Matrix E (|V| × d)         
   </tbody>
 </table>
 
-<br>
-
+<p><br></p>
 <details>
 <summary><strong>Symbol Glossary (Definition List)</strong></summary>
 
 <dl>
   <dt><strong>Dense Vector</strong></dt>
   <dd>A vector where almost all entries are non-zero real numbers ($\mathbb{R}$), packing rich semantic information into a compact dimensional space.</dd>
-  
+
   <dt><strong>Sparse Vector</strong></dt>
   <dd>A vector where the overwhelming majority of entries are zero (such as a one-hot vector with a single 1 and 99,999 zeros).</dd>
-  
+
   <dt><strong>Embedding Space ($\mathbb{R}^d$)</strong></dt>
   <dd>The $d$-dimensional continuous vector space spanned by the coordinate axes where semantic concepts live as geometric points.</dd>
-  
+
   <dt><strong>Kronecker Delta ($\delta_{ij}$)</strong></dt>
   <dd>A binary piecewise function that equals 1 if indices $i$ and $j$ match, and 0 otherwise.</dd>
 </dl>
 </details>
 
----
-
+<hr />
 <h2 id="step-4">Step 4: Where Did It Come From?</h2>
 
-> [!ORIGIN] The Historical Journey: From Firth to Word2Vec
-> How did AI researchers discover that words could be treated as points on a map?
+<fieldset><legend><strong>The Historical Journey: From Firth to Word2Vec</strong></legend>
 
-### 1. The Distributional Hypothesis (1957)
-In 1957, British linguist John Rupert Firth wrote one of the most famous sentences in the history of linguistics:
+How did AI researchers discover that words could be treated as points on a map?
 
-> *"You shall know a word by the company it keeps."*  
-> &mdash; **J. R. Firth (1957)**
+</fieldset>
 
-Firth observed that words with similar meanings naturally appear in similar sentence environments:
+<h3>1. The Distributional Hypothesis (1957)</h3>
+<p>In 1957, British linguist John Rupert Firth wrote one of the most famous sentences in the history of linguistics:</p>
+<blockquote>
+<p><em>"You shall know a word by the company it keeps."</em><br />
+&mdash; <strong>J. R. Firth (1957)</strong></p>
+</blockquote>
+<p>Firth observed that words with similar meanings naturally appear in similar sentence environments:
 - <kbd>"The fluffy [kitten] drank warm milk from the saucer."</kbd>
-- <kbd>"The fluffy [cat] drank warm milk from the saucer."</kbd>
+- <kbd>"The fluffy [cat] drank warm milk from the saucer."</kbd></p>
+<p>Because <kbd>"kitten"</kbd> and <kbd>"cat"</kbd> share nearly identical surrounding context words, their mathematical coordinates should be close together.</p>
+<h3>2. The Orthogonality Catastrophe of One-Hot Vectors</h3>
+<p>Before dense embeddings, early computational linguistics relied entirely on one-hot vectors $\mathbf{e}_i$. </p>
+<p>This caused a fatal mathematical flaw known as the <strong>Orthogonality Catastrophe</strong>:</p>
+<p>Take any two distinct one-hot words $\mathbf{e}_i$ and $\mathbf{e}_j$ where $i \neq j$. If you compute their inner dot product:</p>
 
-Because <kbd>"kitten"</kbd> and <kbd>"cat"</kbd> share nearly identical surrounding context words, their mathematical coordinates should be close together.
-
-### 2. The Orthogonality Catastrophe of One-Hot Vectors
-Before dense embeddings, early computational linguistics relied entirely on one-hot vectors $\mathbf{e}_i$. 
-
-This caused a fatal mathematical flaw known as the **Orthogonality Catastrophe**:
-
-Take any two distinct one-hot words $\mathbf{e}_i$ and $\mathbf{e}_j$ where $i \neq j$. If you compute their inner dot product:
 
 $$
 \mathbf{e}_i \cdot \mathbf{e}_j = \sum_{k=1}^{|V|} (\mathbf{e}_i)_k (\mathbf{e}_j)_k = 0
 $$
 
-In linear algebra, when the dot product between two non-zero vectors is zero, the vectors are **perpendicular (orthogonal)**.
 
-In one-hot space, every single word is 90 degrees away from every other word!
+<p>In linear algebra, when the dot product between two non-zero vectors is zero, the vectors are <strong>perpendicular (orthogonal)</strong>.</p>
+<p>In one-hot space, every single word is 90 degrees away from every other word!
 - Distance from <kbd>"puppy"</kbd> to <kbd>"dog"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
-- Distance from <kbd>"puppy"</kbd> to <kbd>"nuclear reactor"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
+- Distance from <kbd>"puppy"</kbd> to <kbd>"nuclear reactor"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</p>
+<p>The computer was completely blind to meaning: it considered a puppy just as unrelated to a dog as it was to a submarine or a sandwich!</p>
+<h3>3. The Dense Vector Revolution: Word2Vec (2013)</h3>
+<p>In 2013, Tomas Mikolov and his team at Google introduced <strong>Word2Vec</strong>. Instead of huge orthogonal one-hot vectors, they trained a neural network to compress words into small, continuous dense vectors ($d = 300$).</p>
+<p>When researchers plotted these vectors, something astonishing emerged: the geometry had spontaneously organized semantic concepts into parallel lines!</p>
+<p>The most celebrated discovery was vector analogy arithmetic:</p>
 
-The computer was completely blind to meaning: it considered a puppy just as unrelated to a dog as it was to a submarine or a sandwich!
-
-### 3. The Dense Vector Revolution: Word2Vec (2013)
-In 2013, Tomas Mikolov and his team at Google introduced **Word2Vec**. Instead of huge orthogonal one-hot vectors, they trained a neural network to compress words into small, continuous dense vectors ($d = 300$).
-
-When researchers plotted these vectors, something astonishing emerged: the geometry had spontaneously organized semantic concepts into parallel lines!
-
-The most celebrated discovery was vector analogy arithmetic:
 
 $$
 \mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}} \approx \mathbf{x}_{\text{queen}}
 $$
 
-Subtracting the vector for <kbd>"man"</kbd> from <kbd>"king"</kbd> stripped away the "male" concept, leaving behind pure "royalty". Adding <kbd>"woman"</kbd> yielded the exact coordinates of <kbd>"queen"</kbd>!
 
-In modern Transformers, the embedding layer $\mathbf{E}$ is learned directly from training data through backpropagation, creating a rich geometric universe of human concepts.
-
----
-
+<p>Subtracting the vector for <kbd>"man"</kbd> from <kbd>"king"</kbd> stripped away the "male" concept, leaving behind pure "royalty". Adding <kbd>"woman"</kbd> yielded the exact coordinates of <kbd>"queen"</kbd>!</p>
+<p>In modern Transformers, the embedding layer $\mathbf{E}$ is learned directly from training data through backpropagation, creating a rich geometric universe of human concepts.</p>
+<hr />
 <h2 id="step-5">Step 5: Concrete Toy Example</h2>
 
-> [!EXAMPLE] Concrete Toy Example: The 2D Pet-and-Vehicle Playground
-> Let's perform the exact vector math by hand using pencil-and-paper numbers.
+<fieldset><legend><strong>Concrete Toy Example: The 2D Pet-and-Vehicle Playground</strong></legend>
 
-### The Setup
-- **Vocabulary Set ($|V| = 4$)**:
+Let's perform the exact vector math by hand using pencil-and-paper numbers.
+
+</fieldset>
+
+<h3>The Setup</h3>
+<ul>
+<li>
+<p><strong>Vocabulary Set ($|V| = 4$)</strong>:
   1. $w_1 = \text{"cat"}$
   2. $w_2 = \text{"kitten"}$
   3. $w_3 = \text{"dog"}$
-  4. $w_4 = \text{"airplane"}$
+  4. $w_4 = \text{"airplane"}$</p>
+</li>
+<li>
+<p><strong>Embedding Dimension ($d = 2$)</strong>:</p>
+</li>
+<li><strong>Axis 1 ($x_1$) &mdash; "Furriness / Cuddliness"</strong>: Measures how soft, furry, and pet-like the concept is ($0.0 = \text{cold metal}, 1.0 = \text{maximum fluff}$).</li>
+<li><strong>Axis 2 ($x_2$) &mdash; "Physical Size"</strong>: Measures how large the physical object is ($0.0 = \text{fits in palm}, 1.0 = \text{giant vehicle}$).</li>
+</ul>
+<h3>The Embedding Matrix ($\mathbf{E} \in \mathbb{R}^{4 \times 2}$)</h3>
 
-- **Embedding Dimension ($d = 2$)**:
-  - **Axis 1 ($x_1$) &mdash; "Furriness / Cuddliness"**: Measures how soft, furry, and pet-like the concept is ($0.0 = \text{cold metal}, 1.0 = \text{maximum fluff}$).
-  - **Axis 2 ($x_2$) &mdash; "Physical Size"**: Measures how large the physical object is ($0.0 = \text{fits in palm}, 1.0 = \text{giant vehicle}$).
-
-### The Embedding Matrix ($\mathbf{E} \in \mathbb{R}^{4 \times 2}$)
 
 $$
 \mathbf{E} = \begin{bmatrix}
@@ -440,17 +429,19 @@ $$
 \end{matrix}
 $$
 
----
 
-### Step-by-Step Lookup for $w_2 = \text{"kitten"}$
+<hr />
+<h3>Step-by-Step Lookup for $w_2 = \text{"kitten"}$</h3>
+<p>The one-hot vector for <kbd>"kitten"</kbd> (index 2) is:</p>
 
-The one-hot vector for <kbd>"kitten"</kbd> (index 2) is:
 
 $$
 \mathbf{e}_2^\top = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix}
 $$
 
-Now, multiply $\mathbf{e}_2^\top$ by $\mathbf{E}$:
+
+<p>Now, multiply $\mathbf{e}_2^\top$ by $\mathbf{E}$:</p>
+
 
 $$
 \mathbf{x}_{\text{kitten}}^\top = \mathbf{e}_2^\top \mathbf{E} = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} \begin{bmatrix}
@@ -461,26 +452,32 @@ $$
 \end{bmatrix}
 $$
 
-Let's compute each coordinate by hand:
+
+<p>Let's compute each coordinate by hand:</p>
+
 
 $$
 \text{Coordinate } 1 = (0 \times 0.90) + (1 \times 0.95) + (0 \times 0.85) + (0 \times 0.02) = \mathbf{0.95}
 $$
 
+
+
+
 $$
 \text{Coordinate } 2 = (0 \times 0.30) + (1 \times 0.15) + (0 \times 0.55) + (0 \times 0.98) = \mathbf{0.15}
 $$
+
+
+
 
 $$
 \mathbf{x}_{\text{kitten}}^\top = [0.95, 0.15]
 $$
 
-The one-hot selector perfectly extracted Row 2!
 
----
-
-### Embedding Coordinates Table
-
+<p>The one-hot selector perfectly extracted Row 2!</p>
+<hr />
+<h3>Embedding Coordinates Table</h3>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 1.2:</strong> Coordinates, visual feature meters, and physical semantic interpretation.</caption>
   <thead>
@@ -534,17 +531,18 @@ The one-hot selector perfectly extracted Row 2!
   </tbody>
 </table>
 
----
+<hr />
+<h3>Step-by-Step Distance Calculation</h3>
+<p>How far apart are our words on this 2D playground map? We use the classical <strong>Euclidean Distance Formula</strong>:</p>
 
-### Step-by-Step Distance Calculation
-
-How far apart are our words on this 2D playground map? We use the classical **Euclidean Distance Formula**:
 
 $$
 \text{Distance}(\mathbf{u}, \mathbf{v}) = \sqrt{(u_1 - v_1)^2 + (u_2 - v_2)^2}
 $$
 
-#### 1. Distance Between "kitten" and "cat":
+
+<h4>1. Distance Between "kitten" and "cat":</h4>
+
 
 $$
 \begin{aligned}
@@ -556,7 +554,9 @@ $$
 \end{aligned}
 $$
 
-#### 2. Distance Between "kitten" and "airplane":
+
+<h4>2. Distance Between "kitten" and "airplane":</h4>
+
 
 $$
 \begin{aligned}
@@ -568,18 +568,18 @@ $$
 \end{aligned}
 $$
 
-Let's compare the two distances:
+
+<p>Let's compare the two distances:</p>
+
 
 $$
 \frac{1.246}{0.158} \approx \mathbf{7.89\times \text{ farther away!}}
 $$
 
-<kbd>"airplane"</kbd> is nearly **8 times farther** from <kbd>"kitten"</kbd> than <kbd>"cat"</kbd> is!
 
----
-
-### The 2D Playground Map Visualized
-
+<p><kbd>"airplane"</kbd> is nearly <strong>8 times farther</strong> from <kbd>"kitten"</kbd> than <kbd>"cat"</kbd> is!</p>
+<hr />
+<h3>The 2D Playground Map Visualized</h3>
 <figure>
 <pre>
 Size (Axis 2)
@@ -601,19 +601,20 @@ Size (Axis 2)
 <figcaption><strong>Figure 1.2:</strong> Visual 2D geometric playground map. Notice how "cat", "kitten", and "dog" form a tight pet cluster, while "airplane" is isolated in the upper left corner.</figcaption>
 </figure>
 
----
-
+<hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
 
-> [!TIP] Core Takeaway
-> An embedding matrix $\mathbf{E}$ is the **universal translation bridge** of an LLM: it converts flat, isolated human words into living, geometric coordinates in multi-dimensional space.
-> 
-> By placing words with similar meanings close together, the neural network can reason about concepts, analogies, and contexts using pure linear algebra.
-> 
-> But this brings us to our next crucial question: **When an LLM wants to measure how closely two words are related, what exact mathematical ruler does it use to measure alignment?**
+<fieldset><legend><strong>Core Takeaway</strong></legend>
 
----
+An embedding matrix $\mathbf{E}$ is the **universal translation bridge** of an LLM: it converts flat, isolated human words into living, geometric coordinates in multi-dimensional space.
 
+By placing words with similar meanings close together, the neural network can reason about concepts, analogies, and contexts using pure linear algebra.
+
+But this brings us to our next crucial question: **When an LLM wants to measure how closely two words are related, what exact mathematical ruler does it use to measure alignment?**
+
+</fieldset>
+
+<hr />
 <nav aria-label="Chapter Navigation">
   <p>
     <a href="../00-next-word-prediction/index.html">&larr; Chapter 00: The Next-Word Guessing Game</a> &nbsp;|&nbsp; 
@@ -621,651 +622,34 @@ Size (Axis 2)
     <strong>Next Chapter:</strong> <a href="../02-dot-product-and-similarity/index.html">Chapter 02: Measuring Closeness (Dot Product &amp; Cosine Similarity) &rarr;</a>
   </p>
 </nav>
-
-  </script>
-
-  <script type="text/markdown" id="fallback-content-zh">
-# 第01章：词汇地图（向量与词嵌入）
-
-<nav aria-label="Table of Contents">
-  <p>
-    <strong>目录导航：</strong> 
-    <a href="#step-1">1. 3岁小孩的直觉</a> &bull; 
-    <a href="#step-2">2. 承上启下的问题</a> &bull; 
-    <a href="#step-3">3. 精确数学公式</a> &bull; 
-    <a href="#step-4">4. 公式从何而来？</a> &bull; 
-    <a href="#step-5">5. 具象微型算例</a> &bull; 
-    <a href="#step-6">6. 核心精髓</a>
-  </p>
-</nav>
-
----
-
-<h2 id="step-1">Step 1: 3岁小孩的直觉（巨型操场地图）</h2>
-
-> [!INTUITION] 3岁小孩的直觉：巨型操场地图
-> 想象一下，你把心爱的所有玩具统统带到了一个巨大的绿草地操场上。
-> 
-> 你在操场上划分出不同的沙坑，让相似的玩具聚在相邻的沙盒里：泰迪熊、小猫咪和小狗坐在软绵绵、毛茸茸的沙盒里；木头飞机和小赛车坐在呼呼飞驰的机器沙盒里；香蕉和红苹果坐在美味零食沙盒里。
-> 
-> 现在，想象你在操场地面上用粉笔画出整齐的方格坐标线：
-> - 向北走 2 步，向东走 8 步：你找到了毛茸茸沙盒里的小猫咪。
-> - 向北走 9 步，向东走 1 步：你找到了机器沙盒里的巨型飞机。
-> 
-> 这样，操场上的每一个玩具都拥有了一个独一无二的**专属门牌地址**。
-> 
-> 如果两个玩具很像，它们的门牌号就在同一个或隔壁沙盒里，彼此挨得很近；如果两个玩具毫无共同点（比如一只毛茸茸的小猫和一架庞大的波音747客机），它们的地址就隔了十万八千里。
-> 
-> 这就是大语言模型（LLM）对待人类语言的方式。它给每个单词都在一张巨大的数学操场地图上分配一个门牌地址，让含义相近的词并肩坐在一起！
-
----
-
-<h2 id="step-2">Step 2: 承上启下的问题（从文字到数字）</h2>
-
-在第00章中，我们了解到大模型通过计算词表上的概率分布来预测下一个词。
-
-然而，计算机芯片和 GPU 是由硅片与电子线路构成的物理器件。硬件根本无法理解英文字母 <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> 或汉字“猫”。计算机处理器不可能拿单词 <kbd>"kitten"</kbd> 直接去乘以 $0.90$。
-
-**我们究竟该如何把人类的自然语言单词，转换为计算机芯片能够存储、相加、相乘的物理坐标（数字列表）？**
-
-### 失败的捷径：为什么不能简单给单词编号 1, 2, 3？
-
-初学者最容易想到的直觉，是给词典里的每个词编一个顺序整数 ID：
-- $\text{"cat"} = 1$
-- $\text{"dog"} = 2$
-- $\text{"kitten"} = 3$
-- $\text{"airplane"} = 4$
-
-这种简单的标量整数编号会遭遇灾难性的彻底失败，根源在于两大数学漏洞：
-
-1. **虚假的数值大小序关系**：  
-   在计算机眼里，数字是天然带有大小关系的：$1 < 2 < 3 < 4$。难道能说飞机比猫“更大”，或者狗的语义恰好位于猫和小猫的“中间半路”吗？显然不能！词汇是互不相同的语义范畴，绝非排位高低的标量。
-
-2. **荒谬的虚假代数等式**：  
-   在数学中，$1 + 2 = 3$。如果采用标量编号，计算机在做运算时就会得出荒唐的结论：
-   $$
-   \text{"cat"} (1) + \text{"dog"} (2) = \text{"kitten"} (3)
-   $$
-   这是毫无意义的胡话。一只猫加一只狗，绝对变不出一只小猫咪！
-
-### 正确的破局之道：多维向量（Vectors）
-
-我们不再用单一的标量数字，而是使用一整串**多维坐标列表**来刻画一个词，其中每个坐标轴衡量一个独立的语义特征（例如：毛茸茸程度、物理体积、是否有生命、机械属性等）。
-
-这一组坐标数值在数学上被称为**向量**（$\mathbf{x} \in \mathbb{R}^d$），而所有这些向量栖息的几何空间，被称为**嵌入空间**（Embedding Space）。
-
----
-
-<h2 id="step-3">Step 3: 精确数学公式</h2>
-
-### 1. 独热编码向量（$\mathbf{e}_i$）
-
-在词语被映射到多维几何坐标之前，它最初在词汇集合 $V$（大小为 $|V|$）中以离散形式存在。
-
-位于词汇表第 $i$ 个位置的词（$i \in \{1, 2, \dots, |V|\}$），形式化表示为**独热向量**（One-Hot Vector）$\mathbf{e}_i \in \{0, 1\}^{|V|}$。这是一个维度高达 $|V|$ 的细长列向量，除了在第 $i$ 个位置为数字 $1$ 之外，其余所有位置全为 $0$：
-
-$$
-\mathbf{e}_i = \begin{bmatrix} 0 \\ \vdots \\ 0 \\ 1 \\ 0 \\ \vdots \\ 0 \end{bmatrix} \leftarrow \text{第 } i \text{ 个位置}
-$$
-
-严格形式化下，独热向量 $\mathbf{e}_i$ 的第 $j$ 个分量由克罗内克函数（Kronecker delta）定义：
-
-$$
-(\mathbf{e}_i)_j = \begin{cases} 1 & \text{若 } j = i \\ 0 & \text{若 } j \neq i \end{cases}
-$$
-
----
-
-### 2. 词嵌入矩阵（$\mathbf{E}$）
-
-整个大模型的词汇总地图，存储在一张巨大的二维可学习参数矩阵中，称为**词嵌入矩阵**（Embedding Matrix），记作 $\mathbf{E}$：
-
-$$
-\mathbf{E} \in \mathbb{R}^{|V| \times d}
-$$
-
-其中：
-- $|V|$ 是词表中词元的总数量（即矩阵的行数）。
-- $d$ 是**词嵌入维度**（Embedding Dimension）或称**隐藏层大小**（Hidden Size，即矩阵的列数）。
-
-矩阵 $\mathbf{E}$ 的每一行 $\mathbf{E}[i, :]$，就代表了第 $i$ 个词元在连续语义空间里的稠密向量坐标：
-
-$$
-\mathbf{E} = \begin{bmatrix} 
-\text{---} & \mathbf{x}_1^\top & \text{---} \\ 
-\text{---} & \mathbf{x}_2^\top & \text{---} \\ 
-& \vdots & \\ 
-\text{---} & \mathbf{x}_{|V|}^\top & \text{---} 
-\end{bmatrix} \in \mathbb{R}^{|V| \times d}
-$$
-
----
-
-### 3. 嵌入查表方程
-
-神经网络究竟是如何为第 $i$ 个词提取出连续坐标向量 $\mathbf{x}_i \in \mathbb{R}^d$ 的？
-
-在严谨的线性代数中，查表操作被精确定义为转置独热向量 $\mathbf{e}_i^\top$ 与嵌入矩阵 $\mathbf{E}$ 的矩阵乘法：
-
-$$
-\mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E} \in \mathbb{R}^{1 \times d}
-$$
-
-若采用标准教科书的列向量表示法，则为：
-
-$$
-\mathbf{x}_i = \mathbf{E}^\top \mathbf{e}_i \in \mathbb{R}^{d \times 1}
-$$
-
-由于 $\mathbf{e}_i$ 除了第 $i$ 个位置为 1 之外其余分量全为 0，这个矩阵乘法在物理上就像一个**光学选通开关**：它把矩阵里的所有其他行全部清零，精准地把第 $i$ 行完整提取出来：
-
-<figure>
-<pre>
-独热向量 e_i^T (1 × |V|)             嵌入矩阵 E (|V| × d)                  输出向量 x_i (1 × d)
-┌───────────────────────────────┐     ┌───────────────────────────────────┐     ┌────────────────────────┐
-│ [ 0,  ...,  1,  ...,  0 ]     │  ×  │ 第 1 行:  [  0.12,  -0.45,  ... ] │  =  │ [  0.95,   0.15,  ... ] │
-└──────────────┬────────────────┘     │ ...                               │     └────────────────────────┘
-               │                      │ 第 i 行:  [  0.95,   0.15,  ... ] │  ◄── 精准抽取出第 i 行！
-               └──────────────────────► ...                               │
-                                      │ 第|V|行:  [ -0.80,   0.21,  ... ] │
-                                      └───────────────────────────────────┘
-</pre>
-<figcaption><strong>图 1.1:</strong> 独热向量矩阵乘法查表：孤立的数字 1 充当了行选择器。</figcaption>
-</figure>
-
-> [!NOTE] 工程实践注解：查表 vs 矩阵乘法
-> 在纯粹的数学理论中，词查表被写作 $\mathbf{e}_i^\top \mathbf{E}$，这是为了保持神经网络作为端到端可微分矩阵映射系统的优雅与统一。
-> 
-> 但在生产代码（如 PyTorch 的 `torch.nn.Embedding`）中，在 GPU 上做 100,000 维的稀疏向量乘法是极大的算力浪费。因此底层硬件库直接通过数组内存索引 `E[i]` 在 $O(1)$ 常数时间内完成提取，两者数学结果分毫不差。
-
----
-
-### 数学符号拆解速查表
-
-<table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>表 1.1:</strong> 词嵌入向量的形式化数学符号、维度与物理含义</caption>
-  <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="left">符号</th>
-      <th align="left">正式名称</th>
-      <th align="left">形状 / 维度</th>
-      <th align="left">3岁小孩的理解</th>
-      <th align="left">具象实例</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>$V$</td>
-      <td>词汇集合（Vocabulary）</td>
-      <td>词元构成的集合</td>
-      <td>装着所有已知单词的积木箱</td>
-      <td>$V = \{\text{"cat"}, \text{"kitten"}, \text{"dog"}, \text{"airplane"}\}$</td>
-    </tr>
-    <tr>
-      <td>$|V|$</td>
-      <td>词表大小（Cardinality）</td>
-      <td>标量整数</td>
-      <td>积木箱里总共有几块积木</td>
-      <td>玩具模型中 $|V| = 4$（现代大模型中为 $32{,}000 \sim 128{,}000$）</td>
-    </tr>
-    <tr>
-      <td>$d$</td>
-      <td>嵌入维度（Hidden Size）</td>
-      <td>标量整数</td>
-      <td>草地操场地图上总共有几条粉笔方向</td>
-      <td>玩具算例中 $d = 2$（LLaMA-3-8B 中 $d = 4{,}096$）</td>
-    </tr>
-    <tr>
-      <td>$\mathbf{e}_i$</td>
-      <td>独热向量（One-Hot）</td>
-      <td>$\mathbb{R}^{|V| \times 1}$</td>
-      <td>只按下了第 $i$ 个开关的配电盘</td>
-      <td>$\mathbf{e}_2 = [0, 1, 0, 0]^\top$（选中第2个词）</td>
-    </tr>
-    <tr>
-      <td>$\mathbf{E}$</td>
-      <td>嵌入矩阵（Embedding Matrix）</td>
-      <td>$\mathbb{R}^{|V| \times d}$</td>
-      <td>登记了每个玩具在操场上坐标的门牌名册</td>
-      <td>形状为 $4 \times 2$ 的参数表格</td>
-    </tr>
-    <tr>
-      <td>$\mathbf{x}_i^\top$（或 $\mathbf{x}_i$）</td>
-      <td>词嵌入向量（Embedding Vector）</td>
-      <td>$\mathbb{R}^{1 \times d}$（行）/ $\mathbb{R}^{d \times 1}$（列）</td>
-      <td>某个具体单词在操场上的 GPS 坐标</td>
-      <td>$\mathbf{x}_{\text{kitten}}^\top = [0.95, 0.15]$</td>
-    </tr>
-  </tbody>
-</table>
-
-<br>
-
-<details>
-<summary><strong>符号词汇表（定义列表）</strong></summary>
-
-<dl>
-  <dt><strong>稠密向量（Dense Vector）</strong></dt>
-  <dd>绝大部分分量均为非零实数（$\mathbb{R}$）的向量，能够用紧凑的维度编码极度丰富的多维连续语义信息。</dd>
-  
-  <dt><strong>稀疏向量（Sparse Vector）</strong></dt>
-  <dd>绝大部分分量全部为零的向量（如 100,000 维里仅包含一个 1 其余全为 0 的独热向量）。</dd>
-  
-  <dt><strong>嵌入空间（Embedding Space, $\mathbb{R}^d$）</strong></dt>
-  <dd>由 $d$ 个连续坐标轴张成的几何空间，自然语言中的概念以空间点的形式分布其中。</dd>
-  
-  <dt><strong>克罗内克函数（Kronecker Delta, $\delta_{ij}$）</strong></dt>
-  <dd>一种二值分段函数：当下标 $i=j$ 时取值为 1，当下标 $i \neq j$ 时取值为 0。</dd>
-</dl>
-</details>
-
----
-
-<h2 id="step-4">Step 4: 公式从何而来？</h2>
-
-> [!ORIGIN] 历史演进之路：从弗斯到 Word2Vec
-> 人工智能研究者是如何领悟到“单词可以作为地图上的几何点”这一真谛的？
-
-### 1. 分布假说（1957）
-1957年，英国语言学家约翰·鲁珀特·弗斯（John Rupert Firth）写下了语言学史上最著名的论断之一：
-
-> *“观其伴，知其意。”（You shall know a word by the company it keeps.）*  
-> &mdash; **J. R. Firth (1957)**
-
-弗斯敏锐地指出，含义相似的词必然会频繁出现在相似的上下文语境中：
-- <kbd>“毛茸茸的【小猫咪】在小碟子里喝着温牛奶。”</kbd>
-- <kbd>“毛茸茸的【猫】在小碟子里喝着温牛奶。”</kbd>
-
-既然 <kbd>“kitten”</kbd> 和 <kbd>“cat”</kbd> 的前后邻居几乎完全一致，那么它们在数学地图上的坐标就理所应当紧紧挨在一起。
-
-### 2. 独热编码的正交性灾难
-在稠密嵌入诞生前，早期的计算语言学完全依赖独热向量 $\mathbf{e}_i$。
-
-这引发了致命的数学缺陷——**正交性灾难（Orthogonality Catastrophe）**：
-
-任取两个不同的独热单词 $\mathbf{e}_i$ 和 $\mathbf{e}_j$（其中 $i \neq j$），计算它们的点积：
-
-$$
-\mathbf{e}_i \cdot \mathbf{e}_j = \sum_{k=1}^{|V|} (\mathbf{e}_i)_k (\mathbf{e}_j)_k = 0
-$$
-
-在线性代数中，非零向量点积为零意味着它们彼此**垂直（正交）**。
-
-在独热空间里，每一个词都与其他所有词保持着冰冷的 90 度垂直直角：
-- <kbd>“小狗”</kbd> 到 <kbd>“狗”</kbd> 的欧氏距离：$\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
-- <kbd>“小狗”</kbd> 到 <kbd>“核反应堆”</kbd> 的欧氏距离：$\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
-
-计算机对语义毫无感知：在它眼里，一只小狗和小狗的亲近程度，竟然和一只小狗与一座核电站完全一样！
-
-### 3. 稠密向量革命：Word2Vec（2013）
-2013年，Tomas Mikolov 带领 Google 团队提出了轰动学术界的 **Word2Vec**。他们抛弃了庞大正交的独热编码，训练神经网络把词汇压缩进低维连续的稠密空间（如 $d=300$）。
-
-当研究人员把这些向量投影出来时，整个 AI 界都被震撼了：高维几何空间竟然自发呈现出平行的语义向量结构！
-
-其中最举世闻名的发现莫过于向量类比代数：
-
-$$
-\mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}} \approx \mathbf{x}_{\text{queen}}
-$$
-
-从“国王”向量中减去“男人”向量，剔除了“男性特征”，剩下的纯粹是“王权君主”的概念；再加上“女人”向量，计算出的坐标分毫不差地落在了“女王”的身旁！
-
-在现代 Transformer 中，嵌入矩阵 $\mathbf{E}$ 是在海量数据预训练中通过反向传播自动学出的，最终凝聚为人类知识的连续几何宇宙。
-
----
-
-<h2 id="step-5">Step 5: 具象微型算例（纸笔手算验证）</h2>
-
-> [!EXAMPLE] 具象微型算例：2维宠物与载具操场
-> 让我们用具体的微型数字在纸上一步步完成手算。
-
-### 场景设定
-- **微型词表（$|V| = 4$）**：
-  1. $w_1 = \text{"cat"}$
-  2. $w_2 = \text{"kitten"}$
-  3. $w_3 = \text{"dog"}$
-  4. $w_4 = \text{"airplane"}$
-
-- **嵌入维度（$d = 2$）**：
-  - **第 1 维（$x_1$）&mdash; “毛茸茸 / 软萌度”**：衡量概念的可爱温和程度（$0.0 = \text{冰冷金属}, 1.0 = \text{极致蓬松}$）。
-  - **第 2 维（$x_2$）&mdash; “物理体型”**：衡量现实物体的体积极限（$0.0 = \text{掌心大小}, 1.0 = \text{庞然巨机}$）。
-
-### 嵌入矩阵（$\mathbf{E} \in \mathbb{R}^{4 \times 2}$）
-
-$$
-\mathbf{E} = \begin{bmatrix}
-0.90 & 0.30 \\
-0.95 & 0.15 \\
-0.85 & 0.55 \\
-0.02 & 0.98
-\end{bmatrix} \quad \begin{matrix} 
-\leftarrow \text{第 1 行: "cat"} \\ 
-\leftarrow \text{第 2 行: "kitten"} \\ 
-\leftarrow \text{第 3 行: "dog"} \\ 
-\leftarrow \text{第 4 行: "airplane"} 
-\end{matrix}
-$$
-
----
-
-### 为 $w_2 = \text{"kitten"}$ 查表的逐步计算
-
-单词 <kbd>"kitten"</kbd>（索引号为 2）的独热向量为：
-
-$$
-\mathbf{e}_2^\top = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix}
-$$
-
-将 $\mathbf{e}_2^\top$ 与矩阵 $\mathbf{E}$ 相乘：
-
-$$
-\mathbf{x}_{\text{kitten}}^\top = \mathbf{e}_2^\top \mathbf{E} = \begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} \begin{bmatrix}
-0.90 & 0.30 \\
-0.95 & 0.15 \\
-0.85 & 0.55 \\
-0.02 & 0.98
-\end{bmatrix}
-$$
-
-手算每个坐标：
-
-$$
-\text{坐标 } 1 = (0 \times 0.90) + (1 \times 0.95) + (0 \times 0.85) + (0 \times 0.02) = \mathbf{0.95}
-$$
-
-$$
-\text{坐标 } 2 = (0 \times 0.30) + (1 \times 0.15) + (0 \times 0.55) + (0 \times 0.98) = \mathbf{0.15}
-$$
-
-$$
-\mathbf{x}_{\text{kitten}}^\top = [0.95, 0.15]
-$$
-
-独热选择器精确无误地提取出了矩阵的第 2 行！
-
----
-
-### 词向量坐标及语义对照表
-
-<table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>表 1.2:</strong> 空间坐标、可视化特征标尺与现实语义档案</caption>
-  <thead>
-    <tr bgcolor="#f0f0f0">
-      <th align="left">词元（$w_i$）</th>
-      <th align="center">行索引</th>
-      <th align="right">毛茸茸度（$x_1$）</th>
-      <th align="center">毛茸茸标尺</th>
-      <th align="right">体型大小（$x_2$）</th>
-      <th align="center">体型标尺</th>
-      <th align="left">语义特征剖析</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="left"><kbd>"cat"</kbd></td>
-      <td align="center">1</td>
-      <td align="right">0.90</td>
-      <td align="center"><meter min="0" max="1" value="0.90">90%</meter></td>
-      <td align="right">0.30</td>
-      <td align="center"><meter min="0" max="1" value="0.30">30%</meter></td>
-      <td align="left">十分软萌，中小型宠物</td>
-    </tr>
-    <tr>
-      <td align="left"><kbd>"kitten"</kbd></td>
-      <td align="center">2</td>
-      <td align="right"><mark><strong>0.95</strong></mark></td>
-      <td align="center"><meter min="0" max="1" value="0.95">95%</meter></td>
-      <td align="right"><mark><strong>0.15</strong></mark></td>
-      <td align="center"><meter min="0" max="1" value="0.15">15%</meter></td>
-      <td align="left">极致软萌，巴掌大幼崽</td>
-    </tr>
-    <tr>
-      <td align="left"><kbd>"dog"</kbd></td>
-      <td align="center">3</td>
-      <td align="right">0.85</td>
-      <td align="center"><meter min="0" max="1" value="0.85">85%</meter></td>
-      <td align="right">0.55</td>
-      <td align="center"><meter min="0" max="1" value="0.55">55%</meter></td>
-      <td align="left">毛发温热，中型伴侣动物</td>
-    </tr>
-    <tr>
-      <td align="left"><kbd>"airplane"</kbd></td>
-      <td align="center">4</td>
-      <td align="right">0.02</td>
-      <td align="center"><meter min="0" max="1" value="0.02">2%</meter></td>
-      <td align="right">0.98</td>
-      <td align="center"><meter min="0" max="1" value="0.98">98%</meter></td>
-      <td align="left">毫无毛发，巨型飞行机器</td>
-    </tr>
-  </tbody>
-</table>
-
----
-
-### 空间几何距离验算
-
-在这个 2 维操场地图上，词语之间的间隔有多远？我们采用经典的**欧几里得距离公式**：
-
-$$
-\text{Distance}(\mathbf{u}, \mathbf{v}) = \sqrt{(u_1 - v_1)^2 + (u_2 - v_2)^2}
-$$
-
-#### 1. “kitten”（小猫咪）与“cat”（猫）之间的空间距离：
-
-$$
-\begin{aligned}
-\text{Distance}(\text{kitten}, \text{cat}) &= \sqrt{(0.95 - 0.90)^2 + (0.15 - 0.30)^2} \\
-&= \sqrt{(0.05)^2 + (-0.15)^2} \\
-&= \sqrt{0.0025 + 0.0225} \\
-&= \sqrt{0.0250} \\
-&\approx \mathbf{0.158}
-\end{aligned}
-$$
-
-#### 2. “kitten”（小猫咪）与“airplane”（飞机）之间的空间距离：
-
-$$
-\begin{aligned}
-\text{Distance}(\text{kitten}, \text{airplane}) &= \sqrt{(0.95 - 0.02)^2 + (0.15 - 0.98)^2} \\
-&= \sqrt{(0.93)^2 + (-0.83)^2} \\
-&= \sqrt{0.8649 + 0.6889} \\
-&= \sqrt{1.5538} \\
-&\approx \mathbf{1.246}
-\end{aligned}
-$$
-
-对比两者相距的距离：
-
-$$
-\frac{1.246}{0.158} \approx \mathbf{7.89\times \text{（飞机足足远了近 8 倍！）}}
-$$
-
-<kbd>"airplane"</kbd> 到 <kbd>"kitten"</kbd> 的距离，是 <kbd>"cat"</kbd> 到 <kbd>"kitten"</kbd> 距离的 **近 8 倍**！
-
----
-
-### 2维操场地图几何点阵示意图
-
-<figure>
-<pre>
-体型大小 (第2维)
-  ▲
-  │
-1.00│  ["airplane"] (0.02, 0.98)
-  │     (庞大的高空金属机器)
-0.80│
-  │
-0.60│                                     ["dog"] (0.85, 0.55)
-  │
-0.40│                                     ["cat"] (0.90, 0.30)
-  │                                           │ (距离 ≈ 0.158)
-0.20│                                     ["kitten"] (0.95, 0.15)
-  │                                       (毛茸茸萌宠聚合簇！)
-0.00└─────────────────────────────────────────────────────────────► 毛茸茸度 (第1维)
-   0.00        0.20        0.40        0.60        0.80       1.00
-</pre>
-<figcaption><strong>图 1.2:</strong> 2维几何操场地图。注意看，“cat”、“kitten” 和 “dog” 紧密抱团形成萌宠聚类，而 “airplane” 孤零零落在左上方。</figcaption>
-</figure>
-
----
-
-<h2 id="step-6">Step 6: 核心精髓</h2>
-
-> [!TIP] 核心精髓
-> 嵌入矩阵 $\mathbf{E}$ 是大语言模型的**通用语言转译桥梁**：它将孤立离散的人类文字符号，映射为多维空间中具有生命力的几何坐标。
-> 
-> 通过让相似含义的词在空间中比邻而居，神经网络就能单纯凭借纯粹的线性代数来理解概念、类比常识和推演语境。
-> 
-> 但这引发了下一个关键的数学问题：**当大语言模型需要衡量两个词之间的关联程度到底有多紧密时，它在底层究竟使用了哪把精准的数学标尺？**
-
----
-
-<nav aria-label="Chapter Navigation">
-  <p>
-    <a href="../00-next-word-prediction/index.html">&larr; 第00章：猜词游戏（自回归下一个词预测）</a> &nbsp;|&nbsp; 
-    <a href="../index.html">课程总览 / 目录</a> &nbsp;|&nbsp; 
-    <strong>下一章：</strong> <a href="../02-dot-product-and-similarity/index.html">第02章：衡量关联（点积与余弦相似度） &rarr;</a>
-  </p>
-</nav>
-
-  </script>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
 
   <script>
-    const defaultTitles = {
-      en: {
-        INTUITION: "3-Year-Old Intuition",
-        MATH: "The Exact Math",
-        ORIGIN: "Where Does This Formula Come From?",
-        EXAMPLE: "Concrete Toy Example",
-        TIP: "Core Takeaway",
-        NOTE: "Note",
-        WARNING: "Common Pitfall"
-      },
-      zh: {
-        INTUITION: "3岁小孩的直觉",
-        MATH: "精确数学公式",
-        ORIGIN: "公式从何而来？",
-        EXAMPLE: "具象微型算例",
-        TIP: "核心精髓",
-        NOTE: "注解",
-        WARNING: "常见陷阱"
-      }
-    };
-
-    function getInitialLanguage() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const langParam = urlParams.get("lang");
-      if (langParam === "zh" || langParam === "en") {
-        return langParam;
-      }
-      return localStorage.getItem("llm_math_lang") || "en";
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
     }
 
-    let currentLang = getInitialLanguage();
-
-    function setLanguage(lang) {
-      currentLang = lang;
-      try {
-        localStorage.setItem("llm_math_lang", lang);
-        const url = new URL(window.location.href);
-        url.searchParams.set("lang", lang);
-        window.history.replaceState({}, "", url.toString());
-      } catch (e) {
-        // Fallback for file:// or quota restrictions
-      }
-      updateLanguageUI();
-      renderPage();
-    }
-
-    function updateLanguageUI() {
-      const btnEn = document.getElementById("lang-btn-en");
-      const btnZh = document.getElementById("lang-btn-zh");
-      if (btnEn && btnZh) {
-        if (currentLang === "zh") {
-          btnEn.innerHTML = "English";
-          btnZh.innerHTML = "<strong><mark>中文</mark></strong>";
-          document.documentElement.lang = "zh";
-        } else {
-          btnEn.innerHTML = "<strong><mark>English</mark></strong>";
-          btnZh.innerHTML = "中文";
-          document.documentElement.lang = "en";
-        }
-      }
-    }
-
-    function parseCallout(body) {
-      const match = body.match(/^<p>\[!(INTUITION|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\]([^\n<]*)(?:\n|<br\s*\/?>)?([\s\S]*)/i);
-      if (!match) return null;
-      const type = match[1].toUpperCase();
-      let customTitle = match[2].trim();
-      const langTitles = defaultTitles[currentLang] || defaultTitles.en;
-      let title = customTitle || langTitles[type] || "Note";
-      const remaining = match[3];
-      const content = remaining.trim() ? (remaining.startsWith("<p>") ? remaining : "<p>" + remaining) : "";
-      return `<fieldset><legend><strong>${title}</strong></legend>${content}</fieldset>\n`;
-    }
-
-    async function renderPage() {
-      updateLanguageUI();
-      let mdText = "";
-      const mdFileName = (currentLang === "zh") ? "index.zh.md" : "index.md";
-      const fallbackId = (currentLang === "zh") ? "fallback-content-zh" : "fallback-content-en";
-
-      try {
-        const res = await fetch(mdFileName);
-        if (res.ok) {
-          mdText = await res.text();
-        } else {
-          throw new Error("HTTP " + res.status);
-        }
-      } catch (e) {
-        const fallback = document.getElementById(fallbackId);
-        if (fallback) {
-          mdText = fallback.textContent.trim();
-        }
-      }
-
-      if (!mdText) return;
-
-      // 1. Configure marked with KaTeX
-      if (typeof markedKatex !== "undefined") {
-        marked.use(markedKatex({ throwOnError: false, nonStandard: true }));
-      }
-
-      // 2. Configure marked with custom blockquote renderer for callouts
-      marked.use({
-        renderer: {
-          blockquote(token) {
-            const body = this.parser.parse(token.tokens);
-            const callout = parseCallout(body);
-            return callout || `<blockquote>${body}</blockquote>\n`;
-          }
-        }
+    // KaTeX equation rendering pass
+    if (typeof renderMathInElement !== 'undefined') {
+      renderMathInElement(document.body, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false
       });
-
-      const container = document.getElementById("content");
-      container.innerHTML = marked.parse(mdText);
-
-      // 3. Enhance tables with native HTML borders and comfortable cell padding
-      container.querySelectorAll("table").forEach(tbl => {
-        tbl.setAttribute("border", "1");
-        tbl.setAttribute("cellpadding", "8");
-        tbl.setAttribute("cellspacing", "0");
-      });
-
-      // 4. Secondary pass for any remaining KaTeX blocks
-      if (typeof renderMathInElement !== "undefined") {
-        renderMathInElement(container, {
-          delimiters: [
-            { left: "$$", right: "$$", display: true },
-            { left: "$", right: "$", display: false }
-          ],
-          throwOnError: false
-        });
-      }
     }
-
-    window.addEventListener("DOMContentLoaded", renderPage);
   </script>
 </body>
 </html>
