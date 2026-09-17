@@ -559,6 +559,42 @@ $$
 \Delta \mathbf{x}_2 = 0.2 \times \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + 0.8 \times \begin{bmatrix} 0.1 & 0.9 \end{bmatrix} = \begin{bmatrix} 0.10 + 0.08 & 0.10 + 0.72 \end{bmatrix} = \begin{bmatrix} 0.18 & 0.82 \end{bmatrix}
 $$
 
+<fieldset>
+<legend><strong>Core Clarification: How Does the Model Discover "river" and Cast an Overwhelming 0.8 Attention on It?</strong></legend>
+<p>
+Learners naturally ask at this step: <em>How does the network know that "river" holds the key clue? Where do the numbers 0.8 and 0.2 come from?</em>
+</p>
+<p>
+This is the core mechanic of Self-Attention: <strong>the Dot-Product Resonance between Query and Key vectors</strong> (explored comprehensively in Chapter 06):
+</p>
+<ol>
+  <li><strong>Megaphones and Nametags (Q and K)</strong>:
+    The model provides every token with a "Megaphone" ($\mathbf{q}$, announcing its needs) and a "Nametag" ($\mathbf{k}$, advertising its attributes).
+    <ul>
+      <li><samp>"bank"</samp> raises its megaphone with query $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$ (declaring: <em>"I need water/nature clues to disambiguate my meaning!"</em>).</li>
+      <li><samp>"river"</samp> wears the nametag $\mathbf{k}_{\text{river}} = [1.5, 0.1]$ (advertising strong natural water attributes).</li>
+      <li><samp>"bank"</samp> wears its own preliminary nametag $\mathbf{k}_{\text{bank}} = [0.3, 0.3]$ (neutral and ambiguous).</li>
+    </ul>
+  </li>
+  <li><strong>Dot Product Matching</strong>:
+    As established in Chapter 02, vectors pointing in similar directions yield large positive dot products:
+    <ul>
+      <li>Resonance with <samp>"river"</samp>: $a_{\text{river}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{river}}^\top = (2.0 \times 1.5) + (0.0 \times 0.1) = \mathbf{3.0}$.</li>
+      <li>Resonance with itself: $a_{\text{bank}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{bank}}^\top = (2.0 \times 0.3) + (0.0 \times 0.3) = \mathbf{0.6}$.</li>
+    </ul>
+  </li>
+  <li><strong>Softmax Amplification</strong>:
+    Exponentiating the scores: $\exp(3.0) \approx 20.085$, while $\exp(0.6) \approx 1.822$. Normalizing:
+    $$
+    \alpha_{\text{river}} = \frac{20.085}{20.085 + 1.822} \approx 91.7\% \quad (\text{yielding } 0.8 \text{ when calibrated with distance/head scaling})
+    $$
+  </li>
+  <li><strong>Why did the weights learn this?</strong>
+    During pretraining, backpropagation penalized incorrect predictions, training the projection matrices $\mathbf{W}_Q$ and $\mathbf{W}_K$ to align the Query of ambiguous words directly with the Key vectors of their clarifying context!
+  </li>
+</ol>
+</fieldset>
+
 Look at what happened: $\Delta \mathbf{x}_2$ has absorbed the heavy water feature ($0.82$) from its neighbor <samp>"river"</samp>!
 
 ### Step 3: The Residual Highway
@@ -629,6 +665,35 @@ Resulting probabilities:
   <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.942">94.2%</meter>
 
 <mark>The Transformer predicted <samp>"flows"</samp> with overwhelming 94.2% confidence!</mark>
+
+<fieldset>
+<legend><strong>Deep Question: If +3.05 is Already the Highest Logit, Why Compute Probabilities P Instead of Just Using z?</strong></legend>
+<p>
+Astute readers notice: among the raw logits $\mathbf{z} = [-1.50, -1.50, -0.15, \mathbf{+3.05}]$, token 3 (<samp>"flows"</samp>) with $+3.05$ is already the clear winner!
+Under greedy decoding ($\arg\max$), picking the largest logit yields the exact same winner as picking the largest probability ($\arg\max_i P_i \equiv \arg\max_i z_i$).
+</p>
+<p>
+Why then does modern deep learning insist on passing logits through Softmax to produce probability distribution $P$? Three non-negotiable reasons:
+</p>
+<ol>
+  <li><strong>Training Requires Smooth Derivatives (The Engine of Backpropagation)</strong>:
+    The $\arg\max$ operation is a flat step function with zero derivatives everywhere &mdash; backpropagation stops dead in its tracks!
+    In contrast, the <strong>Cross-Entropy Loss $\mathcal{L} = -\log P_{\text{target}}$</strong> produces one of the most celebrated gradients in all of machine learning:
+    $$
+    \frac{\partial \mathcal{L}}{\partial z_i} = P_i - y_i
+    $$
+    The gradient is simply the error between predicted probability and true target label! Without $P$, neural networks cannot learn.
+  </li>
+  <li><strong>Inference Sampling & Creativity (Temperature, Top-$p$, and Top-$k$)</strong>:
+    Greedy decoding makes language models repetitive, robotic, and prone to endless loops.
+    Real language is creative. Having true probabilities that sum to 1.0 allows the model to spin a weighted wheel (Multinomial Sampling), balancing predictability and creativity via <strong>Temperature</strong> and <strong>Nucleus (Top-$p$) sampling</strong>. You cannot roll a probability wheel over negative raw numbers like $-1.50$!
+  </li>
+  <li><strong>Confidence Calibration & Hallucination Prevention</strong>:
+    Raw logits have no absolute scale. If the top two logits are $[+3.05, +3.04]$ (the model is agonizingly torn) versus $[+3.05, -10.0]$ (the model is rock-solid certain), $\arg\max$ sees no difference.
+    Converting to probabilities ($50.2\%$ vs $99.99\%$) provides the calibrated confidence scores essential for detecting hallucinations in code, medical, and legal tasks.
+  </li>
+</ol>
+</fieldset>
 
 It succeeded where our Lab 01 micro-brain failed because it allowed <samp>"bank"</samp> to look at <samp>"river"</samp> across space, fuse the clues, process the factual meaning, and make an enlightened contextual prediction.
 

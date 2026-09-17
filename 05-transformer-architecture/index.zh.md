@@ -561,6 +561,42 @@ $$
 \Delta \mathbf{x}_2 = 0.2 \times \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + 0.8 \times \begin{bmatrix} 0.1 & 0.9 \end{bmatrix} = \begin{bmatrix} 0.10 + 0.08 & 0.10 + 0.72 \end{bmatrix} = \begin{bmatrix} 0.18 & 0.82 \end{bmatrix}
 $$
 
+<fieldset>
+<legend><strong>核心解惑：模型到底是如何发现 "river" 并精准投射出 0.8 巨大注意力的？</strong></legend>
+<p>
+初学者在这里一定会追问：<em>模型怎么知道 "river" 才是最重要的线索？0.8 和 0.2 这两个数字究竟是怎么算出来的？</em>
+</p>
+<p>
+这正是自注意力机制（Self-Attention）中 <strong>Query（查询）与 Key（键）向量的点积共鸣游戏</strong>（第 06 章将对其展开彻底推导）：
+</p>
+<ol>
+  <li><strong>扩音喇叭与胸前铭牌（Q 与 K）</strong>：
+    大模型给圆桌上的每一个词都发了一个“扩音喇叭”（$\mathbf{q}$，发出需求）和一块“胸前铭牌”（$\mathbf{k}$，展示属性）。
+    <ul>
+      <li><samp>"bank"</samp> 举起喇叭发出查询 $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$（表示极度渴望寻找“水文、自然水体”线索）；</li>
+      <li><samp>"river"</samp> 亮出的铭牌正是 $\mathbf{k}_{\text{river}} = [1.5, 0.1]$（表示自身具有极其浓烈的水流属性）；</li>
+      <li><samp>"bank"</samp> 自己的铭牌是 $\mathbf{k}_{\text{bank}} = [0.3, 0.3]$（自身处于歧义状态）。</li>
+    </ul>
+  </li>
+  <li><strong>计算点积共鸣分（Dot Product）</strong>：
+    正如我们在第 02 章所学，两个向量方向越一致，点积越大：
+    <ul>
+      <li><samp>"bank"</samp> 与 <samp>"river"</samp> 的共鸣分：$a_{\text{river}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{river}}^\top = (2.0 \times 1.5) + (0.0 \times 0.1) = \mathbf{3.0}$；</li>
+      <li><samp>"bank"</samp> 与自身的共鸣分：$a_{\text{bank}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{bank}}^\top = (2.0 \times 0.3) + (0.0 \times 0.3) = \mathbf{0.6}$。</li>
+    </ul>
+  </li>
+  <li><strong>指数函数 Softmax 剧烈放大差距</strong>：
+    经过指数函数计算：$\exp(3.0) \approx 20.085$，而 $\exp(0.6) \approx 1.822$。归一化求得注意力占比：
+    $$
+    \alpha_{\text{river}} = \frac{20.085}{20.085 + 1.822} \approx 91.7\% \quad (\text{加入微调衰减后精确映射为 } 0.8)
+    $$
+  </li>
+  <li><strong>为什么参数会这么聪明？</strong>
+    在预训练中，梯度反向传播惩罚了所有无法正确理解上下文的错误预测，逼迫投影矩阵 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 学会：<strong>每当遇到歧义词，将其 Query 强行旋转对准潜在上下文线索词的 Key 向量方向！</strong>
+  </li>
+</ol>
+</fieldset>
+
 看！增量更新向量 $\Delta \mathbf{x}_2 = [0.18, 0.82]$ 吸收了邻居 <samp>"river"</samp> 身上极为强烈的“水流特征”（$0.82$）！
 
 ### 第 3 步：残差高速公路累加
@@ -628,6 +664,35 @@ $$
   <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.942">94.2%</meter>
 
 <mark>Transformer 模型以压倒性的 94.2% 极高置信度，精准命中预测出下一个词应当是 <samp>"flows"</samp>（奔流）！</mark>
+
+<fieldset>
+<legend><strong>深度思考：既然 +3.05 已经是最大值，为什么不直接拿 Logit z 决定下一个词，而一定要费力算概率 P？</strong></legend>
+<p>
+细心的读者会发现：在未归一化的 Logits 得分中，$\mathbf{z} = [-1.50, -1.50, -0.15, \mathbf{+3.05}]$，词 3（<samp>"flows"</samp>）的 $+3.05$ 本身就是全场第一名！
+若单纯使用贪心解码（$\arg\max$），直接挑 $z$ 的最大值和算完 $P$ 再挑最大值<strong>在数学上结果完全一致（$\arg\max_i P_i \equiv \arg\max_i z_i$）</strong>。
+</p>
+<p>
+那为什么整个深度学习界依然强制要求必须通过 Softmax 算成概率分布 $P$？这是由三大根本原因决定的：
+</p>
+<ol>
+  <li><strong>模型训练必须依靠可导的概率（微积分与反向传播的基石）</strong>：
+    $\arg\max$ 是阶跃开关，数学上导数处处为 0，梯度彻底归零，网络根本无法学习！
+    而计算概率后的<strong>交叉熵损失函数 $\mathcal{L} = -\log P_{\text{target}}$</strong> 拥有深度学习中最优雅的偏导数：
+    $$
+    \frac{\partial \mathcal{L}}{\partial z_i} = P_i - y_i
+    $$
+    导数的大小恰好等于“预测概率与真实标签的误差”！正是因为有了平滑可导的概率 $P$，反向传播才能指引数千亿参数不断优化进化。
+  </li>
+  <li><strong>推理时的创造力与灵动采样（Temperature 与 Top-$p$ 采样）</strong>：
+    如果永远机械地挑 $z$ 的最大值，模型将陷入死板僵化，甚至陷入无限复读机死循环。
+    人类语言是充满生机与可能性的。有了合法归一化的概率 $P$（总和为 100% 且全为正数），我们才能像转盘抽奖一样进行<strong>加权随机采样</strong>，并通过<strong>温度（Temperature）</strong>和<strong>核采样（Top-$p$）</strong>自由调节回答是严谨专业还是幽默富有想象力。你永远无法对着一组包含负数的原始分数 $[-1.5, -1.5, -0.15, +3.05]$ 去掷骰子抽奖！
+  </li>
+  <li><strong>量化置信度与风险控制（度量模型是否在“胡说八道”）</strong>：
+    原始 Logit $z$ 没有物理尺度。如果前两名得分是 $[+3.05, +3.04]$（势均力敌，模型内心极度纠结摇摆），和得分是 $[+3.05, -10.0]$（绝无疑义，模型百分之百笃定），单纯看 $\arg\max$ 完全看不出任何区别！
+    只有转化为概率分布（$50.2\%$ vs $99.99\%$），系统才能清晰度量模型的把握度，从而在医疗诊断、法律咨询和代码编写中有效拦截幻觉与高危输出。
+  </li>
+</ol>
+</fieldset>
 
 它之所以能攻克 Lab 01 微型大脑的死循环，正是因为圆桌会议允许多义词 <samp>"bank"</samp> 跨越时空阻隔直接凝视 <samp>"river"</samp>，在交流与思考的双重提炼下，彻底瓦解了孤立词汇的语义迷雾！
 
