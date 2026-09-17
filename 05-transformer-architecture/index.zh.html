@@ -295,7 +295,7 @@
 </table>
 
 <fieldset>
-<legend><strong>高频疑问：英文中一共有多少个词？128,256 能够覆盖全世界所有语言吗？</strong></legend>
+<legend><strong>深度拆解：BPE（字节对编码）到底是什么？它是如何炼成 128,256 个词表的？</strong></legend>
 <p>
 初学者常常产生一个直觉困惑：<em>《牛津英语词典》收录了 60 多万词，加上各种科技词汇、网络俚语更是无限开集，128,256 个词表项够用吗？能覆盖中文和世界其他语言吗？</em>
 </p>
@@ -303,19 +303,54 @@
 <strong>答案是：不仅能覆盖，而且在数学与工程上是 100% 绝对覆盖，永远不会遇到“无法表示的生词”！</strong>
 </p>
 <p>
-这其中的奥秘在于大模型采用的 <strong>BPE（字节对编码）子词分词技术与字节级兜底机制</strong>：
+这背后的功臣正是大模型分词的黄金法则 &mdash; <strong>BPE（Byte Pair Encoding，字节对编码）</strong>。
+</p>
+
+<h4>1. 3 岁孩子的直觉：冰箱字母磁贴与超级胶水</h4>
+<p>
+想象你的冰箱上只有最基础的单字母磁贴（<kbd>a</kbd>, <kbd>b</kbd>, <kbd>c</kbd> ... <kbd>z</kbd>）。
+</p>
+<ul>
+  <li><strong>如果每次都一个字母一个字母地排</strong>：拼一个单词 <samp>"unbelievable"</samp> 要拿 12 个磁贴，拼一篇短文手指头都要累断了，而且整面冰箱很快就被密密麻麻的单字母占满了（<strong>序列过长，自注意力计算面临 $\mathcal{O}(T^2)$ 算力灾难</strong>）。</li>
+  <li><strong>如果把字典里几十万个完整单词全做成现成的大磁贴</strong>：你的口袋根本装不下，而且一旦你想拼一个刚流行的新网络词，口袋里根本没有这个一体成型的磁贴（<strong>词表爆炸，且遭遇未登录词 OOV 崩溃</strong>）。</li>
+</ul>
+<p>
+<strong>BPE 的胶水法则：</strong>拿出一瓶超级胶水，观察平时写故事的过程。只要发现哪两个相邻磁贴总是结对出现（比如 <kbd>t</kbd> 和 <kbd>h</kbd>），就滴一滴胶水粘成复合磁贴 <kbd>th</kbd>；接着发现 <kbd>th</kbd> 和 <kbd>e</kbd> 总是结对，再粘成 <kbd>the</kbd>！一直粘到你拥有 <strong>128,256 个</strong>最好用的磁贴积木为止。
+</p>
+
+<h4>2. BPE 算法严谨推导与微型手算实战</h4>
+<p>
+假设我们的训练语料库中只有 4 个单词，它们的出现频次如下：
+</p>
+<ul>
+  <li><samp>"low"</samp>（5 次） &rarr; 初始切分：<code>l o w &lt;/w&gt;</code></li>
+  <li><samp>"lower"</samp>（2 次） &rarr; 初始切分：<code>l o w e r &lt;/w&gt;</code></li>
+  <li><samp>"newest"</samp>（6 次） &rarr; 初始切分：<code>n e w e s t &lt;/w&gt;</code></li>
+  <li><samp>"widest"</samp>（3 次） &rarr; 初始切分：<code>w i d e s t &lt;/w&gt;</code></li>
+</ul>
+
+<p><strong>迭代统计与贪心合并：</strong></p>
+<ol>
+  <li><strong>第 1 轮合并</strong>：统计语料库中所有相邻二元组出现的次数，发现 <code>(e, s)</code> 在 <samp>"newest"</samp> (6) 与 <samp>"widest"</samp> (3) 中合计共现 **9 次**（最高频！）。因此执行合并规则 1：<code>e + s &rarr; es</code>，将新词元 <code>es</code> 加入词表。</li>
+  <li><strong>第 2 轮合并</strong>：重新统计发现 <code>(es, t)</code> 同样共现 **9 次**。执行合并规则 2：<code>es + t &rarr; est</code>。</li>
+  <li><strong>第 3 轮合并</strong>：发现 <code>(est, &lt;/w&gt;)</code> 共现 **9 次**。执行合并规则 3：<code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>。</li>
+  <li><strong>第 4 轮合并</strong>：统计发现 <code>(l, o)</code> 共现 $5 + 2 = 7$ 次，<code>(o, w)</code> 共现 7 次。依次执行合并：<code>l + o &rarr; lo</code>，接着 <code>lo + w &rarr; low</code>。</li>
+</ol>
+
+<p><strong>见证奇迹的推理时刻（Inference）：</strong></p>
+<p>
+此时用户输入了一个在训练语料库中<strong>一辈子从未出现过的全新单词：<samp>"lowest"</samp></strong>。
 </p>
 <ol>
-  <li><strong>词表里存的不是“完整单词”，而是“积木块（Subwords / Tokens）”</strong>：
-    高频词整块存储（如 <kbd>"the"</kbd>、<kbd>"apple"</kbd> 都是 1 个 Token）；而罕见词、超长词、化学专有名词会被自动拆解为几个常见词根（如 <kbd>"unbelievable"</kbd> 拆为 <kbd>"un"</kbd> + <kbd>"believ"</kbd> + <kbd>"able"</kbd> 共 3 个 Token）。
-  </li>
-  <li><strong>256 个原生字节终极兜底（Byte-level Fallback）</strong>：
-    在 128,256 个词表项的最底层，模型<strong>完整保留了计算机最底层的 256 个原生 UTF-8 字节（<code>0x00</code> 到 <code>0xFF</code>）</strong>。哪怕遇到从未见过的极生僻字（如“龘”、“鱻”）、火星文、生僻符号或二进制机器码，分词器会自动退化为基础字节序列传入模型，保证<strong>零未知词（Zero Out-Of-Vocabulary / Zero OOV）</strong>！
-  </li>
-  <li><strong>为什么定在 128,256？</strong>
-    如果词表太小（如 LLaMA-2 的 32,000），中文等非英文文本会被拆得极碎，白白挤占上下文窗口且推理奇慢；如果词表盲目扩大到 100 万，嵌入矩阵 $\mathbf{E}$ 就会霸占数十 GB 显存。128,256 是精度、多语言压缩比与 GPU 显存对齐的<strong>黄金平衡点</strong>。
-  </li>
+  <li>初始字母切分：<code>[l, o, w, e, s, t, &lt;/w&gt;]</code></li>
+  <li>按顺序应用学到的合并规则：<code>e, s &rarr; es</code> &rarr; <code>es, t &rarr; est</code> &rarr; <code>est, &lt;/w&gt; &rarr; est&lt;/w&gt;</code> &rarr; <code>l, o &rarr; lo</code> &rarr; <code>lo, w &rarr; low</code></li>
+  <li><strong>最终输出 Token 序列：</strong><kbd>"low"</kbd> + <kbd>"est&lt;/w&gt;"</kbd>（仅用 2 个已知子词优雅表征，<strong>零未登录词 Zero OOV</strong>！）。</li>
 </ol>
+
+<h4>3. 256 个原生字节终极兜底（Byte-level Fallback）</h4>
+<p>
+在现代大模型（GPT-4、LLaMA-3）使用的 <strong>Byte-level BPE</strong> 中，词表最底部完整保留了计算机最底层的 <strong>256 个原生 UTF-8 字节（<code>0x00</code> 到 <code>0xFF</code>）</strong>。哪怕遇到从未见过的极生僻汉字（如“龘”、“鱻”）、火星文、生僻符号或一段未经解码的乱码，分词器会自动退化为底层字节序列送入网络，保证<strong>100% 绝对能读写、永不报错崩溃</strong>！
+</p>
 </fieldset>
 
 <h3>2. 阶段 1：序列输入表征（Input Representation）</h3>
@@ -338,7 +373,35 @@ $$
 </ul>
 </fieldset>
 
-<p>如何将这些纯离散的整数转化为计算机能做线性代数计算的连续几何坐标？通过词嵌入矩阵 $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ 与位置编码向量 $\mathbf{p}_t$ 完成映射：</p>
+<fieldset>
+<legend><strong>概念温故（Refresher）：什么是词嵌入矩阵 E？为什么它能把词变成数字？</strong></legend>
+<p>
+<strong>第一性原理思考：为什么计算机不能直接拿整数 ID 来计算？</strong>
+</p>
+<p>
+如果直接把 <samp>"cat"</samp> 当成标量 $3797$、<samp>"dog"</samp> 当成标量 $3798$、<samp>"apple"</samp> 当成标量 $1549$：
+</p>
+<ul>
+  <li>在算术上，计算机会得出极其荒唐的结论：$3798 = 3797 + 1$，即 $\text{dog} = \text{cat} + 1$；</li>
+  <li>在距离上，<samp>"cat"</samp> 和 <samp>"dog"</samp> 的差值是 1，而 <samp>"cat"</samp> 和 <samp>"kitten"</samp>（小猫，ID 可能是 24000）的差值却高达两万！标量大小完全无法衡量人类词汇真实的语义亲疏。</li>
+</ul>
+<p>
+<strong>几何宇宙的诞生：词嵌入矩阵 $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$</strong>
+</p>
+<p>
+正如我们在第 01 章所推导，解决这个问题的终极方法，是为每个词在多维空间中安放一个专属的几何坐标向量：
+</p>
+<ul>
+  <li><strong>一本厚厚的语义字典</strong>：矩阵 $\mathbf{E}$ 共有 $|V| = 128,256$ 行，每一行代表一个词；每行包含 $d_{\text{model}} = 4,096$ 个连续浮点数，构成了该词的静态语义指纹。</li>
+  <li><strong>语义亲近即空间亲近</strong>：在这个 4,096 维的几何世界中，<samp>"cat"</samp> 和 <samp>"dog"</samp> 的向量夹角极小（余弦相似度极高），而它们与 <samp>"refrigerator"</samp> 的向量近乎垂直正交。</li>
+  <li><strong>代数查表机制（One-Hot 提取）</strong>：
+    当我们用独热向量 $\mathbf{e}_{w_t}^\top = [0, \dots, 0, 1, 0, \dots, 0] \in \mathbb{R}^{1 \times |V|}$ 乘以矩阵 $\mathbf{E}$ 时，因为只有第 $w_t$ 列是 1、其余全为 0，乘法运算在代数上<strong>分毫不差地精确提取出了矩阵 $\mathbf{E}$ 的第 $w_t$ 行</strong>！
+  </li>
+  <li><strong>工程底层加速</strong>：在现代显卡底层代码（如 PyTorch 的 <code>nn.Embedding</code>）中，计算核心会跳过巨大的稀疏矩阵乘法，直接通过内存地址偏移（<code>E[w_t]</code>）以 $\mathcal{O}(1)$ 速度把这一行连续向量秒级拷贝给后续计算。</li>
+</ul>
+</fieldset>
+
+<p>如何将离散整数 $w_t$ 转化为连续几何向量并注入次序？通过词嵌入矩阵 $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ 与位置编码向量 $\mathbf{p}_t$ 完成映射：</p>
 
 
 $$

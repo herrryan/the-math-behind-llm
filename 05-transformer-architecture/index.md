@@ -208,27 +208,62 @@ Every Transformer architecture is fully defined by five foundational scalar dime
 </table>
 
 <fieldset>
-<legend><strong>Frequent Question: How many words are there in English? Can 128,256 tokens cover all languages?</strong></legend>
+<legend><strong>Deep Dive: What is BPE (Byte Pair Encoding) and How Does It Build the 128,256 Vocabulary?</strong></legend>
 <p>
-Learners frequently wonder: <em>The Oxford English Dictionary contains over 600,000 words, and with technical jargon and slang the vocabulary is unbounded. How can 128,256 items be enough? Does it cover Chinese and other world languages?</em>
+Learners frequently wonder: <em>The Oxford English Dictionary contains over 600,000 words, and with technical jargon and slang the vocabulary is unbounded. How can 128,256 items be enough? Does it cover Chinese and all other world languages?</em>
 </p>
 <p>
-<strong>The answer: It does not just cover them &mdash; it covers 100% of all languages and arbitrary text with mathematically zero out-of-vocabulary (<abbr title="Out Of Vocabulary">OOV</abbr>) errors!</strong>
+<strong>The answer: It does not just cover them &mdash; it covers 100% of all world languages and arbitrary text with mathematically zero out-of-vocabulary (<abbr title="Out Of Vocabulary">OOV</abbr>) errors!</strong>
 </p>
 <p>
-This is achieved through <strong>Byte-level Byte Pair Encoding (BPE) and 256-byte fallback</strong>:
+The secret engine behind this is <strong>BPE (Byte Pair Encoding)</strong>.
+</p>
+
+<h4>1. The 3-Year-Old Intuition: Refrigerator Magnets & Superglue</h4>
+<p>
+Imagine you only have the 26 basic letter magnets on your refrigerator (<kbd>a</kbd>, <kbd>b</kbd>, <kbd>c</kbd> ... <kbd>z</kbd>).
+</p>
+<ul>
+  <li><strong>Spelling letter by letter</strong>: Spelling <samp>"unbelievable"</samp> requires grabbing 12 individual magnets. A short paragraph fills up the entire fridge door, and your fingers tire quickly (<strong>sequences become too long, triggering quadratic $\mathcal{O}(T^2)$ self-attention compute blowup</strong>).</li>
+  <li><strong>Molding every dictionary word as a giant single magnet</strong>: You would need millions of bulky magnets in your pockets, and the moment someone invents a new slang word, you have no magnet for it (<strong>vocabulary explosion and catastrophic out-of-vocabulary errors</strong>).</li>
+</ul>
+<p>
+<strong>The BPE Superglue Rule:</strong> You observe which pairs of magnets sit next to each other most frequently. Whenever you notice two adjacent magnets consistently appearing together (like <kbd>t</kbd> and <kbd>h</kbd>), you dab a drop of superglue between them to create a permanent new tile: <kbd>th</kbd>. When you notice <kbd>th</kbd> and <kbd>e</kbd> constantly next to each other, you glue them into <kbd>the</kbd>! You continue gluing until you have exactly <strong>128,256</strong> versatile magnet tiles.
+</p>
+
+<h4>2. The BPE Algorithm & Concrete Toy Walkthrough</h4>
+<p>
+Suppose our training corpus has only 4 words with the following occurrence frequencies:
+</p>
+<ul>
+  <li><samp>"low"</samp> (5 times) &rarr; Initial split: <code>l o w &lt;/w&gt;</code></li>
+  <li><samp>"lower"</samp> (2 times) &rarr; Initial split: <code>l o w e r &lt;/w&gt;</code></li>
+  <li><samp>"newest"</samp> (6 times) &rarr; Initial split: <code>n e w e s t &lt;/w&gt;</code></li>
+  <li><samp>"widest"</samp> (3 times) &rarr; Initial split: <code>w i d e s t &lt;/w&gt;</code></li>
+</ul>
+
+<p><strong>Greedy Iterative Merging:</strong></p>
+<ol>
+  <li><strong>Merge Step 1</strong>: We count all adjacent symbol pairs in the corpus. The pair <code>(e, s)</code> appears in <samp>"newest"</samp> (6) and <samp>"widest"</samp> (3), totaling **9 occurrences** (the highest frequency!). We form Merge Rule 1: <code>e + s &rarr; es</code> and add <code>es</code> to our vocabulary.</li>
+  <li><strong>Merge Step 2</strong>: Re-counting adjacent pairs reveals <code>(es, t)</code> also appears **9 times**. Merge Rule 2: <code>es + t &rarr; est</code>.</li>
+  <li><strong>Merge Step 3</strong>: The pair <code>(est, &lt;/w&gt;)</code> appears **9 times**. Merge Rule 3: <code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>.</li>
+  <li><strong>Merge Step 4</strong>: The pair <code>(l, o)</code> appears $5 + 2 = 7$ times, and <code>(o, w)</code> appears 7 times. We greedily merge: <code>l + o &rarr; lo</code>, followed by <code>lo + w &rarr; low</code>.</li>
+</ol>
+
+<p><strong>The Inference Moment on an Unseen Word:</strong></p>
+<p>
+Now, a user submits a brand-new word that **never appeared anywhere in our training corpus: <samp>"lowest"</samp>**.
 </p>
 <ol>
-  <li><strong>Vocabulary stores Subword LEGO Bricks, not whole words</strong>:
-    Frequent words are stored intact as a single token (e.g., <kbd>"the"</kbd> or <kbd>"apple"</kbd>). Rare, long, or scientific words are broken into smaller morphemes (e.g., <kbd>"unbelievable"</kbd> $\to$ <kbd>"un"</kbd> + <kbd>"believ"</kbd> + <kbd>"able"</kbd>).
-  </li>
-  <li><strong>The 256 Raw Byte Safety Net</strong>:
-    At the base of the 128,256 vocabulary table, the model <strong>reserves all 256 raw UTF-8 bytes (<code>0x00</code> to <code>0xFF</code>)</strong>. If the model encounters an ancient hieroglyph, a brand-new emoji, or raw binary machine code, it falls back to raw bytes. It never crashes with an unknown symbol error.
-  </li>
-  <li><strong>Why exactly 128,256?</strong>
-    If the vocabulary is too small (e.g. LLaMA-2's 32,000), non-English languages are broken into tiny byte fragments, blowing up the sequence length and slowing inference. If the vocabulary is too large (e.g. 1,000,000), the embedding lookup matrix $\mathbf{E}$ explodes in GPU memory. 128,256 is the <strong>golden sweet spot</strong> of compression efficiency, multilingual support, and GPU memory alignment (divisible by 256).
-  </li>
+  <li>Initial character split: <code>[l, o, w, e, s, t, &lt;/w&gt;]</code></li>
+  <li>Apply learned merge rules sequentially: <code>e, s &rarr; es</code> &rarr; <code>es, t &rarr; est</code> &rarr; <code>est, &lt;/w&gt; &rarr; est&lt;/w&gt;</code> &rarr; <code>l, o &rarr; lo</code> &rarr; <code>lo, w &rarr; low</code></li>
+  <li><strong>Final Token Output:</strong> <kbd>"low"</kbd> + <kbd>"est&lt;/w&gt;"</kbd> (represented cleanly with 2 existing subwords, <strong>Zero OOV</strong>!).</li>
 </ol>
+
+<h4>3. The 256 Raw Byte Safety Net (Byte-level Fallback)</h4>
+<p>
+In modern LLMs (GPT-4, LLaMA-3) using <strong>Byte-level BPE</strong>, the base vocabulary reserves all <strong>256 raw UTF-8 bytes (<code>0x00</code> to <code>0xFF</code>)</strong>. Even when facing extremely rare CJK ideographs, ancient runes, or unformatted binary data, the tokenizer falls back to raw bytes. It never crashes with an unknown symbol error.
+</p>
 </fieldset>
 
 ### 2. Stage 1: The Input Representation
@@ -247,6 +282,34 @@ $$
   <li>$V = \{v_1, v_2, \dots, v_{|V|}\}$: The discrete vocabulary set containing all $|V|$ recognizable subwords.</li>
   <li>$|V|$: The vocabulary size (e.g., 128,256 in LLaMA-3).</li>
   <li>$T$: The sequence length (number of tokens sitting at the round table in this turn).</li>
+</ul>
+</fieldset>
+
+<fieldset>
+<legend><strong>Refresher: What is the Embedding Matrix E, and Why Does It Turn Words into Space?</strong></legend>
+<p>
+<strong>First-Principles Question: Why can't a computer compute directly on integer IDs?</strong>
+</p>
+<p>
+If we treat <samp>"cat"</samp> as scalar $3797$, <samp>"dog"</samp> as scalar $3798$, and <samp>"apple"</samp> as scalar $1549$:
+</p>
+<ul>
+  <li>Arithmetic produces nonsense: $3798 = 3797 + 1 \implies \text{dog} = \text{cat} + 1$;</li>
+  <li>Distances are arbitrary: the numerical gap between <samp>"cat"</samp> and <samp>"dog"</samp> is $1$, while the gap between <samp>"cat"</samp> and <samp>"kitten"</samp> (ID 24000) might be 20,000! Raw integer magnitude has zero semantic meaning.</li>
+</ul>
+<p>
+<strong>The Geometric Solution: The Embedding Matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$</strong>
+</p>
+<p>
+As established in Chapter 01, words must be mapped to continuous geometric coordinates:
+</p>
+<ul>
+  <li><strong>A Giant Dictionary of Semantic Coordinates</strong>: Matrix $\mathbf{E}$ contains $|V| = 128,256$ rows. Each row is a vector of $d_{\text{model}} = 4,096$ floating-point numbers describing that token's static semantic fingerprint.</li>
+  <li><strong>Semantic Closeness as Spatial Proximity</strong>: In this 4,096-dimensional space, the vectors for <samp>"cat"</samp> and <samp>"dog"</samp> point in almost the same direction (high cosine similarity), while pointing orthogonally to <samp>"refrigerator"</samp>.</li>
+  <li><strong>Algebraic Extraction via One-Hot Product</strong>:
+    Multiplying a one-hot row vector $\mathbf{e}_{w_t}^\top = [0, \dots, 0, 1, 0, \dots, 0] \in \mathbb{R}^{1 \times |V|}$ by matrix $\mathbf{E}$ algebraically zeros out every row except row $w_t$, perfectly extracting <strong>row $w_t$ of $\mathbf{E}$</strong>.
+  </li>
+  <li><strong>Hardware Implementation</strong>: In real hardware (e.g., PyTorch's <code>nn.Embedding</code>), GPUs do not perform massive sparse matrix multiplications. They directly slice the row at memory offset <code>E[w_t]</code> in $\mathcal{O}(1)$ time.</li>
 </ul>
 </fieldset>
 
