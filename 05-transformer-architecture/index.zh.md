@@ -180,7 +180,7 @@
       <td>$|V|$</td>
       <td>词表大小（Vocabulary Size）</td>
       <td>$128,256$</td>
-      <td>模型所能认识的离散子词（Subwords）总数。</td>
+      <td>模型所能认识的离散子词（Subwords / Tokens）总数。</td>
     </tr>
     <tr>
       <td>$T$</td>
@@ -209,21 +209,69 @@
   </tbody>
 </table>
 
+<fieldset>
+<legend><strong>高频疑问：英文中一共有多少个词？128,256 能够覆盖全世界所有语言吗？</strong></legend>
+<p>
+初学者常常产生一个直觉困惑：<em>《牛津英语词典》收录了 60 多万词，加上各种科技词汇、网络俚语更是无限开集，128,256 个词表项够用吗？能覆盖中文和世界其他语言吗？</em>
+</p>
+<p>
+<strong>答案是：不仅能覆盖，而且在数学与工程上是 100% 绝对覆盖，永远不会遇到“无法表示的生词”！</strong>
+</p>
+<p>
+这其中的奥秘在于大模型采用的 <strong>BPE（字节对编码）子词分词技术与字节级兜底机制</strong>：
+</p>
+<ol>
+  <li><strong>词表里存的不是“完整单词”，而是“积木块（Subwords / Tokens）”</strong>：
+    高频词整块存储（如 <kbd>"the"</kbd>、<kbd>"apple"</kbd> 都是 1 个 Token）；而罕见词、超长词、化学专有名词会被自动拆解为几个常见词根（如 <kbd>"unbelievable"</kbd> 拆为 <kbd>"un"</kbd> + <kbd>"believ"</kbd> + <kbd>"able"</kbd> 共 3 个 Token）。
+  </li>
+  <li><strong>256 个原生字节终极兜底（Byte-level Fallback）</strong>：
+    在 128,256 个词表项的最底层，模型<strong>完整保留了计算机最底层的 256 个原生 UTF-8 字节（<code>0x00</code> 到 <code>0xFF</code>）</strong>。哪怕遇到从未见过的极生僻字（如“龘”、“鱻”）、火星文、生僻符号或二进制机器码，分词器会自动退化为基础字节序列传入模型，保证<strong>零未知词（Zero Out-Of-Vocabulary / Zero OOV）</strong>！
+  </li>
+  <li><strong>为什么定在 128,256？</strong>
+    如果词表太小（如 LLaMA-2 的 32,000），中文等非英文文本会被拆得极碎，白白挤占上下文窗口且推理奇慢；如果词表盲目扩大到 100 万，嵌入矩阵 $\mathbf{E}$ 就会霸占数十 GB 显存。128,256 是精度、多语言压缩比与 GPU 显存对齐的<strong>黄金平衡点</strong>。
+  </li>
+</ol>
+</fieldset>
+
 ### 2. 阶段 1：序列输入表征（Input Representation）
 
-给定用户输入的提示词文本，经分词器切分为由 $T$ 个整数构成的序列：
+给定用户输入的提示词文本，首先经过分词器（Tokenizer）转换为由 $T$ 个离散整数 ID 构成的序列向量：
 
 $$
 \mathbf{w} = \begin{bmatrix} w_1 & w_2 & \dots & w_T \end{bmatrix}^\top \in \{1, \dots, |V|\}^T
 $$
 
-通过词嵌入矩阵 $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$（我们在第 01 章已推导），每个词根据其编号索取专属的连续特征行向量，并附加上位置信息 $\mathbf{p}_t$（第 10 章详解）：
+<fieldset>
+<legend><strong>符号深度解析：$\mathbf{w}$ 与 $w_t$ 的数学含义</strong></legend>
+<ul>
+  <li>$\mathbf{w}$：整段输入提示词的离散符号向量，长度为 $T$。它就像一列进入大厅的乘客名单；</li>
+  <li>$w_t$（或 $w_i$）：序列中<strong>第 $t$ 个位置（或第 $i$ 个位置）上的具体 Token 整数编号</strong>。例如在句子 <samp>"The cat sat on the"</samp> 中，$w_1 = 464$（代表 <kbd>"The"</kbd>），$w_2 = 3797$（代表 <kbd>"cat"</kbd>）；</li>
+  <li>$V = \{v_1, v_2, \dots, v_{|V|}\}$：词表全集，包含模型能够认识的全部候选子词；</li>
+  <li>$|V|$：词表集合的元素总个数（例如 128,256），每个整数 $w_t$ 必须严格落在区间 $[1, |V|]$ 内；</li>
+  <li>$T$：本次输入的总 Token 数量（时间步长 / 序列长度），即当前落座在圆桌周围的词汇总数。</li>
+</ul>
+</fieldset>
+
+如何将这些纯离散的整数转化为计算机能做线性代数计算的连续几何坐标？通过词嵌入矩阵 $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ 与位置编码向量 $\mathbf{p}_t$ 完成映射：
 
 $$
 \mathbf{x}_t^{(0)} = \mathbf{e}_{w_t}^\top \mathbf{E} + \mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}
 $$
 
-将当前序列的全部 $T$ 个行向量垂直堆叠，便铸就了贯穿整个模型的**输入张量**：
+<fieldset>
+<legend><strong>符号深度解析：嵌入查找与位置注入</strong></legend>
+<ul>
+  <li>$\mathbf{e}_{w_t}$：词表空间内的独热（One-Hot）指示列向量，维度为 $|V| \times 1$。它在第 $w_t$ 行取值为 1，其余所有 $|V|-1$ 个位置全部为 0；</li>
+  <li>$\mathbf{e}_{w_t}^\top$：转置后的独热行向量，维度为 $1 \times |V|$；</li>
+  <li>$\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$：全局词嵌入矩阵查找表。第 $k$ 行完整存储着第 $k$ 号 Token 在空间中的 $d_{\text{model}}$ 维连续语义坐标；</li>
+  <li>$\mathbf{e}_{w_t}^\top \mathbf{E}$：这一矩阵乘法在代数上严格等价于<strong>“提取出矩阵 $\mathbf{E}$ 的第 $w_t$ 行”</strong>（我们在第 01 章已作手算验证）；</li>
+  <li>$\mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}$：第 $t$ 个位置专属的<strong>位置编码行向量</strong>。因为矩阵乘法本身是无序的（无法区分“猫吃鱼”和“鱼吃猫”），必须通过 $\mathbf{p}_t$ 向词向量注入“这是第几个词”的次序印记（第 10 章详解）；</li>
+  <li>上标 $(0)$：表示这是未经任何 Transformer 块处理的<strong>“第 0 层初始表征”</strong>；</li>
+  <li>$\mathbf{x}_t^{(0)} \in \mathbb{R}^{1 \times d_{\text{model}}}$：位置 $t$ 处的词在融合了静态词义与位置信息后的初始特征行向量。</li>
+</ul>
+</fieldset>
+
+将整段文本全部 $T$ 个词的行向量自上而下垂直堆叠，便铸就了贯穿整个模型的**输入特征张量**：
 
 $$
 \mathbf{X}^{(0)} = \begin{bmatrix}
@@ -234,35 +282,60 @@ $$
 \end{bmatrix} \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
 
-### 3. 阶段 2：Transformer 基础计算块（重复堆叠 $L$ 次）
+张量 $\mathbf{X}^{(0)}$ 的维度非常清晰：**一共有 $T$ 行（代表 $T$ 个时间步），每一行有 $d_{\text{model}}$ 个数字（代表该词的特征维度）**。
+
+---
+
+### 3. 阶段 2：Transformer 基础计算块（垂直堆叠 $L$ 次）
 
 张量 $\mathbf{X}^{(0)}$ 随后注入由 $L$ 个串联模块组成的深层网络中（$l = 1, 2, \dots, L$）。
 
 每个块内部严格遵循由**残差流（Residual Stream）**串联的两级子架构：
 
 #### 子层 A：全员交流室（自注意力机制 Self-Attention）
-每个词环视圆桌，检索与自己最相关的上下文线索：
+每个词环视圆桌，跨越时间维度检索与自己最相关的上下文线索：
 
 $$
 \mathbf{H}^{(l)} = \mathbf{X}^{(l-1)} + \operatorname{SelfAttention}\left(\operatorname{RMSNorm}(\mathbf{X}^{(l-1)})\right)
 $$
 
-- $\operatorname{RMSNorm}(\cdot)$：层归一化操作，用于稳定极深网络的数值方差，防止信号发生指数级爆炸或衰减（第 13 章）；
-- $\operatorname{SelfAttention}(\cdot)$：通过查询（Query）、键（Key）和值（Value）计算每对词之间的动态目光权重，实现信息跨词汇流动（第 06～09 章）；
-- 核心符号 $+ \mathbf{X}^{(l-1)}$：**残差高速公路（Residual Highway）**（第 12 章）。它确保新交流得来的语境增量是以“追加修正”的方式写在原有表征上，绝不破坏词汇本身的根本特征，同时也让反向传播梯度得以无衰减地直接贯通到底层。
+<fieldset>
+<legend><strong>符号深度解析：自注意力层的前向传播</strong></legend>
+<ul>
+  <li>$l$：当前所处的网络层级数（Layer index），取值范围为 $l \in \{1, 2, \dots, L\}$；</li>
+  <li>$\mathbf{X}^{(l-1)} \in \mathbb{R}^{T \times d_{\text{model}}}$：第 $l-1$ 层的输出张量，直接作为第 $l$ 层的输入输入（当 $l=1$ 时即为初始张量 $\mathbf{X}^{(0)}$）；</li>
+  <li>$\operatorname{RMSNorm}(\cdot)$：均方根层归一化操作（我们在第 13 章将深入推导），独立对每一行的特征向量做均方根尺度缩放，保证信号在深层网络传递时方差始终稳定在标准范围，杜绝数值爆炸；</li>
+  <li>$\operatorname{SelfAttention}(\cdot)$：因果多头自注意力机制（第 06～09 章核心）。它利用查询（Query）、键（Key）和值（Value）矩阵计算出词与词之间的动态目光分配权重，输出一个形状完全相同的更新张量（形状仍为 $T \times d_{\text{model}}$）；</li>
+  <li>核心符号 $+$：<strong>残差跳跃连接（Residual Connection）</strong>（第 12 章详解）。它把交流得到的新语境以“增量修正”的方式加到原有主干特征上，不仅保全了原有词义，更让反向传播梯度获得了一条畅通无阻的高速通道；</li>
+  <li>$\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$：第 $l$ 层内完成横向全员交流后的<strong>“中间过渡隐藏状态张量”</strong>。</li>
+</ul>
+</fieldset>
 
 #### 子层 B：闭门思考室（前馈神经网络 FFN / SwiGLU）
-各词在吸纳了邻居们提供的新语境后，分别走入各自独立的私人思考室闭门深造：
+各词在吸纳了邻居们提供的新语境后，分别走入各自独立的私人思考室闭门深思、检索事实知识：
 
 $$
 \mathbf{X}^{(l)} = \mathbf{H}^{(l)} + \operatorname{FFN}\left(\operatorname{RMSNorm}(\mathbf{H}^{(l)})\right)
 $$
 
-- 在当今顶尖大模型中，该模块标配为我们在第 04 章深入剖析过的 **SwiGLU** 门控网络：
-  
+在当今顶尖大模型中，该模块标配为我们在第 04 章深入剖析过的 **SwiGLU** 门控网络：
+
 $$
 \operatorname{FFN}(\mathbf{h}) = \left(\operatorname{Swish}(\mathbf{h}\mathbf{W}_{\text{gate}}) \odot (\mathbf{h}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}
 $$
+
+<fieldset>
+<legend><strong>符号深度解析：SwiGLU 前馈网络的门控计算</strong></legend>
+<ul>
+  <li>$\mathbf{h} \in \mathbb{R}^{1 \times d_{\text{model}}}$：中间状态矩阵 $\mathbf{H}^{(l)}$ 中的某一行向量（代表单个词），矩阵计算时可直接对整个张量 $\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$ 做批量计算；</li>
+  <li>$\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$：<strong>门控投影权重矩阵</strong>，负责判断当前词汇的各个知识通路应当放行还是关死；</li>
+  <li>$\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$：<strong>升维投影权重矩阵</strong>，将特征维度从 $d_{\text{model}}$（如 4096）升维放大到超宽的思考维度 $d_{\text{ffn}}$（如 14336）；</li>
+  <li>$\operatorname{Swish}(u) = u \cdot \sigma(u) = \frac{u}{1 + e^{-u}}$：我们在第 04 章学过的平滑非线性激活函数；</li>
+  <li>$\odot$：<strong>逐元素哈达玛积（Hadamard Product）</strong>，两个相同维度的向量对应元素一一相乘，实现平滑的“门控放行”；</li>
+  <li>$\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$：<strong>降维投影权重矩阵</strong>，将高维思考空间提炼出的知识重新压缩投影回主干维度 $d_{\text{model}}$；</li>
+  <li>$\mathbf{X}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$：第 $l$ 层完整运算后的最终输出张量，准备作为下一层（第 $l+1$ 层）的输入。</li>
+</ul>
+</fieldset>
 
 - **请务必洞察这里的本质分工：**
   - 注意力机制是**横向的（Horizontal）**：负责跨越时间序列维度 $T$，让词与词进行信息交换；
@@ -288,6 +361,8 @@ Token 位置:           t = 1 ("The")         t = 2 ("bank")        t = 3 ("rive
 <figcaption><strong>图 5.3:</strong> Transformer 块的黄金节奏：注意力机制主导跨时序的横向交互（沟通）；前馈网络主导单词汇的纵向特征映射与知识检索（思考）。</figcaption>
 </figure>
 
+---
+
 ### 4. 阶段 3：输出解嵌入与词表概率投影
 
 在完整历经 $L$ 轮高强度的“沟通”与“思考”后，输出张量中的每一个词向量都已被赋予了极度深邃的语境智慧：
@@ -296,21 +371,42 @@ $$
 \mathbf{X}_{\text{final}} = \operatorname{RMSNorm}(\mathbf{X}^{(L)}) \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
 
-为了将这些高维几何语义重新映射回人类可读的文字，模型使用**解嵌入矩阵（Unembedding Matrix）** $\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$（在许多模型中与输入嵌入表 $\mathbf{E}$ 共享权重，称为 Weight Tying）：
+为了将这些高维几何语义重新映射回人类可读的文字，模型使用**解嵌入矩阵（Unembedding Matrix）** $\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$：
 
 $$
 \mathbf{Z} = \mathbf{X}_{\text{final}} \mathbf{E}_U \in \mathbb{R}^{T \times |V|}
 $$
 
-张量 $\mathbf{Z}$ 中的最后一行 $\mathbf{z}_T \in \mathbb{R}^{1 \times |V|}$，代表了基于前 $T$ 个词的全部上下文信息，对紧随其后的**第 $T+1$ 个词**给出的全词表打分（称为对数几率 Logits）。
+<fieldset>
+<legend><strong>符号深度解析：从隐藏几何空间映射回离散词表</strong></legend>
+<ul>
+  <li>$\mathbf{X}^{(L)} \in \mathbb{R}^{T \times d_{\text{model}}}$：最后一层（第 $L$ 层）输出的完整特征矩阵；</li>
+  <li>$\mathbf{X}_{\text{final}} \in \mathbb{R}^{T \times d_{\text{model}}}$：经过最终全局 RMSNorm 尺度归一化后的输出张量；</li>
+  <li>$\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$：解嵌入投影矩阵（在很多架构中直接复用输入嵌入矩阵的转置，即 $\mathbf{E}_U = \mathbf{E}^\top$，称为权重绑定 Weight Tying）；</li>
+  <li>$\mathbf{Z} \in \mathbb{R}^{T \times |V|}$：<strong>全序列对数几率矩阵（Logits Matrix）</strong>。矩阵共有 $T$ 行、每一行包含 $|V|$ 个数值；</li>
+  <li>$\mathbf{z}_T \in \mathbb{R}^{1 \times |V|}$：矩阵 $\mathbf{Z}$ 的最后一行（第 $T$ 行）。它代表模型根据前 $T$ 个词的全部上下文信息，为词表中每一个候选词作为<strong>“第 $T+1$ 个词”</strong>所给出的原始未归一化打分。</li>
+</ul>
+</fieldset>
 
-将其送入 **Softmax 函数**：
+将向量 $\mathbf{z}_T$ 送入 **Softmax 函数**：
 
 $$
 P(w_{T+1} = v_i \mid w_{\le T}) = \frac{\exp(z_{T, i})}{\sum_{j=1}^{|V|} \exp(z_{T, j})}
 $$
 
-模型在这一概率分布中完成采样，挑选出最具合理性的词，并将其追加到现有序列尾部。紧接着，整个圆桌大厅以长度 $T+1$ 再次启动下一轮推理运算。这，就是现代大语言模型生成如泉涌般长篇大论的**自回归生成（Autoregressive Generation）**法则！
+<fieldset>
+<legend><strong>符号深度解析：Softmax 条件概率计算</strong></legend>
+<ul>
+  <li>$w_{\le T}$：已知的全部历史上下文 Token 序列 $(w_1, w_2, \dots, w_T)$；</li>
+  <li>$w_{T+1}$：即将生成的下一个位置的目标 Token；</li>
+  <li>$v_i$：词表全集 $V$ 中的第 $i$ 个具体候选词（$i \in \{1, 2, \dots, |V|\}$）；</li>
+  <li>$z_{T, i}$：向量 $\mathbf{z}_T$ 中第 $i$ 个分量，即模型为候选词 $v_i$ 评估出的原始 Logit 得分；</li>
+  <li>$\exp(z_{T, i}) = e^{z_{T, i}}$：指数放大操作，确保所有分值全部变为正数，并拉大高分词与低分词的差距；</li>
+  <li>分母 $\sum_{j=1}^{|V|} \exp(z_{T, j})$：遍历全词表所有候选词的指数得分总和，作为归一化分母，确保全词表所有词的概率加起来严格等于 $1.0$（100%）。</li>
+</ul>
+</fieldset>
+
+模型在这一概率分布中完成采样（或直接挑选概率最高的候选词），将其追加到现有序列尾部作为新的已知词，随后整个网络以长度 $T+1$ 启动下一轮计算。这就是现代大语言模型生生不息生成长篇大论的**自回归生成（Autoregressive Generation）**法则！
 
 ---
 

@@ -178,7 +178,7 @@ Every Transformer architecture is fully defined by five foundational scalar dime
       <td>$|V|$</td>
       <td>Vocabulary Size</td>
       <td>$128,256$</td>
-      <td>Total unique words/subwords the model knows.</td>
+      <td>Total unique words/subwords/tokens the model knows.</td>
     </tr>
     <tr>
       <td>$T$</td>
@@ -207,6 +207,30 @@ Every Transformer architecture is fully defined by five foundational scalar dime
   </tbody>
 </table>
 
+<fieldset>
+<legend><strong>Frequent Question: How many words are there in English? Can 128,256 tokens cover all languages?</strong></legend>
+<p>
+Learners frequently wonder: <em>The Oxford English Dictionary contains over 600,000 words, and with technical jargon and slang the vocabulary is unbounded. How can 128,256 items be enough? Does it cover Chinese and other world languages?</em>
+</p>
+<p>
+<strong>The answer: It does not just cover them &mdash; it covers 100% of all languages and arbitrary text with mathematically zero out-of-vocabulary (<abbr title="Out Of Vocabulary">OOV</abbr>) errors!</strong>
+</p>
+<p>
+This is achieved through <strong>Byte-level Byte Pair Encoding (BPE) and 256-byte fallback</strong>:
+</p>
+<ol>
+  <li><strong>Vocabulary stores Subword LEGO Bricks, not whole words</strong>:
+    Frequent words are stored intact as a single token (e.g., <kbd>"the"</kbd> or <kbd>"apple"</kbd>). Rare, long, or scientific words are broken into smaller morphemes (e.g., <kbd>"unbelievable"</kbd> $\to$ <kbd>"un"</kbd> + <kbd>"believ"</kbd> + <kbd>"able"</kbd>).
+  </li>
+  <li><strong>The 256 Raw Byte Safety Net</strong>:
+    At the base of the 128,256 vocabulary table, the model <strong>reserves all 256 raw UTF-8 bytes (<code>0x00</code> to <code>0xFF</code>)</strong>. If the model encounters an ancient hieroglyph, a brand-new emoji, or raw binary machine code, it falls back to raw bytes. It never crashes with an unknown symbol error.
+  </li>
+  <li><strong>Why exactly 128,256?</strong>
+    If the vocabulary is too small (e.g. LLaMA-2's 32,000), non-English languages are broken into tiny byte fragments, blowing up the sequence length and slowing inference. If the vocabulary is too large (e.g. 1,000,000), the embedding lookup matrix $\mathbf{E}$ explodes in GPU memory. 128,256 is the <strong>golden sweet spot</strong> of compression efficiency, multilingual support, and GPU memory alignment (divisible by 256).
+  </li>
+</ol>
+</fieldset>
+
 ### 2. Stage 1: The Input Representation
 
 Given an input prompt consisting of $T$ discrete integer token IDs:
@@ -215,13 +239,37 @@ $$
 \mathbf{w} = \begin{bmatrix} w_1 & w_2 & \dots & w_T \end{bmatrix}^\top \in \{1, \dots, |V|\}^T
 $$
 
-Each token ID $w_t$ indexes a row from the token embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ (as mastered in Chapter 01):
+<fieldset>
+<legend><strong>Symbol Breakdown: $\mathbf{w}$ and $w_t$</strong></legend>
+<ul>
+  <li>$\mathbf{w}$: The discrete token ID sequence vector representing the whole prompt, with total length $T$.</li>
+  <li>$w_t$ (or $w_i$): The <strong>specific integer token ID at position $t$ (or $i$)</strong> in the sequence. For example, in <samp>"The cat sat on the"</samp>, $w_1 = 464$ (for <kbd>"The"</kbd>) and $w_2 = 3797$ (for <kbd>"cat"</kbd>). Each integer $w_t$ lies in $\{1, 2, \dots, |V|\}$.</li>
+  <li>$V = \{v_1, v_2, \dots, v_{|V|}\}$: The discrete vocabulary set containing all $|V|$ recognizable subwords.</li>
+  <li>$|V|$: The vocabulary size (e.g., 128,256 in LLaMA-3).</li>
+  <li>$T$: The sequence length (number of tokens sitting at the round table in this turn).</li>
+</ul>
+</fieldset>
+
+To transform discrete integers into continuous geometric vectors suitable for linear algebra, each token indexes a row from the token embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ and combines with a positional encoding vector $\mathbf{p}_t$:
 
 $$
 \mathbf{x}_t^{(0)} = \mathbf{e}_{w_t}^\top \mathbf{E} + \mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}
 $$
 
-Where $\mathbf{p}_t$ represents positional information (which we will study in Chapter 10). Stacking all $T$ token row vectors creates the foundational **input tensor**:
+<fieldset>
+<legend><strong>Symbol Breakdown: Embedding Lookup and Position Injection</strong></legend>
+<ul>
+  <li>$\mathbf{e}_{w_t}$: A one-hot column vector in $\mathbb{R}^{|V| \times 1}$ with a 1 at row index $w_t$ and 0 everywhere else.</li>
+  <li>$\mathbf{e}_{w_t}^\top$: The transposed one-hot row vector of shape $1 \times |V|$.</li>
+  <li>$\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$: The global static embedding matrix. Row $k$ contains the $d_{\text{model}}$-dimensional continuous semantic coordinates for token $k$.</li>
+  <li>$\mathbf{e}_{w_t}^\top \mathbf{E}$: Matrix multiplication that is algebraically identical to <strong>extracting row $w_t$ of matrix $\mathbf{E}$</strong> (as verified in Chapter 01).</li>
+  <li>$\mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}$: The positional encoding vector for slot $t$, injecting word order awareness (detailed in Chapter 10).</li>
+  <li>Superscript $(0)$: Denotes <strong>layer 0</strong>, the base representation before entering any Transformer blocks.</li>
+  <li>$\mathbf{x}_t^{(0)} \in \mathbb{R}^{1 \times d_{\text{model}}}$: The initial row vector for token $t$ combining semantic meaning and position.</li>
+</ul>
+</fieldset>
+
+Stacking all $T$ token row vectors creates the foundational **input tensor**:
 
 $$
 \mathbf{X}^{(0)} = \begin{bmatrix}
@@ -231,6 +279,10 @@ $$
 \mathbf{x}_T^{(0)}
 \end{bmatrix} \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
+
+Tensor $\mathbf{X}^{(0)}$ has clean dimensions: **$T$ rows (one for each time step) and $d_{\text{model}}$ columns (the feature channels per word)**.
+
+---
 
 ### 3. Stage 2: The Core Transformer Block (Stacked $L$ Times)
 
@@ -245,9 +297,17 @@ $$
 \mathbf{H}^{(l)} = \mathbf{X}^{(l-1)} + \operatorname{SelfAttention}\left(\operatorname{RMSNorm}(\mathbf{X}^{(l-1)})\right)
 $$
 
-- $\operatorname{RMSNorm}(\cdot)$ normalizes the incoming vector scale so activations don't explode (Chapter 13).
-- $\operatorname{SelfAttention}(\cdot)$ uses Queries, Keys, and Values to calculate dynamic attention weights across all previous tokens $1 \le j \le t$ (Chapters 06–09).
-- The $+ \mathbf{X}^{(l-1)}$ is the **Residual Highway** (Chapter 12): it adds the newly gathered communication clues directly back into the original stream without erasing existing memory.
+<fieldset>
+<legend><strong>Symbol Breakdown: Self-Attention Sub-Layer</strong></legend>
+<ul>
+  <li>$l$: The current layer index, where $l \in \{1, 2, \dots, L\}$.</li>
+  <li>$\mathbf{X}^{(l-1)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The output tensor from layer $l-1$, serving as input to layer $l$ (with $\mathbf{X}^{(0)}$ at the very start).</li>
+  <li>$\operatorname{RMSNorm}(\cdot)$: Root Mean Square Layer Normalization (derived in Chapter 13), stabilizing vector variance across depth to prevent numerical explosions.</li>
+  <li>$\operatorname{SelfAttention}(\cdot)$: The causal self-attention mechanism (Chapters 06–09), computing dynamic attention weights via Queries, Keys, and Values to mix tokens across time. Output shape remains $T \times d_{\text{model}}$.</li>
+  <li>Core symbol $+$: The <strong>Residual Connection</strong> (Chapter 12). It adds communication updates as incremental hints directly to the central stream, preserving base information and giving backpropagation gradients an uninterrupted superhighway.</li>
+  <li>$\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The intermediate hidden state tensor after horizontal communication.</li>
+</ul>
+</fieldset>
 
 #### Sub-Layer B: The Thinking Chamber (Feed-Forward Network / SwiGLU)
 Having collected information from its neighbors, each token processes that information privately and independently:
@@ -256,13 +316,26 @@ $$
 \mathbf{X}^{(l)} = \mathbf{H}^{(l)} + \operatorname{FFN}\left(\operatorname{RMSNorm}(\mathbf{H}^{(l)})\right)
 $$
 
-- In modern models, $\operatorname{FFN}(\cdot)$ is a 3-matrix **SwiGLU** block (Chapter 04):
-  
+In modern architectures, $\operatorname{FFN}(\cdot)$ is a gated **SwiGLU** block (Chapter 04):
+
 $$
 \operatorname{FFN}(\mathbf{h}) = \left(\operatorname{Swish}(\mathbf{h}\mathbf{W}_{\text{gate}}) \odot (\mathbf{h}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}
 $$
 
-- Notice a crucial property: **The FFN operates on each token independently!**
+<fieldset>
+<legend><strong>Symbol Breakdown: SwiGLU Feed-Forward Sub-Layer</strong></legend>
+<ul>
+  <li>$\mathbf{h} \in \mathbb{R}^{1 \times d_{\text{model}}}$: A single token's row vector from $\mathbf{H}^{(l)}$ (or vectorized over all $T$ rows $\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$).</li>
+  <li>$\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$: The gate projection weight matrix, deciding which knowledge channels to open or suppress.</li>
+  <li>$\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$: The up-projection weight matrix, expanding features into the wide thinking space $d_{\text{ffn}}$ (e.g. 14,336).</li>
+  <li>$\operatorname{Swish}(u) = u \cdot \sigma(u) = \frac{u}{1 + e^{-u}}$: The smooth nonlinear activation function (Chapter 04).</li>
+  <li>$\odot$: The <strong>element-wise Hadamard product</strong>, executing continuous, smooth gating.</li>
+  <li>$\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$: The down-projection weight matrix, compressing retrieved knowledge back into $d_{\text{model}}$ highway width.</li>
+  <li>$\mathbf{X}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The completed output tensor of layer $l$, ready to enter layer $l+1$.</li>
+</ul>
+</fieldset>
+
+- **Notice the crucial property &mdash; The FFN operates on each token independently!**
   - Attention is **horizontal** (mixes tokens across time $T$).
   - FFN is **vertical** (processes features within each token $d_{\text{model}}$).
 
@@ -286,6 +359,8 @@ Output to Next Block:    X^(l)_1                X^(l)_2               X^(l)_3
 <figcaption><strong>Figure 5.3:</strong> The alternating rhythm of a Transformer block: Attention allows tokens to communicate horizontally across time; FFN allows tokens to think vertically within their own feature space.</figcaption>
 </figure>
 
+---
+
 ### 4. Stage 3: The Output Unembedding Head
 
 After traversing all $L$ layers, the representation has been enriched by $L$ rounds of communication and thinking:
@@ -300,13 +375,34 @@ $$
 \mathbf{Z} = \mathbf{X}_{\text{final}} \mathbf{E}_U \in \mathbb{R}^{T \times |V|}
 $$
 
-Each row $\mathbf{z}_t \in \mathbb{R}^{1 \times |V|}$ contains the raw, unnormalized prediction scores (called **logits**) for what word should come after position $t$.
+<fieldset>
+<legend><strong>Symbol Breakdown: Unembedding Projection</strong></legend>
+<ul>
+  <li>$\mathbf{X}^{(L)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The deep feature tensor exiting layer $L$.</li>
+  <li>$\mathbf{X}_{\text{final}} \in \mathbb{R}^{T \times d_{\text{model}}}$: The final RMSNorm-normalized representations.</li>
+  <li>$\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$: The unembedding projection matrix (often tied to $\mathbf{E}^\top$ in weight-tied models).</li>
+  <li>$\mathbf{Z} \in \mathbb{R}^{T \times |V|}$: The <strong>logits matrix</strong> across the entire sequence.</li>
+  <li>$\mathbf{z}_T \in \mathbb{R}^{1 \times |V|}$: The last row (row $T$), containing raw unnormalized prediction scores for what token should follow position $T$.</li>
+</ul>
+</fieldset>
 
 Passing the final row $\mathbf{z}_T$ through the **Softmax function** produces genuine probabilities:
 
 $$
 P(w_{T+1} = v_i \mid w_{\le T}) = \frac{\exp(z_{T, i})}{\sum_{j=1}^{|V|} \exp(z_{T, j})}
 $$
+
+<fieldset>
+<legend><strong>Symbol Breakdown: Softmax Probability Distribution</strong></legend>
+<ul>
+  <li>$w_{\le T}$: The known prompt history $(w_1, w_2, \dots, w_T)$.</li>
+  <li>$w_{T+1}$: The target token to generate at position $T+1$.</li>
+  <li>$v_i$: The $i$-th candidate token in vocabulary $V$ ($i \in \{1, 2, \dots, |V|\}$).</li>
+  <li>$z_{T, i}$: The logit score assigned to candidate $v_i$ by the model.</li>
+  <li>$\exp(z_{T, i})$: Natural exponential $e^{z_{T, i}}$, ensuring scores are positive and amplifying differences.</li>
+  <li>Denominator $\sum_{j=1}^{|V|} \exp(z_{T, j})$: Sum of exponential scores over all candidates, ensuring all $|V|$ probabilities sum strictly to $1.0$ (100%).</li>
+</ul>
+</fieldset>
 
 The word with the highest probability is sampled, appended to the sequence, and the entire round table runs again to predict the next token. This is **Autoregressive Generation**.
 
