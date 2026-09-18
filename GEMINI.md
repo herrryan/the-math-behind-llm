@@ -54,10 +54,27 @@ Every chapter written in this project **MUST** follow this structured learning s
   - A single, fast, self-contained Python script (`./build.py` or `uv run build.py`) statically pre-renders all Markdown into production-ready semantic HTML files (`index.html` and `index.zh.html`).
   - **Zero Client-Side Markdown Parser**: No client-side `marked.js`, no client-side `marked-katex-extension`, and no dynamic `fetch()` calls. The HTML is 100% pre-compiled.
   - **Zero "Loading..." Flash & 100% Offline/CORS-Free**: Pages load instantly on the first byte, whether hosted on a web server or opened directly via the local `file://` protocol.
-  - **Automated Quality Gate Checks**: `build.py` automatically asserts:
-    1. Zero emojis across all content files.
-    2. Protection and isolation of display math formulas.
-    3. Detection of unintended 4-space indented code blocks leaking escaped HTML tags (`&lt;strong&gt;`, `&lt;samp&gt;`).
+  - **Automated Build Pipeline Stages**:
+    1. **Directory Discovery & Natural Sorting**: Scans chapter folders matching `\d{2}[a-z]?-[\w-]+`, extracts English and Chinese titles from headings, and establishes the linear curriculum sequence.
+    2. **Legacy Navigation Stripping (`strip_manual_navs`)**: Strips legacy manual `<nav aria-label="Table of Contents">` and `<nav aria-label="Chapter Navigation">` from Markdown sources.
+    3. **Callout Normalization (`convert_callouts`)**: Transforms GitHub callout blocks (`> [!INTUITION]`, `> [!MATH]`, etc.) into `<fieldset markdown="1"><legend><strong>...</strong></legend>` containers.
+    4. **Code Block Protection**: Replaces fenced and inline code blocks with temporary placeholder tokens (`XXCODEBLOCK...XX`) before math and markdown transformations.
+    5. **Math Protection & Inequality Sanitization**:
+       - Isolates display math (`$$...$$`, `\[...\]`) and inline math (`$...$`, `\(...\)`).
+       - Automatically sanitizes inequality signs followed by alphanumeric characters (e.g., $w_{<t}$ becomes $w_{\lt t}$) via `sanitize_math()` to prevent browsers from interpreting them as HTML tags (`<t>`).
+    6. **List Spacing Normalization**: Inserts a blank line before bullet lists (`-`, `*`) preceded by paragraphs to enforce Markdown specification compliance.
+    7. **Markdown Compilation (`markdown.markdown`)**: Compiles Markdown with `tables`, `fenced_code`, `def_list`, `attr_list`, `sane_lists`, and `md_in_html` extensions.
+    8. **Math Restoration**: Replaces math placeholder tokens with isolated KaTeX-compatible equations.
+    9. **Step ID Injection & Auto-TOC (`process_step_headings_and_toc`)**: Scans `<h2>` Step 1 through 6 headings (supporting English `Step N: ...` and Chinese `第 N 步：...` / `步骤 N：...`), injects `id="step-N"`, and inserts `<nav aria-label="Table of Contents">` directly below `<h1>`.
+    10. **Dynamic Bottom Chapter Navigation**: Automatically calculates previous/next chapter links and titles from directory order and injects `<nav aria-label="Chapter Navigation">` before the closing `</main>` tag.
+    11. **HTML Template Packaging**: Injects compact high-density styles and KaTeX rendering scripts into the final HTML document.
+  - **Automated Quality Gate Checks**:
+    `build.py` runs 5 automated assertions on every build:
+    1. **Zero Emojis**: Asserts zero Unicode emojis across all `.md` and `.html` content files.
+    2. **Zero Escaped HTML Leaks**: Asserts zero unintended 4-space indented code blocks leaking escaped HTML tags (`&lt;strong&gt;`, `&lt;samp&gt;`).
+    3. **Zero Unrestored Placeholders**: Asserts zero internal build tokens (`XXMATHBLOCK...`, `XXMATHINLINE...`, `XXCODEBLOCK...`) remain in output HTML files.
+    4. **Zero Math Tag Collisions**: Asserts zero unescaped `<[a-zA-Z0-9]` collisions inside LaTeX math formulas.
+    5. **Full Graph Link & Anchor Audit (`verify_site_integrity`)**: Verifies all relative URLs, images, and in-page anchor fragments (`#step-N`) across every HTML page to guarantee 0 broken links.
 - **Pure Semantic HTML & Minimal Compact High-Density Styling (Zero External CSS)**:
   - The website relies strictly on native semantic HTML5 tags structured with a standardized, minimal Compact High-Density `<style>` block (~38 lines) embedded directly in the `<head>` of each page.
   - Zero external CSS files, zero CSS frameworks. Content authors write pure Markdown (`.md`) and native semantic HTML elements; the embedded `<style>` block automatically styles raw element tags (`body`, `fieldset`, `legend`, `table`, `pre`, `kbd`, `a`, `details`, `.katex-display`).
@@ -79,7 +96,7 @@ Every chapter written in this project **MUST** follow this structured learning s
     4. **Milestone Highlighting**: Use native `<mark>` to highlight key numbers, thresholds, and final joint probabilities.
     5. **Clean Semantic Tables**: Use `<caption><strong>Table X.Y:</strong> ...</caption>`, `border="1" cellpadding="8" cellspacing="0" width="100%"`, and explicit alignment and background attributes (`align="left"`, `align="right"`, `align="center"`, `bgcolor="#f8f9fa"`).
     6. **Mathematical Glossaries**: Author symbol catalogs using native definition lists (`<dl><dt><strong>Symbol</strong></dt><dd>Definition</dd></dl>`), often wrapped in `<details>`.
-    7. **In-Page Jump Navigation**: Include `<nav aria-label="Table of Contents">` with relative anchor links (`<a href="#step-1">...</a>`) paired with `id="step-N"` on step headings.
+    7. **In-Page Jump Navigation**: Automatically generated by `build.py` under `<h1>` with anchor links (`<a href="#step-1">...</a>`).
     8. **Box-Drawing Tensor Diagrams**: Represent tensor dimensions, vector projections, and transformation pipelines using clean Unicode box-drawing characters (`┌─┐│└─┘├─┤▼▲`).
     9. **Native Tooltips & Acronyms**: Use `<abbr title="Full Terminology">ACRONYM</abbr>` (e.g. `<abbr title="Feed-Forward Network">FFN</abbr>`, `<abbr title="Gaussian Error Linear Unit">GELU</abbr>`) to provide native browser hover tooltips without cluttering sentences.
     10. **Computational Pipeline Checklists**: Use `<fieldset><legend><strong>Execution Checklist</strong></legend><p><input type="checkbox" checked disabled> <strong>Step N:</strong> ...</p></fieldset>` for concrete algorithms and step-by-step arithmetic walkthroughs.
@@ -118,15 +135,26 @@ Every chapter written in this project **MUST** follow this structured learning s
     - **NEVER** place LaTeX formula content on the same line as `$$` (e.g., avoid `$$\mathbf{E} = ...$$` or `$$\begin{aligned}...$$`).
     - *Why this is mandatory*: When `$$` shares a line with LaTeX code, `marked.js` treats the block as standard inline markdown rather than a block math token. `marked`'s inline tokenizer then misinterprets LaTeX underscores (`_`) as markdown italic tags (`<em>`), mangling subscripts (e.g. `\mathbf{x}_1^\top \dots \mathbf{x}_2^\top` becomes `<em>...</em>`) and escaping `&` into `&amp;`, which fatally breaks KaTeX parsing in the browser.
   - **KaTeX Auto-Render Client Configuration**:
-    - Equations are rendered on page load using KaTeX's official `auto-render.js` extension:
+    - Equations are rendered on page load with lifecycle safety guards and full delimiter coverage:
       ```javascript
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+      function renderAllMath() {
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(document.body, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+              { left: '\\(', right: '\\)', display: false },
+              { left: '\\[', right: '\\]', display: true }
+            ],
+            throwOnError: false
+          });
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderAllMath);
+      } else {
+        renderAllMath();
+      }
       ```
   - **Vector and Transpose Dimensional Rigor**:
     - Maintain strict dimensional compatibility in linear algebra equations:
