@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 07: The Fair Voting Booth (The Softmax Function) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../06-queries-keys-values/index.html">&larr; Chapter 06: The Library Clue Hunt (Queries, Keys, and Values)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 07: The Fair Voting Booth (The Softmax Function)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Shouting Match &amp; The Pizza Slices)</h2>
+<fieldset>
+<legend><strong>The Shouting Match &amp; The Pizza Slices</strong></legend>
+<p>Imagine three children sitting at a play table, shouting out what they want on tonight's dinner pizza:</p>
+<ul>
+<li>Child 1 whispers quietly: <kbd>"Mushrooms!"</kbd> (Volume score: 4)</li>
+<li>Child 2 shouts at the top of their lungs: <kbd>"Pepperoni!"</kbd> (Volume score: 7)</li>
+<li>Child 3 speaks in a normal voice: <kbd>"Cheese!"</kbd> (Volume score: 6)</li>
+</ul>
+<p>If you just listen to the raw volume scores $[4, 7, 6]$, how do you slice a single pizza fairly?</p>
+<p>You cannot cut a pizza into "volume units." A pizza is one whole thing (100%). Slices must always add up to exactly the whole pizza. Furthermore, no slice can be negative (you cannot take away a slice someone already ate!), and no slice can be bigger than the whole pizza.</p>
+<p>What happens if a fourth child is grumpy and grumbles with a negative volume score: $-3$? You certainly cannot give them "negative pizza slices"!</p>
+<p>The wise pizza chef invents a <strong>Fair Voting Booth</strong>:</p>
+<ol>
+<li><strong>Turn Every Grumble Positive</strong>: The chef puts each volume score through a magical magnifier machine ($e^z$). Even negative grumbles turn into tiny, positive sprinkles of flour ($e^{-3} \approx 0.05$), while loud shouts turn into giant heaps of toppings ($e^7 \approx 1097$). Nothing is ever negative!</li>
+<li><strong>Measure the Whole Pile</strong>: The chef dumps all the toppings into one giant bowl and weighs the total sum ($1555$ grams).</li>
+<li><strong>Hand Out the Slices</strong>: The chef gives each child a slice equal to their personal topping weight divided by the giant bowl's total weight.</li>
+</ol>
+<p>Instantly, everyone gets a slice between $0\%$ and $100\%$, and all slices together add up to <strong>exactly 100% of the pizza</strong>!</p>
+</fieldset>
+<figure>
+<pre>
+[Raw Shouts: Logits z]     [Magical Magnifier: e^z]     [Pizza Share: Softmax]
+Child 1 ("Mushrooms"): 4  ─────────►  54.6 grams   ────────►   3.5% of pizza
+Child 2 ("Pepperoni"): 7  ─────────► 1096.6 grams  ────────►  70.5% of pizza (Winner!)
+Child 3 ("Cheese"):    6  ─────────►  403.4 grams  ────────►  26.0% of pizza
+─────────────────────────────────────────────────────────────────────────────
+Total Sum:                         1554.6 grams  ────────► 100.0% of pizza
+</pre>
+<figcaption><strong>Figure 7.1:</strong> Converting raw, unbounded volume scores into non-negative pizza slices that sum to exactly 100%.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<blockquote>
+<p>[!BRIDGING] From Unbounded Scores to Probability Distributions
+In Chapter 06, we watched the ambiguous word <kbd>"bank"</kbd> fire its Query arrow against the Key arrows of <kbd>"The"</kbd>, <kbd>"river"</kbd>, and <kbd>"bank"</kbd>. The linear dot products produced raw affinity scores:</p>
+</blockquote>
+
+
+$$
+\mathbf{z} = [4.0, 7.0, 6.0]
+$$
+
+
+<blockquote>
+<p>But these raw dot products (called <strong>logits</strong>) are mathematically wild:
+1. They can be any real number from $-\infty$ to $+\infty$.
+2. They do not sum to $1$.
+3. They can easily be negative if two vectors point in opposite directions.</p>
+<p>To blend the meaning of words together in Attention (and to pick the final next word out of a 100,000-word dictionary), the Transformer must answer:</p>
+<p><em>"How do we convert an arbitrary list of real numbers—positive, negative, or zero—into a strictly valid probability distribution where every value is positive and the sum is strictly 100%, without destroying the relative ranking of the candidates?"</em></p>
+</blockquote>
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. The Softmax Function</h3>
+<p>Let $\mathbf{z} = [z_1, z_2, \dots, z_N]^\top \in \mathbb{R}^N$ be an $N$-dimensional vector of raw scores (<dfn id="def-logit">logits</dfn>).</p>
+<p>The <dfn id="def-softmax">Softmax function</dfn> transforms $\mathbf{z}$ into a probability distribution $\mathbf{s} = \operatorname{softmax}(\mathbf{z}) \in \mathbb{R}^N$:</p>
+
+
+$$
+\operatorname{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
+$$
+
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 7.1:</strong> Complete Mathematical Symbol Definitions for Softmax</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">Symbol</th>
+      <th scope="col" align="left" width="22%">Type &amp; Domain</th>
+      <th scope="col" align="left" width="56%">Mathematical Meaning &amp; Physical Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">$\mathbf{z}$</th>
+      <td align="left">Vector $\in \mathbb{R}^N$</td>
+      <td>The raw, unnormalized score vector (logits). In Attention, $z_j = \mathbf{q}_i^\top \mathbf{k}_j$.</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">$z_i$</th>
+      <td align="left">Scalar $\in (-\infty, +\infty)$</td>
+      <td>The individual raw score for candidate $i$. Can be positive, zero, or negative.</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">$e$</th>
+      <td align="left">Constant $\approx 2.71828$</td>
+      <td>Euler's number, base of the natural exponential function.</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">$e^{z_i}$</th>
+      <td align="left">Scalar $\in (0, +\infty)$</td>
+      <td>The exponentiated score. Guaranteed strictly positive for every real number $z_i$.</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">$\sum_{j=1}^N e^{z_j}$</th>
+      <td align="left">Scalar $\in (0, +\infty)$</td>
+      <td>The <strong>normalizing denominator</strong> (known in physics as the <em>Partition Function</em> $Z$).</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">$\operatorname{softmax}(\mathbf{z})_i$</th>
+      <td align="left">Scalar $\in (0, 1)$</td>
+      <td>The normalized probability for candidate $i$, satisfying $\sum_{i=1}^N \operatorname{softmax}(\mathbf{z})_i = 1.0$.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h3>2. The Dependency Ladder: Why Exponentiate?</h3>
+<p>Why did mathematicians choose $e^z$ instead of simpler normalization tricks? Let us walk up the ladder of failed alternatives:</p>
+<figure>
+<pre>
+Attempt 1: Linear Normalization
+           p_i = z_i / sum(z_j)
+           Fatal Flaw: If z = [2, -3, 1], sum = 0 (Division by zero!).
+                       If z = [2, -1, 3], p_2 = -1/4 = -25% (Negative probability!).
+
+Attempt 2: Absolute Value Normalization
+           p_i = |z_i| / sum(|z_j|)
+           Fatal Flaw: If z_1 = -10 (terrible fit) and z_2 = +10 (great fit),
+                       both get |-10| = |+10| = 10. Destroys all order!
+
+Attempt 3: Rectified Linear (ReLU) Normalization
+           p_i = max(0, z_i) / sum(max(0, z_j))
+           Fatal Flaw: Any negative logit is instantly crushed to 0.
+                       Zero gradient flows backwards! The network cannot learn why it failed.
+
+The Winner: The Exponential Function e^z
+           1. Strictly positive: e^z &gt; 0 for all real z in (-inf, +inf).
+           2. Monotonically increasing: z_a &gt; z_b &lt;==&gt; e^{z_a} &gt; e^{z_b}. Order is preserved.
+           3. Smoothly differentiable: d/dz (e^z) = e^z. Perfect for gradient descent!
+           4. Winner-take-most: Magnifies high scores while gently suppressing low ones.
+</pre>
+<figcaption><strong>Figure 7.2:</strong> The mathematical progression leading uniquely to the exponential function.</figcaption>
+</figure>
+
+<hr />
+<h3>3. The Numerical Stability Guard: Shift Invariance</h3>
+<p>If a neural network outputs large logits like $z_i = 1000$, computers crash. In 32-bit floating point arithmetic (<abbr title="IEEE 754 32-bit Single-Precision Float">FP32</abbr>), numbers above $e^{88.7} \approx 3.4 \times 10^{38}$ overflow to <code>inf</code>. When the computer computes <code>inf / inf</code>, it outputs <code>NaN</code> (Not a Number), instantly destroying the entire LLM training run!</p>
+<p>Fortunately, Softmax possesses a mathematical superpower: <strong>Shift Invariance</strong>.</p>
+<h4>Mathematical Proof of Shift Invariance</h4>
+<p>Subtract any constant $c \in \mathbb{R}$ from every element of $\mathbf{z}$:</p>
+
+
+$$
+\frac{e^{z_i - c}}{\sum_{j=1}^N e^{z_j - c}} = \frac{e^{z_i} \cdot e^{-c}}{\sum_{j=1}^N \left(e^{z_j} \cdot e^{-c}\right)} = \frac{e^{-c} \cdot e^{z_i}}{e^{-c} \cdot \sum_{j=1}^N e^{z_j}} = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
+$$
+
+
+<p>The factor $e^{-c}$ cancels out in the numerator and denominator!</p>
+<h4>The Practical Implementation Trick</h4>
+<p>Set $c = \max_{j}(z_j)$:</p>
+
+
+$$
+z'_i = z_i - \max_{j}(z_j)
+$$
+
+
+<p>Because the maximum score becomes $0$ (since $\max(z) - \max(z) = 0$), all transformed values $z'_i$ are guaranteed to be $\le 0$. Consequently:</p>
+
+
+$$
+e^{z'_i} \in (0, 1] \quad \text{for all } i
+$$
+
+
+<p>The largest possible exponent is $e^0 = 1.0$. Overflow is mathematically impossible!</p>
+<hr />
+<h3>4. The Temperature Knob: Tuning Model Creativity</h3>
+<p>In modern LLMs, we frequently divide logits by a positive hyperparameter $T > 0$ called <strong>Temperature</strong>:</p>
+
+
+$$
+\operatorname{softmax}\left(\frac{\mathbf{z}}{T}\right)_i = \frac{e^{z_i / T}}{\sum_{j=1}^N e^{z_j / T}}
+$$
+
+
+<figure>
+<pre>
+   T -&gt; 0 (Freezing Cold)           T = 1.0 (Balanced)           T -&gt; inf (Boiling Hot)
+   [Argmax: Peak Sharpness]        [Natural Distribution]        [Uniform: Total Chaos]
+           |                               │                            │
+      1.00 ┤     █                    0.70 ┤     █                 0.33 ┤  █   █   █
+           │     │                         │     │                      │  │   │   │
+           └─────┴──────                   └─────┴──────                └──┴───┴───┴──
+            z1   z2   z3                    z1   z2   z3                 z1  z2  z3
+</pre>
+<figcaption><strong>Figure 7.3:</strong> How Temperature $T$ transforms the probability landscape.</figcaption>
+</figure>
+
+<ul>
+<li>
+<p><strong>Low Temperature ($T \to 0$, e.g., $T = 0.2$)</strong>:
+  Divides by a tiny number, blowing up differences. The highest logit dominates with nearly $100\%$ probability. The model becomes deterministic, factual, and rigid.</p>
+</li>
+<li>
+<p><strong>Default Temperature ($T = 1.0$)</strong>:
+  The natural mathematical distribution determined by the model's weights.</p>
+</li>
+<li>
+<p><strong>High Temperature ($T \to \infty$, e.g., $T = 2.0$)</strong>:
+  Divides by a large number, shrinking all logits towards $0$. Since $e^0 = 1$, every option receives equal probability $1/N$. The model becomes creative, surprising, and eventually nonsensical.</p>
+</li>
+</ul>
+<hr />
+<h3>5. Calculus of Softmax: The Local Derivative (Jacobian)</h3>
+<p>To train an LLM via backpropagation, we must calculate the local derivative of every Softmax output $s_i$ with respect to every input logit $z_j$:</p>
+
+
+$$
+s_i = \frac{e^{z_i}}{\sum_{k=1}^N e^{z_k}} = \frac{u}{v}
+$$
+
+
+<p>Let $u = e^{z_i}$ and $v = \sum_{k=1}^N e^{z_k}$. By the quotient rule of calculus:</p>
+
+
+$$
+\frac{\partial s_i}{\partial z_j} = \frac{\frac{\partial u}{\partial z_j} v - u \frac{\partial v}{\partial z_j}}{v^2}
+$$
+
+
+<p>Notice that $\frac{\partial v}{\partial z_j} = \frac{\partial}{\partial z_j}\left(e^{z_1} + \dots + e^{z_j} + \dots\right) = e^{z_j}$.</p>
+<p>Now we consider two cases:</p>
+<h4>Case 1: When $i = j$ (Diagonal elements of the Jacobian)</h4>
+<p>Here, $\frac{\partial u}{\partial z_i} = e^{z_i}$:</p>
+
+
+$$
+\begin{aligned}
+\frac{\partial s_i}{\partial z_i} &= \frac{e^{z_i} v - e^{z_i} e^{z_i}}{v^2} \\
+&= \frac{e^{z_i}}{v} - \left(\frac{e^{z_i}}{v}\right)^2 \\
+&= s_i - s_i^2 \\
+&= s_i (1 - s_i)
+\end{aligned}
+$$
+
+
+<h4>Case 2: When $i \neq j$ (Off-diagonal elements of the Jacobian)</h4>
+<p>Here, $u = e^{z_i}$ does not depend on $z_j$, so $\frac{\partial u}{\partial z_j} = 0$:</p>
+
+
+$$
+\begin{aligned}
+\frac{\partial s_i}{\partial z_j} &= \frac{0 \cdot v - e^{z_i} e^{z_j}}{v^2} \\
+&= -\frac{e^{z_i}}{v} \cdot \frac{e^{z_j}}{v} \\
+&= -s_i s_j
+\end{aligned}
+$$
+
+
+<h4>The Unified Matrix Formula</h4>
+<p>Using the Kronecker delta $\delta_{ij}$ (where $\delta_{ij} = 1$ if $i = j$, and $0$ otherwise):</p>
+
+
+$$
+\frac{\partial s_i}{\partial z_j} = s_i (\delta_{ij} - s_j)
+$$
+
+
+<p>The gradient of Softmax depends <strong>only on its own output probabilities</strong>! This elegant property makes backpropagation exceptionally fast to compute on GPUs.</p>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="1868">1868</time> &mdash; <strong>Ludwig Boltzmann &amp; Thermal Equilibrium</strong></dt>
+  <dd>
+    Austrian physicist Ludwig Boltzmann was studying gas particles bouncing around a closed chamber. He discovered that the probability of a physical system occupying microstate $i$ with energy $E_i$ at temperature $T$ follows the canonical distribution:
+
+
+
+
+$$
+P(i) = \frac{e^{-E_i / (k_B T)}}{\sum_j e^{-E_j / (k_B T)}}
+$$
+
+
+
+
+    Where $k_B$ is the Boltzmann constant. States with lower energy are exponentially more stable and probable.
+  </dd>
+
+  <dt><time datetime="1959">1959</time> &mdash; <strong>R. Duncan Luce &amp; The Choice Axiom</strong></dt>
+  <dd>
+    In mathematical psychology, R. Duncan Luce formulated the axiom that the probability of choosing item $A$ over a set of alternatives should depend on the ratio of positive utilities ($u(A) / \sum u(X)$). Using exponential utility $u(z) = e^z$ produces the Softmax choice model.
+  </dd>
+
+  <dt><time datetime="1989">1989</time> &mdash; <strong>John S. Bridle &amp; Softmax in Neural Networks</strong></dt>
+  <dd>
+    British researcher John S. Bridle introduced the formula to machine learning in his landmark paper <em>"Probabilistic Interpretation of Feedforward Classification Network Outputs"</em>. He named it <samp>"Softmax"</samp> because it provides a smooth, differentiable approximation to the discontinuous maximum function (<samp>hardmax</samp> / $\operatorname{argmax}$).
+  </dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Vaswani et al. &amp; The Transformer Attention Router</strong></dt>
+  <dd>
+    In <em>"Attention Is All You Need"</em>, Softmax was placed at the mathematical core of Scaled Dot-Product Attention:
+
+
+
+
+$$
+\operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+$$
+
+
+
+
+    Softmax dynamically calculates how much attention each word should pay to every other word in the sequence.
+  </dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us pick up the exact numerical story from <strong>Chapter 06 Step 5</strong>.</p>
+<p>The ambiguous token <kbd>"bank"</kbd> calculated raw dot-product affinity scores against three words in the sentence <kbd>"The river bank"</kbd>:</p>
+
+
+$$
+\mathbf{z} = [z_1, z_2, z_3] = [4.0, 7.0, 6.0]
+$$
+
+
+<p>Let us convert these raw logits into attention weights, step by step by hand.</p>
+<hr />
+<h3>Execution Checklist</h3>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step 5.1:</strong> Compute standard Softmax exponentiation and probabilities</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5.2:</strong> Verify numerically stable Softmax ($c = \max$)</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5.3:</strong> Test Temperature effects ($T = 0.5$ vs $T = 2.0$)</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5.4:</strong> Synthesize the final Context Vector $\mathbf{c}_{\text{bank}}$ using Value vectors</p>
+</fieldset>
+<hr />
+<h3>Step 5.1: Standard Softmax Calculation</h3>
+<ul>
+<li><strong>Substep A: Calculate Exponentials ($e^{z_i}$)</strong>:</li>
+<li>$e^{z_1} = e^4 \approx 54.5982$</li>
+<li>$e^{z_2} = e^7 \approx 1096.6332$</li>
+<li>
+$e^{z_3} = e^6 \approx 403.4288$
+</li>
+<li>
+<p><strong>Substep B: Calculate Normalizing Sum ($\sum_{j=1}^3 e^{z_j}$)</strong>:</p>
+</li>
+</ul>
+
+
+$$
+\sum = 54.5982 + 1096.6332 + 403.4288 = 1554.6602
+$$
+
+
+<ul>
+<li><strong>Substep C: Compute Probability Weights ($s_i = e^{z_i} / \sum$)</strong>:</li>
+<li>$s_1 (\text{"The"}) = \frac{54.5982}{1554.6602} \approx \mathbf{0.0351} \quad (3.51\%)$</li>
+<li>$s_2 (\text{"river"}) = \frac{1096.6332}{1554.6602} \approx \mathbf{0.7054} \quad (70.54\%)$</li>
+<li>
+$s_3 (\text{"bank"}) = \frac{403.4288}{1554.6602} \approx \mathbf{0.2595} \quad (25.95\%)$
+</li>
+<li>
+<p><strong>Substep D: Verify Total Sum</strong>:</p>
+</li>
+</ul>
+
+
+$$
+0.0351 + 0.7054 + 0.2595 = \mathbf{1.0000} \quad (100.00\%)
+$$
+
+
+<hr />
+<h3>Step 5.2: Numerically Stable Softmax ($c = \max$)</h3>
+<p>Now let us run the numerically stable version used in PyTorch and TensorFlow:</p>
+<ul>
+<li>
+<p><strong>Substep A: Identify Maximum</strong>:
+  $c = \max([4, 7, 6]) = 7.0$.</p>
+</li>
+<li>
+<p><strong>Substep B: Subtract $c$ from Logits</strong>:</p>
+</li>
+</ul>
+
+
+$$
+\mathbf{z}' = [4 - 7, 7 - 7, 6 - 7] = [-3.0, 0.0, -1.0]
+$$
+
+
+<ul>
+<li><strong>Substep C: Compute Exponentials</strong>:</li>
+<li>$e^{-3.0} \approx 0.04979$</li>
+<li>$e^{0.0} = 1.00000$</li>
+<li>
+$e^{-1.0} \approx 0.36788$
+</li>
+<li>
+<p><strong>Substep D: Compute Sum</strong>:</p>
+</li>
+</ul>
+
+
+$$
+\sum = 0.04979 + 1.00000 + 0.36788 = 1.41767
+$$
+
+
+<ul>
+<li><strong>Substep E: Compute Probabilities</strong>:</li>
+<li>$s'_1 = \frac{0.04979}{1.41767} \approx \mathbf{0.0351}$</li>
+<li>$s'_2 = \frac{1.00000}{1.41767} \approx \mathbf{0.7054}$</li>
+<li>$s'_3 = \frac{0.36788}{1.41767} \approx \mathbf{0.2595}$</li>
+</ul>
+<p>The probabilities are <strong>identical to 4 decimal places</strong>, but the maximum exponent was $1.0$ instead of $1096.6$!</p>
+<hr />
+<h3>Step 5.3: Temperature Effects on Probability</h3>
+<p>What happens when we tune the temperature knob?</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 7.2:</strong> Attention Probability Distribution Across Different Temperatures</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="20%">Token Candidate</th>
+      <th scope="col" align="center" width="25%">Cold ($T = 0.5$)</th>
+      <th scope="col" align="center" width="25%">Default ($T = 1.0$)</th>
+      <th scope="col" align="center" width="30%">Hot ($T = 2.0$)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><kbd>"The"</kbd></th>
+      <td align="center">0.15% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0015">0.15%</meter></td>
+      <td align="center">3.51% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0351">3.51%</meter></td>
+      <td align="center">12.86% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1286">12.86%</meter></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><kbd>"river"</kbd> (Clue)</th>
+      <td align="center"><mark><strong>87.99%</strong></mark> <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.8799">87.99%</meter></td>
+      <td align="center"><strong>70.54%</strong> <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.7054">70.54%</meter></td>
+      <td align="center"><strong>52.79%</strong> <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.5279">52.79%</meter></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><kbd>"bank"</kbd> (Self)</th>
+      <td align="center">11.86% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1186">11.86%</meter></td>
+      <td align="center">25.95% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.2595">25.95%</meter></td>
+      <td align="center">34.35% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.3435">34.35%</meter></td>
+    </tr>
+  </tbody>
+</table>
+
+<ul>
+<li>At $T = 0.5$, <kbd>"river"</kbd> surges to <strong>$88\%$</strong> of the model's attention beam!</li>
+<li>At $T = 2.0$, attention spreads out across all words, becoming more exploratory.</li>
+</ul>
+<hr />
+<h3>Step 5.4: Blending the Value Vectors into Context</h3>
+<p>Now we finish the Attention operation!</p>
+<p>From Chapter 06 Step 3, the three tokens possess the following Value vectors $\mathbf{v}_j \in \mathbb{R}^2$:</p>
+
+
+$$
+\mathbf{v}_1 (\text{"The"}) = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad
+\mathbf{v}_2 (\text{"river"}) = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad
+\mathbf{v}_3 (\text{"bank"}) = \begin{bmatrix} 1 \\ 2 \end{bmatrix}
+$$
+
+
+<p>The updated contextual representation for <kbd>"bank"</kbd> is the <strong>weighted sum of all Value vectors</strong> using our Softmax attention weights:</p>
+
+
+$$
+\begin{aligned}
+\mathbf{c}_{\text{bank}} &= \sum_{j=1}^3 s_j \mathbf{v}_j \\
+&= 0.0351 \begin{bmatrix} 1 \\ 2 \end{bmatrix} + 0.7054 \begin{bmatrix} 0 \\ 1 \end{bmatrix} + 0.2595 \begin{bmatrix} 1 \\ 2 \end{bmatrix} \\
+&= \begin{bmatrix} 0.0351 \times 1 + 0.7054 \times 0 + 0.2595 \times 1 \\ 0.0351 \times 2 + 0.7054 \times 1 + 0.2595 \times 2 \end{bmatrix} \\
+&= \begin{bmatrix} 0.0351 + 0.0 + 0.2595 \\ 0.0702 + 0.7054 + 0.5190 \end{bmatrix} \\
+&= \mathbf{\begin{bmatrix} 0.2946 \\ 1.2946 \end{bmatrix}}
+\end{aligned}
+$$
+
+
+<p>Look at what happened:</p>
+<ul>
+<li>Before attention, the static vector for <kbd>"bank"</kbd> was isolated and had no idea whether it meant a financial building or a river shoreline.</li>
+<li>After Softmax attention, <strong>$70.54\%$</strong> of the information loaded into <kbd>"bank"</kbd>'s new representation came directly from <kbd>"river"</kbd>!</li>
+<li>The word <kbd>"bank"</kbd> is now infused with river-like context!</li>
+</ul>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Memory Card</strong></legend>
+<p>
+<strong>Softmax is the universal bridge between unbounded linear energy and normalized probabilistic belief:</strong><br>
+Through the exponential function $e^z$, Softmax guarantees that every candidate receives a non-zero probability while accentuating the most confident options. By normalizing with the partition function $\sum e^{z_j}$, it produces a valid probability distribution that sums to strictly $100\%$. In Attention, Softmax acts as the dynamic router, determining precisely how much context each word absorbs from the rest of the sentence.
+</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../06-queries-keys-values/index.html">&larr; Chapter 06: The Library Clue Hunt (Queries, Keys, and Values)</a> &bull; <a href="../index.html">Course Overview</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
