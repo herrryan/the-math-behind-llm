@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 19: Teaching Good Manners (RLHF, Reward Modeling, and DPO) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../18-sampling-and-temperature/index.html">&larr; Chapter 18: Turning Up the Heat (Temperature, Top-k, & Top-p Sampling)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 19: Teaching Good Manners (RLHF, Reward Modeling, and DPO)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Wild Parrot and the Golden Stickers)</h2>
+<fieldset>
+<legend><strong>The Hyper-Intelligent Parrot and the Etiquette School</strong></legend>
+<p>Imagine a wild, magical parrot that flew across the entire world, reading every single library, newspaper, chat forum, and bathroom wall on Earth:</p>
+<ol>
+<li><strong>The Wild Genius (Pre-trained Base Model)</strong>:</li>
+</ol>
+<ul>
+<li>The parrot knows everything: quantum physics, ancient Babylonian poetry, and how to bake sourdough bread.</li>
+<li>But because it swallowed the whole internet raw, it has zero manners!</li>
+<li>If you ask it: <em>"How do I make a chocolate cake?"</em>, it might give you a brilliant recipe, or it might reply with a toxic internet insult, or it might start reciting copyright legalese!</li>
+<li>It is not trying to help you &mdash; it is just blindly continuing whatever pattern it saw on the internet.</li>
+</ul>
+<ol start="2">
+<li><strong>Showing Polite Examples (Supervised Fine-Tuning &mdash; SFT)</strong>:</li>
+</ol>
+<ul>
+<li>First, we give the parrot a polite golden book written by patient schoolteachers.</li>
+<li>Each page shows a polite question followed by a courteous, helpful answer:<ul>
+<li><kbd>Question:</kbd> <em>"How do I bake a cake?"</em></li>
+<li><kbd>Answer:</kbd> <em>"Here is a simple, delicious recipe: First, preheat your oven..."</em></li>
+</ul>
+</li>
+<li>The parrot learns how a respectful assistant sounds. But what happens when someone asks a sneaky, complex, or dangerous question?</li>
+</ul>
+<ol start="3">
+<li><strong>The Gold Sticker Referee (RLHF &amp; Reward Modeling)</strong>:</li>
+</ol>
+<ul>
+<li>We ask human judges to rank pairs of parrot answers.</li>
+<li>Answer A is helpful and kind $\to$ awarded a <strong>Gold Sticker (<dfn id="def-reward">Reward, $+1$</dfn>)</strong>!</li>
+<li>Answer B is rude or dangerous $\to$ gets a gentle frown ($0$ stickers).</li>
+<li>We train a robotic referee (<abbr title="Reward Model">RM</abbr>) to predict how many stickers a human judge would give.</li>
+<li>Then, a training coach nudges the parrot's brain using Reinforcement Learning (<abbr title="Proximal Policy Optimization">PPO</abbr>) to maximize stickers.</li>
+<li>An invisible leash (<abbr title="Kullback-Leibler">KL</abbr> penalty) keeps the parrot from drifting too far from its original language skills or cheating the referee!</li>
+</ul>
+<ol start="4">
+<li><strong>The Mathematical Shortcut: Direct Preference Optimization (DPO)</strong>:</li>
+</ol>
+<ul>
+<li>Training a separate robotic referee, running four huge models in GPU memory, and stabilizing fickle reinforcement learning is notoriously unstable and expensive.</li>
+<li>
+<p>In 2023, Stanford researchers proved a breathtaking mathematical theorem:
+     <em>"The parrot's own brain already contains the exact math of the referee's sticker book!"</em></p>
+</li>
+<li>
+<p>By directly comparing the probability ratio of the winning answer versus the losing answer, <strong>DPO</strong> skips the referee, skips reinforcement learning, and aligns the model with a single, elegant binary classification formula!</p>
+</li>
+</ul>
+</fieldset>
+<figure>
+<pre>
+The Alignment Journey: Pre-training to DPO:
+
+1. Pre-training:  Read the web  ──► Predict next token blindly
+2. SFT:           Q&A Examples  ──► Learn assistant tone
+3. RLHF (PPO):    Prompt ──► Policy ──► Reward Model ──► PPO Update
+                                 ▲                          │
+                                 └────── KL Leash ──────────┘
+4. DPO (Modern):  Prompt + [ Winner / Loser ] ──► Direct Loss ──► Policy
+                  (Zero Reward Model! Zero PPO! 100% Stable!)
+</pre>
+<figcaption><strong>Figure 19.1:</strong> Alignment progression from raw pre-training to multi-model RLHF and streamlined Direct Preference Optimization (DPO).</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<fieldset>
+<legend><strong>Why Can't We Just Use Cross-Entropy for Alignment?</strong></legend>
+<p>In Chapter 15, we saw that Cross-Entropy Loss teaches the model to maximize the log-likelihood of target tokens:</p>
+
+
+$$
+\mathcal{L}_{\text{SFT}}(\boldsymbol{\theta}) = -\sum_{t=1}^T \log \pi_{\boldsymbol{\theta}}(y_t \mid x, y_{\lt t})
+$$
+
+
+<p>This works well for teaching the model basic formatting and conversational cadence (<abbr title="Supervised Fine-Tuning">SFT</abbr>). But it suffers from two fatal limitations:</p>
+<ol>
+<li><strong>Supervised Data Cannot Express "Never Do This"</strong>: Cross-Entropy can only pull the model toward positive demonstrations. It cannot penalize bad behaviors without explicitly teaching the model how to generate bad behaviors!</li>
+<li><strong>Human Preference is Relative, Not Absolute</strong>: If two human evaluators are asked to assign an absolute numerical grade to an essay (e.g. "Is this response an 8.4 or an 8.7?"), they disagree violently. But if you show them Response A and Response B side by side, they agree over 90% of the time on which one is better!</li>
+</ol>
+<p><em>"How do we mathematically transform pairwise human preferences ($y_w \succ y_l$) into an optimization objective that directly boosts winning responses, suppresses losing responses, and mathematically guarantees the model doesn't drift into gibberish?"</em></p>
+</fieldset>
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. The Bradley-Terry Preference Model (1952)</h3>
+<p>Given a prompt $x$ and two candidate responses: a preferred winning response $y_w$ and a dispreferred losing response $y_l$ (denoted $y_w \succ y_l \mid x$).</p>
+<p>Under the <strong>Bradley-Terry Luce model</strong>, the probability that a human prefers $y_w$ over $y_l$ is governed by an underlying latent reward function $r(x, y) \in \mathbb{R}$:</p>
+
+
+$$
+P(y_w \succ y_l \mid x) = \sigma\left(r(x, y_w) - r(x, y_l)\right) = \frac{1}{1 + \exp\left(-(r(x, y_w) - r(x, y_l))\right)}
+$$
+
+
+<p>where $\sigma(u) = \frac{1}{1 + e^{-u}}$ is the standard sigmoid function.</p>
+<hr />
+<h3>2. The Classical RLHF Objective with KL Regularization</h3>
+<p>In classical RLHF (Christiano et al., 2017; Ouyang et al., 2022), we first train a separate Reward Model $r_\phi(x, y)$ via binary cross-entropy on human pairwise comparisons:</p>
+
+
+$$
+\mathcal{L}_R(\phi) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}}\left[ \log \sigma\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right) \right]
+$$
+
+
+<p>Once $r_\phi$ is frozen, the language model policy $\pi_{\boldsymbol{\theta}}$ is optimized via Reinforcement Learning (<abbr title="Proximal Policy Optimization">PPO</abbr>) to maximize expected reward, constrained by a Kullback-Leibler (<abbr title="Kullback-Leibler">KL</abbr>) divergence penalty relative to the initial reference policy $\pi_{\text{ref}}$:</p>
+
+
+$$
+\max_{\pi_{\boldsymbol{\theta}}} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_{\boldsymbol{\theta}}}\left[ r_\phi(x, y) \right] - \beta D_{\text{KL}}\left(\pi_{\boldsymbol{\theta}}(y \mid x) \parallel \pi_{\text{ref}}(y \mid x)\right)
+$$
+
+
+<p>where:</p>
+<ul>
+<li>$\beta > 0$ is the <strong>KL regularization coefficient</strong> (the "leash strength").</li>
+<li>$\pi_{\text{ref}}$ is the frozen SFT model.</li>
+<li>$D_{\text{KL}}(P \parallel Q) = \sum_y P(y) \log \frac{P(y)}{Q(y)} \ge 0$ penalizes the policy if it drifts too far from natural English grammar.</li>
+</ul>
+<hr />
+<h3>3. The Closed-Form Optimal Policy</h3>
+<p>Remarkably, the constrained RL objective above has a known exact analytical solution!
+By solving the calculus of variations problem subject to the constraint $\sum_y \pi(y \mid x) = 1$, the optimal policy $\pi^*$ is:</p>
+
+
+$$
+\pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\left( \frac{1}{\beta} r(x, y) \right)
+$$
+
+
+<p>where $Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp\left(\frac{1}{\beta} r(x, y)\right)$ is the <strong>partition function</strong> (an intractable normalization sum over all possible text responses).</p>
+<hr />
+<h3>4. The DPO Breakthrough: Inverting the Reward (Rafailov et al., 2023)</h3>
+<p>In standard RLHF, $Z(x)$ is impossible to compute because the space of all possible text outputs is infinite ($\sim 32000^{2048}$). This is why OpenAI had to use PPO.</p>
+<p>Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, and Chelsea Finn realized you can <strong>algebraically invert</strong> the optimal policy equation for the reward $r(x, y)$:</p>
+
+
+$$
+\frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \frac{1}{Z(x)} \exp\left(\frac{1}{\beta} r(x, y)\right)
+$$
+
+
+<p>Take the natural logarithm of both sides:</p>
+
+
+$$
+\log \pi^*(y \mid x) - \log \pi_{\text{ref}}(y \mid x) = -\log Z(x) + \frac{1}{\beta} r(x, y)
+$$
+
+
+<p>Rearrange to express the reward explicitly in terms of policy probabilities:</p>
+
+
+$$
+r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)
+$$
+
+
+<p>Now, substitute this formula into the Bradley-Terry preference difference $r(x, y_w) - r(x, y_l)$:</p>
+
+
+$$
+\begin{aligned}
+r(x, y_w) - r(x, y_l) &= \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right) \\
+&= \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}
+\end{aligned}
+$$
+
+
+<p><mark>The intractable partition function $\beta \log Z(x)$ completely cancels out!</mark></p>
+<hr />
+<h3>5. The Direct Preference Optimization (DPO) Loss Function</h3>
+<p>Plugging this cancellation directly into the negative log-likelihood of the Bradley-Terry model yields the <strong>DPO Loss Function</strong>:</p>
+
+
+$$
+\mathcal{L}_{\text{DPO}}(\boldsymbol{\theta}; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}}\left[ \log \sigma \left( \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]
+$$
+
+
+<h4>The Gradient Dynamics of DPO:</h4>
+<p>Differentiating $\mathcal{L}_{\text{DPO}}$ with respect to the policy parameters $\boldsymbol{\theta}$ reveals its intuitive mechanics:</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} \mathcal{L}_{\text{DPO}} = -\beta \, \underbrace{\sigma\left(\hat{r}_{\boldsymbol{\theta}}(x, y_l) - \hat{r}_{\boldsymbol{\theta}}(x, y_w)\right)}_{\text{Surprise / Error Weight } (1 - \sigma)} \cdot \left[ \underbrace{\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(y_w \mid x)}_{\text{Increase Likelihood of } y_w} - \underbrace{\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(y_l \mid x)}_{\text{Decrease Likelihood of } y_l} \right]
+$$
+
+
+<ul>
+<li>If the model already strongly prefers the winner ($\hat{r}_w \gg \hat{r}_l$), $\sigma(\hat{r}_l - \hat{r}_w) \approx 0$, and the gradient vanishes (no unnecessary changes).</li>
+<li>If the model mistakenly prefers the loser ($\hat{r}_l > \hat{r}_w$), the weight approaches $1$, applying maximal force to boost $y_w$ and suppress $y_l$!</li>
+</ul>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From? (Bradley-Terry, InstructGPT, &amp; DPO)</h2>
+<dl>
+  <dt><time datetime="1952">1952</time> &mdash; <strong>Ralph Bradley & Milton Terry</strong></dt>
+  <dd>Formulated the mathematical Bradley-Terry model for analyzing pairwise comparisons in competitive tournaments and psychometric evaluations, proving that pairwise win probabilities can be modeled via differences in latent scores passed through a logistic sigmoid function.</dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Paul Christiano et al.</strong> (<cite>"Deep Reinforcement Learning from Human Preferences"</cite>)</dt>
+  <dd>Pioneered using human pairwise preferences to train reward models for deep reinforcement learning agents, demonstrating that agents could learn backflips and game policies without explicit programmatic reward functions.</dd>
+
+  <dt><time datetime="2022">2022</time> &mdash; <strong>Long Ouyang et al. / OpenAI</strong> (<cite>"Training language models to follow instructions with human feedback"</cite> &mdash; InstructGPT)</dt>
+  <dd>Applied the SFT $\to$ RM $\to$ PPO pipeline to GPT-3, creating InstructGPT and ChatGPT. They proved that a 1.3-billion parameter aligned model was consistently preferred by humans over an unaligned 175-billion parameter base model.</dd>
+
+  <dt><time datetime="2023">2023</time> &mdash; <strong>Rafael Rafailov et al. / Stanford University</strong> (<cite>"Direct Preference Optimization: Your Language Model is Secretly a Reward Model"</cite>)</dt>
+  <dd>Derived the closed-form reward equivalence, proved that the partition function vanishes under pairwise ratios, and eliminated the need for complex PPO reinforcement learning in LLM alignment.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example (Step-by-Step Hand Arithmetic)</h2>
+<p>Let us compute the complete DPO loss and gradient scaling factor for a concrete pairwise alignment step with hand arithmetic.</p>
+<h3>1. Toy Setup</h3>
+<ul>
+<li>Prompt: $x =$ <kbd>"Write a summary of quantum mechanics."</kbd></li>
+<li>Winning response: $y_w$ (concise, clear, accurate)</li>
+<li>Losing response: $y_l$ (confusing, rude, rambles)</li>
+<li>Regularization coefficient: $\beta = 0.50$</li>
+</ul>
+<h3>2. Initial Model Probabilities</h3>
+<p>Suppose the probabilities assigned to these sequences by the frozen reference model $\pi_{\text{ref}}$ and the active policy $\pi_{\boldsymbol{\theta}}$ are:</p>
+<ul>
+<li>Reference policy:</li>
+<li>$\pi_{\text{ref}}(y_w \mid x) = 0.20$</li>
+<li>$\pi_{\text{ref}}(y_l \mid x) = 0.10$</li>
+<li>Current active policy:</li>
+<li>$\pi_{\boldsymbol{\theta}}(y_w \mid x) = 0.30$</li>
+<li>$\pi_{\boldsymbol{\theta}}(y_l \mid x) = 0.40$
+  <em>(Notice that the active policy currently makes the mistake of favoring the bad response $y_l$ with probability $0.40$ over the good response $y_w$ at $0.30$!)</em></li>
+</ul>
+<hr />
+<h3>3. Step-by-Step DPO Loss Calculation</h3>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Calculate probability ratios $\pi_{\boldsymbol{\theta}} / \pi_{\text{ref}}$ for both responses.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Compute log ratios and scale by $\beta$ to get implicit rewards.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Compute the reward difference $\Delta r = \hat{r}(y_w) - \hat{r}(y_l)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Evaluate the logistic sigmoid $\sigma(\Delta r)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step E:</strong> Compute the final scalar loss $\mathcal{L}_{\text{DPO}} = -\log \sigma(\Delta r)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step F:</strong> Compute the gradient error weight $\beta(1 - \sigma)$.</p>
+</fieldset>
+<h4>Step A: Probability Ratios</h4>
+<ul>
+<li>For winning response $y_w$:</li>
+</ul>
+
+
+$$
+\frac{\pi_{\boldsymbol{\theta}}(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} = \frac{0.30}{0.20} = \mathbf{1.5000}
+$$
+
+
+<ul>
+<li>For losing response $y_l$:</li>
+</ul>
+
+
+$$
+\frac{\pi_{\boldsymbol{\theta}}(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} = \frac{0.40}{0.10} = \mathbf{4.0000}
+$$
+
+
+<h4>Step B: Natural Logarithms &amp; Implicit Rewards</h4>
+<ul>
+<li>Log ratio for $y_w$:</li>
+</ul>
+
+
+$$
+\log(1.5000) \approx \mathbf{+0.4055}
+$$
+
+
+<ul>
+<li>Implicit reward for $y_w$:</li>
+</ul>
+
+
+$$
+\hat{r}(x, y_w) = \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_w)}{\pi_{\text{ref}}(y_w)} = 0.50 \times 0.4055 = \mathbf{+0.2028}
+$$
+
+
+<ul>
+<li>Log ratio for $y_l$:</li>
+</ul>
+
+
+$$
+\log(4.0000) \approx \mathbf{+1.3863}
+$$
+
+
+<ul>
+<li>Implicit reward for $y_l$:</li>
+</ul>
+
+
+$$
+\hat{r}(x, y_l) = \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_l)}{\pi_{\text{ref}}(y_l)} = 0.50 \times 1.3863 = \mathbf{+0.6931}
+$$
+
+
+<h4>Step C: Reward Difference</h4>
+
+
+$$
+\Delta r = \hat{r}(x, y_w) - \hat{r}(x, y_l) = 0.2028 - 0.6931 = \mathbf{-0.4904}
+$$
+
+
+<p>The reward difference is negative ($-0.4904$), confirming that the active policy currently ranks the bad response higher than the good one!</p>
+<h4>Step D: Evaluate Sigmoid Function</h4>
+
+
+$$
+\sigma(\Delta r) = \sigma(-0.4904) = \frac{1}{1 + e^{0.4904}} = \frac{1}{1 + 1.6330} = \frac{1}{2.6330} \approx \mathbf{0.3798}
+$$
+
+
+<p>The model assesses only a $38.0\%$ probability that human judges will pick the winner!</p>
+<h4>Step E: Compute DPO Loss</h4>
+
+
+$$
+\mathcal{L}_{\text{DPO}} = -\log(0.3798) \approx \mathbf{0.9681}
+$$
+
+
+<h4>Step F: Compute Gradient Error Weight</h4>
+<p>The scale factor multiplying the gradient direction is:</p>
+
+
+$$
+\text{Weight} = \beta \left( 1 - \sigma(\Delta r) \right) = 0.50 \times (1 - 0.3798) = 0.50 \times 0.6202 = \mathbf{0.3101}
+$$
+
+
+<p><mark>Because the model was wrong ($\sigma = 38\%$), it receives a substantial gradient push of magnitude $0.3101$, actively driving $\pi_{\boldsymbol{\theta}}(y_w)$ up and suppressing $\pi_{\boldsymbol{\theta}}(y_l)$ down!</mark></p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>The Punchline of RLHF and DPO</strong></legend>
+<p><strong>Pre-training creates an encyclopedic brain, but alignment teaches it to be a helpful human partner.</strong></p>
+<p>By proving that a language model is secretly its own reward model, Direct Preference Optimization (DPO) replaces complex, brittle multi-agent reinforcement learning loops with a single, elegant binary classification loss &mdash; aligning billions of parameters directly with human values.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../18-sampling-and-temperature/index.html">&larr; Chapter 18: Turning Up the Heat (Temperature, Top-k, & Top-p Sampling)</a> &bull; <a href="../index.html">Course Overview</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
