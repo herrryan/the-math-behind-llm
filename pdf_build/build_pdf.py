@@ -1,11 +1,17 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# dependencies = [
+#     "markdown",
+#     "pymupdf",
+# ]
+# ///
 """
 PDF Book Generator for 'The Math Behind Large Language Models'
 Consolidates all chapters into a high-fidelity, publication-grade PDF book
 with KaTeX math, semantic HTML styling, and running headers/footers.
 
 Usage:
-    uv run --with pymupdf --with markdown python3 pdf_build/build_pdf.py
+    uv run pdf_build/build_pdf.py
 """
 
 import os

@@ -44,9 +44,12 @@
 > [!BRIDGING] 从无边界的点积得分迈向合法的概率分布
 > 在第 06 章中，歧义词 <kbd>"bank"</kbd>（河岸/银行）射出了自己的查询探针 $\mathbf{q}_3$，与句子中的三个词 <kbd>"The"</kbd>、<kbd>"river"</kbd>、<kbd>"bank"</kbd> 的招牌向量 $\mathbf{k}_j$ 分别进行点积碰撞，得到了原始匹配得分：
 >
-> $$\mathbf{z} = [4.0, 7.0, 6.0]$$
+> $$
+> \mathbf{z} = [4.0, 7.0, 6.0]
+> $$
 >
 > 但在线性代数的世界中，这些未加约束的原始点积（在深度学习中统称为 **Logits**）存在三个数学隐患：
+>
 > 1. 取值范围无拘无束，可以是实数轴上的任意数值 $(-\infty, +\infty)$。
 > 2. 它们相加绝不可能自然等于 1（$4 + 7 + 6 = 17 \neq 1$）。
 > 3. 如果两个向量夹角大于 90 度，点积会出现负数。
@@ -114,34 +117,120 @@ $$
 
 ---
 
-### 2. 概念梯子：为什么要采用指数运算 $e^z$？
+### 2. 概念梯子：为什么要采用自然指数 $e^z$？
 
-为什么先驱数学家们不采用更简单的线性归一化？让我们沿着失败的备选方案梯子逐级向上推导：
+为什么先驱数学家们不采用更简单的归一化技巧？一个合法的概率分布必须严格满足柯尔莫哥洛夫概率公理的两大基石：
+1. **非负性**：每一个概率值必须大于等于 0，即 $p_i \ge 0$。
+2. **归一性**：所有候选对象的概率之和必须严格为 1，即 $\sum_{i=1}^N p_i = 1.0$。
 
-<figure>
-<pre>
-方案 1：直接线性归一化
-        p_i = z_i / sum(z_j)
-        致命缺陷：若 z = [2, -3, 1]，分母加和为 0，导致除以零爆炸！
-                  若 z = [2, -1, 3]，分母为 4，算得 p_2 = -25%，出现荒谬的负概率！
+让我们沿着直觉备选方案的推导阶梯逐级向上排查，看看更简单的方案到底在哪些致命场景下全线崩溃。
 
-方案 2：绝对值归一化
-        p_i = |z_i| / sum(|z_j|)
-        致命缺陷：若 z_1 = -10（极度不匹配），z_2 = +10（极度匹配），
-                  两者绝对值均为 10，分配完全相同的概率！彻底破坏了语义得分的高低秩序。
+#### 尝试 1：直接线性归一化（Linear Normalization）
 
-方案 3：截断线性归一化（ReLU 归一化）
-        p_i = max(0, z_i) / sum(max(0, z_j))
-        致命缺陷：所有负数得分被一刀切强制归零。反向传播时导数全为 0，网络彻底丧失学习信号。
+最朴素的直觉是将每个得分除以所有得分之和：
 
-终极选择：自然指数函数 e^z
-        1. 严格全域非负：对任意负数，恒有 e^z &gt; 0，从根源消灭负概率。
-        2. 严格单调递增：若 z_a &gt; z_b，则 e^{z_a} &gt; e^{z_b}，绝不颠倒得分秩序。
-        3. 处处平滑可导：导数 d/dz (e^z) = e^z，为反向传播梯度提供最完美的线性通道。
-        4. 赢家放大效应（Soft Max）：自然放大高分候选者优势，压制低分噪音。
-</pre>
-<figcaption><strong>图 7.2：</strong> 从朴素归一化到指数 Softmax 的严谨数学推导阶梯。</figcaption>
-</figure>
+$$
+p_i = \frac{z_i}{\sum_{j=1}^N z_j}
+$$
+
+实践中的致命缺陷：
+- **致命缺陷 1（除零崩溃）**：若原始得分加和恰好为零，分母直接消失。例如当得分向量为 $\mathbf{z} = [2.0, -3.0, 1.0]^\top$ 时：
+  $$
+  \sum_{j=1}^3 z_j = 2.0 + (-3.0) + 1.0 = 0
+  $$
+  计算 $p_i = \frac{z_i}{0}$ 会直接触发浮点除以零错误（`ZeroDivisionError` / `inf`），导致训练程序瞬间崩盘。
+- **致命缺陷 2（负数概率）**：当存在负数得分且分母为正时，会产生负概率。例如当 $\mathbf{z} = [2.0, -1.0, 3.0]^\top$ 时，总和为 $\sum z_j = 4.0$，计算得：
+  $$
+  p_2 = \frac{-1.0}{4.0} = -0.25 = -25\%
+  $$
+  负概率在现实世界中没有任何物理意义，彻底违背概率公理。
+
+#### 尝试 2：绝对值归一化（Absolute Value Normalization）
+
+为了消除负数，很自然的尝试是先取绝对值 $|z_i|$ 再进行加和：
+
+$$
+p_i = \frac{|z_i|}{\sum_{j=1}^N |z_j|}
+$$
+
+实践中的致命缺陷：
+- **致命缺陷（破坏排序与对称性混淆）**：绝对值彻底摧毁了得分的方向性意义。假设候选词 1 的得分为 $z_1 = -10.0$（极度不匹配），而候选词 2 的得分为 $z_2 = +10.0$（天作之合）。绝对值操作将两者都映射为 $10.0$：
+  $$
+  |-10.0| = |+10.0| = 10.0 \implies p_1 = p_2
+  $$
+  模型将给表现最差的词与表现最好的词分配完全相同的概率，完全颠倒非黑即白！
+
+#### 尝试 3：线性整流截断归一化（ReLU Normalization）
+
+为了消除负数且不翻转正负，尝试使用 ReLU 函数 $\max(0, z_i)$ 将负数统一截断为 0：
+
+$$
+p_i = \frac{\max(0, z_i)}{\sum_{j=1}^N \max(0, z_j)}
+$$
+
+实践中的致命缺陷：
+- **致命缺陷 1（全负数崩溃）**：如果某一层的输出全为负数（例如 $\mathbf{z} = [-2.0, -5.0, -1.0]^\top$），则对所有 $j$ 均有 $\max(0, z_j) = 0$，分母为 0 导致 $\frac{0}{0} = \text{NaN}$。
+- **致命缺陷 2（梯度死绝 / 丧失学习信号）**：对于所有被截断为 0 的负得分候选者，其局部导数严格为 0：
+  $$
+  \frac{\partial \max(0, z_i)}{\partial z_i} = 0
+  $$
+  在反向传播时，没有任何梯度能回传给这些被拒绝的词元。神经网络无法得知自己“错得有多离谱”，彻底丧失改进参数的学习通道。
+
+#### 终极解法：自然指数函数 $e^z$
+
+自然指数函数 $f(z) = e^z$ 完美解决了上述所有难题：
+
+$$
+p_i = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
+$$
+
+- **严格全域非负**：对实数轴上的任意数值 $z \in (-\infty, +\infty)$，恒有 $e^z > 0$。分母 $\sum e^{z_j} > 0$ 恒大于零，彻底杜绝除零崩溃，且保证每个概率 $p_i \in (0, 1)$。
+- **严格单调递增（保持排序）**：由于 $\frac{d}{dz} e^z = e^z > 0$，函数严格单调上升（$z_a > z_b \iff e^{z_a} > e^{z_b} \iff p_a > p_b$）。高分候选者永远获得更高的概率，排序秩序秋毫无犯。
+- **处处平滑可微**：指数函数为无穷阶光滑函数（$C^\infty$），导数处处不为零，为梯度反向传播提供无阻碍的绿色通道。
+- **赢家通吃效应（Softmax 放大）**：指数曲线的非线性陡峭特性，能平滑地放大微小得分差距，使最有信心的词元脱颖而出，同时温和保留微小的长尾探索概率。
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 7.2：</strong> 各类归一化备选方案数学特性横向对比</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">方案名称</th>
+      <th scope="col" align="left" width="24%">归一化公式</th>
+      <th scope="col" align="center" width="18%">全域非负？</th>
+      <th scope="col" align="center" width="18%">保持排序？</th>
+      <th scope="col" align="left" width="18%">反向传播梯度特性</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">线性归一化</th>
+      <td align="left">$p_i = \frac{z_i}{\sum z_j}$</td>
+      <td align="center"><del>否（可能产生负数）</del></td>
+      <td align="center">是</td>
+      <td align="left">若 $\sum z_j = 0$ 则未定义</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">绝对值归一化</th>
+      <td align="left">$p_i = \frac{|z_i|}{\sum |z_j|}$</td>
+      <td align="center">是</td>
+      <td align="center"><del>否（负数对称翻转）</del></td>
+      <td align="left">在 $z=0$ 处不可微</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">ReLU 截断归一化</th>
+      <td align="left">$p_i = \frac{\max(0, z_i)}{\sum \max(0, z_j)}$</td>
+      <td align="center">是</td>
+      <td align="center">部分保持</td>
+      <td align="left">负数区域梯度全死（为 0）</td>
+    </tr>
+    <tr bgcolor="#f0f7f0">
+      <th scope="row" align="left"><strong>Softmax（$e^z$）</strong></th>
+      <td align="left"><strong>$p_i = \frac{e^{z_i}}{\sum e^{z_j}}$</strong></td>
+      <td align="center"><strong>是（严格 &gt; 0）</strong></td>
+      <td align="center"><strong>是（严格单调递增）</strong></td>
+      <td align="left"><strong>处处光滑连续且非零</strong></td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
@@ -266,7 +355,11 @@ $$
   <dt><time datetime="1868">1868</time> &mdash; <strong>路德维希·玻尔兹曼与统计热力学（Ludwig Boltzmann）</strong></dt>
   <dd>
     奥地利物理学家玻尔兹曼在研究封闭容器内气体分子碰撞时发现：在温度为 $T$ 的热平衡系统中，物理系统处于能量为 $E_i$ 的微观状态的概率服从正规系综分布（麦克斯韦-玻尔兹曼分布）：
-    $$P(i) = \frac{e^{-E_i / (k_B T)}}{\sum_j e^{-E_j / (k_B T)}}$$
+
+$$
+P(i) = \frac{e^{-E_i / (k_B T)}}{\sum_j e^{-E_j / (k_B T)}}
+$$
+
     物理系统更倾向于落入能量更低的微观态。将负能量 $-E_i$ 替换为算法效用得分 $z_i$，便诞生了现代概率归一化函数。
   </dd>
 
@@ -283,7 +376,11 @@ $$
   <dt><time datetime="2017">2017</time> &mdash; <strong>Vaswani 等人与注意力机制路由</strong></dt>
   <dd>
     在现代 Transformer 开山论文 <em>"Attention Is All You Need"</em> 中，Softmax 被置于缩放点积注意力的数学心脏：
-    $$\operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}$$
+
+$$
+\operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+$$
+
     Softmax 赋予了模型动态调节上下文聚焦权重的非线性中枢能力。
   </dd>
 </dl>

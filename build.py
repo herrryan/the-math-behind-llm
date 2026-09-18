@@ -32,6 +32,7 @@ except ImportError:
 CALLOUT_TITLES = {
     'en': {
         'INTUITION': '3-Year-Old Intuition',
+        'BRIDGING': 'The Bridging Question',
         'MATH': 'The Exact Math & Formula',
         'ORIGIN': 'Where Did It Come From?',
         'EXAMPLE': 'Concrete Toy Example',
@@ -41,6 +42,7 @@ CALLOUT_TITLES = {
     },
     'zh': {
         'INTUITION': '3 岁小孩直觉',
+        'BRIDGING': '承前启后的关键过渡',
         'MATH': '严谨数学公式与推导',
         'ORIGIN': '历史渊源与技术演进',
         'EXAMPLE': '手算极简数值示例',
@@ -197,7 +199,7 @@ def convert_callouts(text, lang='en'):
     n = len(lines)
     while i < n:
         line = lines[i]
-        m = re.match(r'^>\s*\[!(INTUITION|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\]\s*(.*)$', line, re.IGNORECASE)
+        m = re.match(r'^>\s*\[!(INTUITION|BRIDGING|MATH|ORIGIN|EXAMPLE|TIP|NOTE|WARNING)\]\s*(.*)$', line, re.IGNORECASE)
         if m:
             ctype = m.group(1).upper()
             custom_title = m.group(2).strip()

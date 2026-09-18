@@ -155,10 +155,9 @@ Total Sum:                         1554.6 grams  ────────► 100
 
 <hr />
 <h2 id="step-2">Step 2: The Bridging Question</h2>
-<blockquote>
-<p>[!BRIDGING] From Unbounded Scores to Probability Distributions
-In Chapter 06, we watched the ambiguous word <kbd>"bank"</kbd> fire its Query arrow against the Key arrows of <kbd>"The"</kbd>, <kbd>"river"</kbd>, and <kbd>"bank"</kbd>. The linear dot products produced raw affinity scores:</p>
-</blockquote>
+<fieldset>
+<legend><strong>From Unbounded Scores to Probability Distributions</strong></legend>
+<p>In Chapter 06, we watched the ambiguous word <kbd>"bank"</kbd> fire its Query arrow against the Key arrows of <kbd>"The"</kbd>, <kbd>"river"</kbd>, and <kbd>"bank"</kbd>. The linear dot products produced raw affinity scores:</p>
 
 
 $$
@@ -166,14 +165,15 @@ $$
 $$
 
 
-<blockquote>
-<p>But these raw dot products (called <strong>logits</strong>) are mathematically wild:
-1. They can be any real number from $-\infty$ to $+\infty$.
-2. They do not sum to $1$.
-3. They can easily be negative if two vectors point in opposite directions.</p>
+<p>But these raw dot products (called <strong>logits</strong>) are mathematically wild:</p>
+<ol>
+<li>They can be any real number from $-\infty$ to $+\infty$.</li>
+<li>They do not sum to $1$.</li>
+<li>They can easily be negative if two vectors point in opposite directions.</li>
+</ol>
 <p>To blend the meaning of words together in Attention (and to pick the final next word out of a 100,000-word dictionary), the Transformer must answer:</p>
 <p><em>"How do we convert an arbitrary list of real numbers—positive, negative, or zero—into a strictly valid probability distribution where every value is positive and the sum is strictly 100%, without destroying the relative ranking of the candidates?"</em></p>
-</blockquote>
+</fieldset>
 <hr />
 <h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
 <h3>1. The Softmax Function</h3>
@@ -231,32 +231,142 @@ $$
 
 <hr />
 <h3>2. The Dependency Ladder: Why Exponentiate?</h3>
-<p>Why did mathematicians choose $e^z$ instead of simpler normalization tricks? Let us walk up the ladder of failed alternatives:</p>
-<figure>
-<pre>
-Attempt 1: Linear Normalization
-           p_i = z_i / sum(z_j)
-           Fatal Flaw: If z = [2, -3, 1], sum = 0 (Division by zero!).
-                       If z = [2, -1, 3], p_2 = -1/4 = -25% (Negative probability!).
+<p>Why did mathematicians choose the natural exponential $e^z$ instead of simpler normalization formulas? A valid probability distribution must satisfy two foundational axioms of probability theory:
+1. <strong>Non-negativity</strong>: Every probability must be non-negative: $p_i \ge 0$ for all $i$.
+2. <strong>Total Probability</strong>: All probabilities must sum to unity: $\sum_{i=1}^N p_i = 1.0$.</p>
+<p>Let us walk up the mathematical ladder of intuitive alternatives to see why simpler choices fail fatally.</p>
+<h4>Attempt 1: Direct Linear Normalization</h4>
+<p>The simplest idea is to divide each logit by the sum of all logits:</p>
 
-Attempt 2: Absolute Value Normalization
-           p_i = |z_i| / sum(|z_j|)
-           Fatal Flaw: If z_1 = -10 (terrible fit) and z_2 = +10 (great fit),
-                       both get |-10| = |+10| = 10. Destroys all order!
 
-Attempt 3: Rectified Linear (ReLU) Normalization
-           p_i = max(0, z_i) / sum(max(0, z_j))
-           Fatal Flaw: Any negative logit is instantly crushed to 0.
-                       Zero gradient flows backwards! The network cannot learn why it failed.
+$$
+p_i = \frac{z_i}{\sum_{j=1}^N z_j}
+$$
 
-The Winner: The Exponential Function e^z
-           1. Strictly positive: e^z &gt; 0 for all real z in (-inf, +inf).
-           2. Monotonically increasing: z_a &gt; z_b &lt;==&gt; e^{z_a} &gt; e^{z_b}. Order is preserved.
-           3. Smoothly differentiable: d/dz (e^z) = e^z. Perfect for gradient descent!
-           4. Winner-take-most: Magnifies high scores while gently suppressing low ones.
-</pre>
-<figcaption><strong>Figure 7.2:</strong> The mathematical progression leading uniquely to the exponential function.</figcaption>
-</figure>
+
+<p>Why this fails in practice:</p>
+<ul>
+<li><strong>Fatal Flaw 1 (Division by Zero)</strong>: If the raw logits sum to zero, the denominator vanishes. For example, if $\mathbf{z} = [2.0, -3.0, 1.0]^\top$, then:</li>
+</ul>
+
+
+$$
+\sum_{j=1}^3 z_j = 2.0 + (-3.0) + 1.0 = 0
+$$
+
+
+<p>Computing $p_i = \frac{z_i}{0}$ results in a division-by-zero crash (<code>ZeroDivisionError</code> / <code>inf</code>), halting training immediately.</p>
+<ul>
+<li><strong>Fatal Flaw 2 (Negative Probabilities)</strong>: If any logit is negative while the sum is positive, the resulting output is negative. For example, if $\mathbf{z} = [2.0, -1.0, 3.0]^\top$, then the sum is $\sum z_j = 4.0$, yielding:</li>
+</ul>
+
+
+$$
+p_2 = \frac{-1.0}{4.0} = -0.25 = -25\%
+$$
+
+
+<p>A probability of $-25\%$ is mathematically nonsensical and violates the axioms of probability theory.</p>
+<h4>Attempt 2: Absolute Value Normalization</h4>
+<p>To prevent negative values, one might try taking the absolute value $|z_i|$ before summing:</p>
+
+
+$$
+p_i = \frac{|z_i|}{\sum_{j=1}^N |z_j|}
+$$
+
+
+<p>Why this fails in practice:</p>
+<ul>
+<li><strong>Fatal Flaw (Destruction of Order &amp; Symmetry Inversion)</strong>: Absolute value destroys the directional meaning of logits. Suppose candidate 1 has $z_1 = -10.0$ (a terrible semantic match) and candidate 2 has $z_2 = +10.0$ (a perfect semantic match). Absolute value maps both to $10.0$:</li>
+</ul>
+
+
+$$
+|-10.0| = |+10.0| = 10.0 \implies p_1 = p_2
+$$
+
+
+<p>The model would assign equal probability to the worst possible word and the best possible word, completely destroying relative ordering!</p>
+<h4>Attempt 3: Rectified Linear (ReLU) Normalization</h4>
+<p>To eliminate negative values without folding them into positive ones, we could clamp negative logits to zero using the ReLU function $\max(0, z_i)$:</p>
+
+
+$$
+p_i = \frac{\max(0, z_i)}{\sum_{j=1}^N \max(0, z_j)}
+$$
+
+
+<p>Why this fails in practice:</p>
+<ul>
+<li><strong>Fatal Flaw 1 (All-Negative Collapse)</strong>: If all logits happen to be negative (e.g., $\mathbf{z} = [-2.0, -5.0, -1.0]^\top$), then $\max(0, z_j) = 0$ for all $j$, causing a catastrophic division-by-zero $\frac{0}{0} = \text{NaN}$.</li>
+<li><strong>Fatal Flaw 2 (Dead Gradients / Zero Learning Signal)</strong>: For any rejected candidate where $z_i < 0$, the derivative is strictly zero:</li>
+</ul>
+
+
+$$
+\frac{\partial \max(0, z_i)}{\partial z_i} = 0
+$$
+
+
+<p>During backpropagation, zero gradient flows backward to those tokens. The neural network receives no information about <em>how far off</em> the prediction was, leaving it incapable of learning why the candidate was rejected.</p>
+<h4>The Winner: The Natural Exponential Function $e^z$</h4>
+<p>The exponential function $f(z) = e^z$ elegantly solves all four problems simultaneously:</p>
+
+
+$$
+p_i = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
+$$
+
+
+<ul>
+<li><strong>Strict Non-Negativity Everywhere</strong>: For every real number $z \in (-\infty, +\infty)$, $e^z > 0$. The denominator $\sum e^{z_j}$ is strictly positive, guaranteeing that division by zero is impossible and every $p_i \in (0, 1)$.</li>
+<li><strong>Strict Monotonicity (Order Preserved)</strong>: Because $\frac{d}{dz} e^z = e^z > 0$, the exponential function is strictly increasing ($z_a > z_b \iff e^{z_a} > e^{z_b} \iff p_a > p_b$). A candidate with a higher logit always receives a higher probability.</li>
+<li><strong>Smooth, Non-Zero Gradients Everywhere</strong>: The exponential function is infinitely differentiable ($C^\infty$). Its derivative is never zero, providing clean gradient highways during backpropagation.</li>
+<li><strong>Winner-Take-Most Amplification</strong>: Because exponential curves grow rapidly, small differences in logits translate to decisive differences in probability, helping the model focus attention sharply on the most relevant tokens.</li>
+</ul>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 7.2:</strong> Mathematical Comparison of Candidate Normalization Schemes</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">Scheme</th>
+      <th scope="col" align="left" width="24%">Formula</th>
+      <th scope="col" align="center" width="18%">Non-Negative?</th>
+      <th scope="col" align="center" width="18%">Preserves Order?</th>
+      <th scope="col" align="left" width="18%">Backprop Gradient</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">Linear</th>
+      <td align="left">$p_i = \frac{z_i}{\sum z_j}$</td>
+      <td align="center"><del>No (can be &lt; 0)</del></td>
+      <td align="center">Yes</td>
+      <td align="left">Undefined if $\sum z_j = 0$</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">Absolute Value</th>
+      <td align="left">$p_i = \frac{|z_i|}{\sum |z_j|}$</td>
+      <td align="center">Yes</td>
+      <td align="center"><del>No (folds -z into +z)</del></td>
+      <td align="left">Discontinuous at $z=0$</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">ReLU (Clamped)</th>
+      <td align="left">$p_i = \frac{\max(0, z_i)}{\sum \max(0, z_j)}$</td>
+      <td align="center">Yes</td>
+      <td align="center">Partial</td>
+      <td align="left">Zero for $z \le 0$ (dead)</td>
+    </tr>
+    <tr bgcolor="#f0f7f0">
+      <th scope="row" align="left"><strong>Softmax ($e^z$)</strong></th>
+      <td align="left"><strong>$p_i = \frac{e^{z_i}}{\sum e^{z_j}}$</strong></td>
+      <td align="center"><strong>Yes (strictly &gt; 0)</strong></td>
+      <td align="center"><strong>Yes (strictly monotonic)</strong></td>
+      <td align="left"><strong>Smooth &amp; non-zero everywhere</strong></td>
+    </tr>
+  </tbody>
+</table>
 
 <hr />
 <h3>3. The Numerical Stability Guard: Shift Invariance</h3>
@@ -394,9 +504,11 @@ $$
 
 
 
+
 $$
 P(i) = \frac{e^{-E_i / (k_B T)}}{\sum_j e^{-E_j / (k_B T)}}
 $$
+
 
 
 
@@ -421,9 +533,11 @@ $$
 
 
 
+
 $$
 \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
 $$
+
 
 
 
