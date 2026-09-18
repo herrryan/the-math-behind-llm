@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 16: Walking Down the Mountain (Gradients & Backpropagation) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../15-cross-entropy-loss/index.html">&larr; Chapter 15: How Wrong Was I? (Cross-Entropy Loss & Perplexity)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 16: Walking Down the Mountain (Gradients &amp; Backpropagation)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Foggy Mountain &amp; The Bucket Brigade)</h2>
+<fieldset>
+<legend><strong>The Blindfolded Hiker and the Mountain Echo</strong></legend>
+<p>Imagine you are a hiker standing on a steep, foggy mountain at dusk.</p>
+<p>Your goal is to reach the cozy cabin resting safely at the bottom of the deepest valley (where the error penalty is zero). But the fog is so thick that you cannot see more than two inches in front of your nose:</p>
+<ol>
+<li><strong>Feeling the Slope Under Your Boots</strong>:</li>
+</ol>
+<ul>
+<li>You cannot see the cabin in the distance.</li>
+<li>But by feeling the tilt of the rocky ground beneath the soles of your hiking boots, you can instantly tell which direction tilts downward!</li>
+<li>If the ground slopes steeply down to your left, you take a cautious, measured step to the left.</li>
+<li>Each small step lowers your altitude. After hundreds of tiny steps, you reliably descend into the valley.</li>
+<li>This tilt under your boots is the <strong>Gradient (<dfn id="def-gradient">$\nabla \mathcal{L}$</dfn>)</strong>!</li>
+</ul>
+<ol start="2">
+<li><strong>The Bucket Brigade Relay</strong>:</li>
+</ol>
+<ul>
+<li>Now imagine that this mountain trail is staffed by a chain of mountain guides standing in a long line from the bottom of the valley all the way up to the mountain peak.</li>
+<li>The scout at the very bottom checks how far off the trail the hiker landed, writes down a small note: <em>"Too far left by 2 feet!"</em>, and passes it backward to the guide behind them.</li>
+<li>That guide reads the note, calculates their own adjustment, and passes an updated note further backward up the chain.</li>
+<li>Within seconds, every single guide on the mountain knows exactly which way to nudge their signpost so the next hiker arrives closer to the cabin!</li>
+</ul>
+<p>In Large Language Models, this mountain descent is <strong>Gradient Descent</strong>, and the backward message passing is <strong>Backpropagation</strong>.</p>
+<p>Even though a model like LLaMA has 70 billion individual knob settings (weights), Backpropagation allows the model to compute the exact tilt for all 70,000,000,000 knobs simultaneously in a single, lightning-fast backward sweep!</p>
+</fieldset>
+<figure>
+<pre>
+Forward Pass (Making the Guess):
+  [ Input Word ] ──► [ Layer 1 ] ──► [ Layer 2 ] ──► [ Prediction ]
+                                                           │
+                                                           ▼
+                                                    [ Error Loss ]
+                                                           │
+Backward Pass (Passing the Blame Note):                     ▼
+  [ Adj. W_1 ]  ◄── [ Adj. W_2 ] ◄── [ "You were off by +2.0!" ]
+  (Each layer receives the blame note, updates its weights,
+   and passes the gradient upstream to the previous layer)
+</pre>
+<figcaption><strong>Figure 16.1:</strong> The forward pass generates predictions; the backward pass propagates error gradients backward through the chain of layers.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<fieldset>
+<legend><strong>How Do We Compute 70 Billion Partial Derivatives in a Split Second?</strong></legend>
+<p>In Chapter 15, we discovered the miracle gradient at the very top of the network:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \hat{\mathbf{y}} - \mathbf{y}
+$$
+
+
+<p>But this gradient only tells us how to adjust the final output logits $\mathbf{z}$.</p>
+<p>Deep beneath those logits lie dozens of Transformer layers: unembedding matrices $\mathbf{W}_U$, feed-forward projections $\mathbf{W}_{\text{down}}, \mathbf{W}_{\text{up}}, \mathbf{W}_{\text{gate}}$, attention heads $\mathbf{W}_O, \mathbf{W}_V, \mathbf{W}_K, \mathbf{W}_Q$, normalization gains $\boldsymbol{\gamma}$, and input token embeddings $\mathbf{E}$.</p>
+<p>If we tried to compute the derivative of the scalar loss $\mathcal{L}$ with respect to each of the $P = 70,000,000,000$ parameters individually (e.g. by nudging one weight by $\epsilon = 0.0001$ and running the model forward to observe the change in loss), training a single token would require <strong>70 billion forward passes</strong>! A single sentence would take decades to compute.</p>
+<p><em>"How does the multivariate Chain Rule transform this impossible billion-step bottleneck into an algorithm that computes all 70 billion gradients in the time of a single backward pass?"</em></p>
+</fieldset>
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. The Computational Graph &amp; Multivariate Chain Rule</h3>
+<p>A neural network is formally represented as a directed acyclic graph (<dfn id="def-comp-graph">Computational Graph</dfn>) of elementary operations.
+Suppose variable $\mathbf{x}$ produces intermediate variable $\mathbf{y} = f(\mathbf{x})$, which in turn produces scalar loss $\mathcal{L} = g(\mathbf{y})$.</p>
+<p>By the multivariate <strong>Chain Rule of Calculus</strong>:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \cdot \frac{\partial \mathbf{y}}{\partial \mathbf{x}}
+$$
+
+
+<p>where:</p>
+<ul>
+<li>$\frac{\partial \mathcal{L}}{\partial \mathbf{y}} \in \mathbb{R}^{1 \times d_y}$ is the incoming gradient from the downstream layer (the "blame note").</li>
+<li>$\frac{\partial \mathbf{y}}{\partial \mathbf{x}} \in \mathbb{R}^{d_y \times d_x}$ is the local <strong>Jacobian matrix</strong> of the operation $f$.</li>
+<li>$\frac{\partial \mathcal{L}}{\partial \mathbf{x}} \in \mathbb{R}^{1 \times d_x}$ is the resulting gradient propagated upstream to the previous operation.</li>
+</ul>
+<hr />
+<h3>2. The Core Building Block: Linear Layer Matrix Gradients</h3>
+<p>Modern LLMs spend over 95% of their computational FLOPs inside linear matrix multiplications: $\mathbf{y} = \mathbf{x}\mathbf{W}$.</p>
+<p>Let:</p>
+<ul>
+<li>$\mathbf{x} \in \mathbb{R}^{B \times d_{\text{in}}}$ be the input activation matrix (batch size $B$).</li>
+<li>$\mathbf{W} \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$ be the learnable weight matrix.</li>
+<li>$\mathbf{y} = \mathbf{x}\mathbf{W} \in \mathbb{R}^{B \times d_{\text{out}}}$ be the output activation.</li>
+<li>$\mathbf{G}_y = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \in \mathbb{R}^{B \times d_{\text{out}}}$ be the incoming error gradient.</li>
+</ul>
+<p>During backpropagation, this single node computes two separate matrix multiplications:</p>
+<h4>A. Gradient with respect to Weights (for Parameter Updating):</h4>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \mathbf{x}^\top \mathbf{G}_y \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}
+$$
+
+
+<h4>B. Gradient with respect to Inputs (for Upstream Propagation):</h4>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \mathbf{G}_y \mathbf{W}^\top \in \mathbb{R}^{B \times d_{\text{in}}}
+$$
+
+
+<figure>
+<pre>
+Linear Layer Backpropagation Flow:
+
+Forward:   x  [ B x d_in ] ──► ( * W ) ──► y  [ B x d_out ]
+                                  │
+                                  ▼
+Backward:  dL/dx = G_y * W^T ◄── ( G_y ) ◄── dL/dy = G_y
+                                  │
+                                  ▼
+                         dL/dW = x^T * G_y
+</pre>
+<figcaption><strong>Figure 16.2:</strong> A linear layer splits incoming gradient $\mathbf{G}_y$ into weight gradient $\mathbf{x}^\top \mathbf{G}_y$ and input gradient $\mathbf{G}_y \mathbf{W}^\top$.</figcaption>
+</figure>
+
+<p>Notice the strict dimensional symmetry:</p>
+<ul>
+<li>To update $\mathbf{W}$ ($d_{\text{in}} \times d_{\text{out}}$), we multiply transposed input $\mathbf{x}^\top$ ($d_{\text{in}} \times B$) by gradient $\mathbf{G}_y$ ($B \times d_{\text{out}}$).</li>
+<li>To send gradients upstream ($B \times d_{\text{in}}$), we multiply gradient $\mathbf{G}_y$ ($B \times d_{\text{out}}$) by transposed weights $\mathbf{W}^\top$ ($d_{\text{out}} \times d_{\text{in}}$).</li>
+</ul>
+<hr />
+<h3>3. Gradient Descent Parameter Update Rule</h3>
+<p>Once the gradient matrix $\nabla_{\mathbf{W}} \mathcal{L}$ is computed, the parameters are updated along the negative gradient direction:</p>
+
+
+$$
+\mathbf{W}_{t+1} = \mathbf{W}_t - \eta \nabla_{\mathbf{W}} \mathcal{L}_t
+$$
+
+
+<p>where $\eta > 0$ is the <strong>learning rate</strong> (the step size down the mountain).</p>
+<hr />
+<h3>4. Why Reverse-Mode is $70,000,000,000\times$ Faster</h3>
+<p>Why does backpropagation run <em>backward</em> instead of <em>forward</em>?</p>
+<p>Consider a model with $P$ parameters that outputs a single scalar loss $\mathcal{L} \in \mathbb{R}$:</p>
+<ul>
+<li><strong>Forward-Mode Differentiation (Tangents)</strong>: Propagates derivatives forward from inputs to outputs. Because each input parameter requires its own independent pass, computing all parameter gradients requires <strong>$\mathcal{O}(P)$ passes</strong> ($70 \times 10^9$ passes!).</li>
+<li><strong>Reverse-Mode Differentiation (Adjoints / Backprop)</strong>: Starts at the single scalar output $\mathcal{L}$ and propagates gradients backward toward all parameters. Because there is only <strong>1 scalar output</strong>, all $P$ derivatives are obtained in <strong>a single $\mathcal{O}(1)$ backward pass</strong>!</li>
+</ul>
+
+
+$$
+\frac{\text{Cost of Reverse-Mode}}{\text{Cost of Forward-Mode}} = \frac{1}{P} \approx \frac{1}{70,000,000,000}
+$$
+
+
+<p>Without Reverse-Mode Automatic Differentiation, training Large Language Models would be physically impossible.</p>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From? (Linnainmaa, Rumelhart, &amp; Hinton)</h2>
+<dl>
+  <dt><time datetime="1970">1970</time> &mdash; <strong>Seppo Linnainmaa</strong></dt>
+  <dd>Introduced the general algorithm for reverse-mode automatic differentiation in his Master's thesis at the University of Helsinki, demonstrating that the derivatives of nested algebraic functions can be computed in time proportional to the forward evaluation.</dd>
+
+  <dt><time datetime="1986">1986</time> &mdash; <strong>David Rumelhart, Geoffrey Hinton, & Ronald Williams</strong></dt>
+  <dd>Published the landmark paper <cite>"Learning representations by back-propagating errors"</cite> in <em>Nature</em>. They showed that backpropagation enables multi-layer neural networks to learn internal representations of data, defeating the historic Minsky-Papert XOR pessimism that had frozen neural network research during the AI Winter.</dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>PyTorch & Autograd</strong></dt>
+  <dd>Dynamic computational graphs (tape-based autograd) popularized by Adam Paszke et al. enabled backpropagation through dynamic control flows, attention matrices, and autoregressive generation loops with zero manual gradient coding.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example (Step-by-Step Hand Arithmetic)</h2>
+<p>Let us compute the complete forward pass, loss calculation, backward pass, and weight update for a miniature 2-layer network with tiny numbers.</p>
+<h3>1. Miniature Architecture &amp; Parameters</h3>
+<ul>
+<li>Input scalar: $x = 2.0$</li>
+<li>Layer 1 weight: $w_1 = 3.0$</li>
+<li>Hidden activation: $h = x \cdot w_1$</li>
+<li>Layer 2 weight: $w_2 = 2.0$</li>
+<li>Model prediction: $\hat{y} = h \cdot w_2$</li>
+<li>Target ground truth: $y = 10.0$</li>
+<li>Loss function (Squared Error): $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$</li>
+<li>Learning rate: $\eta = 0.01$</li>
+</ul>
+<hr />
+<h3>2. Forward Pass: Making the Prediction</h3>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Forward compute hidden value $h = x \cdot w_1$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Forward compute prediction $\hat{y} = h \cdot w_2$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Compute loss $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Backward compute $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ and weight gradient $\frac{\partial \mathcal{L}}{\partial w_2}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step E:</strong> Backward propagate $\frac{\partial \mathcal{L}}{\partial h}$ and weight gradient $\frac{\partial \mathcal{L}}{\partial w_1}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step F:</strong> Apply gradient descent update and verify loss reduction.</p>
+</fieldset>
+<h4>Step A: Layer 1 Output</h4>
+
+
+$$
+h = x \cdot w_1 = 2.0 \times 3.0 = 6.0
+$$
+
+
+<h4>Step B: Layer 2 Output</h4>
+
+
+$$
+\hat{y} = h \cdot w_2 = 6.0 \times 2.0 = 12.0
+$$
+
+
+<h4>Step C: Loss Calculation</h4>
+<p>The model predicted $12.0$, but the target was $10.0$:</p>
+
+
+$$
+\mathcal{L} = \frac{1}{2}(12.0 - 10.0)^2 = \frac{1}{2}(2.0)^2 = 2.0000
+$$
+
+
+<hr />
+<h3>3. Backward Pass: Propagating the Error Upstream</h3>
+<h4>Step D: Gradients at Layer 2</h4>
+<p>First, differentiate the loss with respect to the prediction $\hat{y}$:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial \hat{y}} = \hat{y} - y = 12.0 - 10.0 = \mathbf{+2.0}
+$$
+
+
+<p>Now, differentiate with respect to weight $w_2$:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial w_2} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial w_2} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot h = 2.0 \times 6.0 = \mathbf{+12.0}
+$$
+
+
+<p>Next, propagate the gradient backward into the hidden state $h$:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial h} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial h} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot w_2 = 2.0 \times 2.0 = \mathbf{+4.0}
+$$
+
+
+<h4>Step E: Gradients at Layer 1</h4>
+<p>Now compute the gradient for weight $w_1$ using the propagated signal $\frac{\partial \mathcal{L}}{\partial h}$:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial w_1} = \frac{\partial \mathcal{L}}{\partial h} \cdot \frac{\partial h}{\partial w_1} = \frac{\partial \mathcal{L}}{\partial h} \cdot x = 4.0 \times 2.0 = \mathbf{+8.0}
+$$
+
+
+<p>Summary of computed gradients:</p>
+<ul>
+<li>$\nabla_{w_2} \mathcal{L} = +12.0$ (push $w_2$ down!)</li>
+<li>$\nabla_{w_1} \mathcal{L} = +8.0$ (push $w_1$ down!)</li>
+</ul>
+<hr />
+<h3>4. Parameter Update &amp; Verification</h3>
+<h4>Step F: Apply Gradient Descent</h4>
+<p>With learning rate $\eta = 0.01$:</p>
+
+
+$$
+w_{2,\text{new}} = w_2 - \eta \frac{\partial \mathcal{L}}{\partial w_2} = 2.0 - (0.01 \times 12.0) = 2.0 - 0.12 = \mathbf{1.88}
+$$
+
+
+
+
+$$
+w_{1,\text{new}} = w_1 - \eta \frac{\partial \mathcal{L}}{\partial w_1} = 3.0 - (0.01 \times 8.0) = 3.0 - 0.08 = \mathbf{2.92}
+$$
+
+
+<h4>Step G: Verification with a New Forward Pass</h4>
+<p>Let us re-run the network with the newly updated weights:</p>
+<ul>
+<li>$h_{\text{new}} = x \cdot w_{1,\text{new}} = 2.0 \times 2.92 = 5.84$</li>
+<li>$\hat{y}_{\text{new}} = h_{\text{new}} \cdot w_{2,\text{new}} = 5.84 \times 1.88 = 10.9792$</li>
+<li>Target: $y = 10.0$</li>
+</ul>
+<p>Calculate the new loss:</p>
+
+
+$$
+\mathcal{L}_{\text{new}} = \frac{1}{2}(10.9792 - 10.0)^2 = \frac{1}{2}(0.9792)^2 \approx \mathbf{0.4794}
+$$
+
+
+<p><mark>The loss dropped from $2.0000$ to $0.4794$ &mdash; a dramatic $76.0\%$ error reduction in a single tiny step!</mark></p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>The Punchline of Backpropagation</strong></legend>
+<p><strong>Backpropagation is reverse-mode automatic differentiation applied to the computational graph of a neural network.</strong></p>
+<p>By traversing the network backward from the single scalar loss to the billions of input weights, it computes the exact mountain slope for every parameter simultaneously in a single pass, turning an otherwise impossible trillion-hour training task into practical reality.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../15-cross-entropy-loss/index.html">&larr; Chapter 15: How Wrong Was I? (Cross-Entropy Loss & Perplexity)</a> &bull; <a href="../index.html">Course Overview</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
