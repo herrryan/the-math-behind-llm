@@ -1,20 +1,8 @@
 # 第 06 章：图书馆寻宝记——查询、键与值（Q、K、V 投影矩阵）
 
-<nav aria-label="目录导航">
-  <p>
-    <strong>目录导航：</strong> 
-    <a href="#step-1">1. 3岁小孩直觉</a> &bull; 
-    <a href="#step-2">2. 计算跨越的桥梁问题</a> &bull; 
-    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
-    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
-    <a href="#step-5">5. 手算极简数值示例</a> &bull; 
-    <a href="#step-6">6. 核心精髓总结</a>
-  </p>
-</nav>
-
 ---
 
-<h2 id="step-1">第 1 步：3 岁小孩的直觉（3-Year-Old Intuition）</h2>
+## 第 1 步：3 岁小孩的直觉（3-Year-Old Intuition）
 
 想象你牵着爸爸妈妈的手，走进了一座巨大无比的**魔法图书馆**。
 
@@ -570,13 +558,3 @@ $$
 原始词嵌入矩阵 $\mathbf{X}$ 是静态死板的；通过三个投影矩阵 $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$，每个 Token 同时拥有了<strong>寻找线索的探针（Query）</strong>、<strong>展示身份的招牌（Key）</strong>以及<strong>提供知识的载荷（Value）</strong>。它们不仅彻底打破了点积的对称性与自恋诅咒，更为大模型动态重构词义、理解复杂人类语境提供了最坚固的线性代数底座。
 </p>
 </fieldset>
-
----
-
-<nav aria-label="章节导航">
-  <p>
-    <a href="../05-transformer-architecture/index.zh.html">&larr; 第 05 章：大模型的全景图纸（Transformer 架构宏观巡览）</a> &bull;
-    <a href="../index.html">课程主页</a> &bull;
-    <a href="../07-softmax-function/index.zh.html">第 07 章：公平投票箱（Softmax 函数） &rarr;</a>
-  </p>
-</nav>

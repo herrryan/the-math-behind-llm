@@ -1,20 +1,8 @@
 # Chapter 06: The Library Clue Hunt (Queries, Keys, and Values)
 
-<nav aria-label="Table of Contents">
-  <p>
-    <strong>Table of Contents:</strong> 
-    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
-    <a href="#step-2">2. The Bridging Question</a> &bull; 
-    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
-    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
-    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
-    <a href="#step-6">6. Core Takeaway</a>
-  </p>
-</nav>
-
 ---
 
-<h2 id="step-1">Step 1: 3-Year-Old Intuition</h2>
+## Step 1: 3-Year-Old Intuition
 
 Imagine holding your parents' hands and walking into a colossal **magical library**.
 
@@ -558,13 +546,3 @@ In the upcoming Chapter 07, we will discover how **Softmax** converts these raw 
 Raw embeddings $\mathbf{X}$ are static and isolated; by projecting them through three distinct linear matrices $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$, every token gains a <strong>probe to seek clues (Query)</strong>, a <strong>tag to advertise identity (Key)</strong>, and a <strong>payload to deliver knowledge (Value)</strong>. This projection breaks the algebraic curse of dot-product symmetry and self-absorption, laying the bedrock for context-aware language comprehension.
 </p>
 </fieldset>
-
----
-
-<nav aria-label="Chapter Navigation">
-  <p>
-    <a href="../05-transformer-architecture/index.html">&larr; Chapter 05: The Transformer Architecture (The Big Picture)</a> &bull;
-    <a href="../index.html">Course Overview</a> &bull;
-    <a href="../07-softmax-function/index.html">Chapter 07: The Fair Voting Booth (The Softmax Function) &rarr;</a>
-  </p>
-</nav>

@@ -14,8 +14,9 @@
 
 <hr>
 
-<a id="step-1"></a>
-> [!INTUITION] 3-Year-Old Intuition: The Animal Mystery Box
+## Step 1: 3-Year-Old Intuition (The Animal Mystery Box)
+
+> [!INTUITION] The Animal Mystery Box
 > Imagine you and your best friend are playing a game with a mystery box.
 > 
 > You give your friend a clue: <kbd>"It is fluffy..."</kbd>  

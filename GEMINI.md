@@ -90,14 +90,18 @@ Every chapter written in this project **MUST** follow this structured learning s
     - Callout Boxes: converted to `<fieldset><legend><strong>Title</strong></legend></fieldset>` for clean, border-delimited visual containers.
     - Interactive Deep-Dives: authored using native `<details>` and `<summary>` for optional historical or mathematical proofs.
     - Equations: formatted with `\begin{aligned}` for multi-step derivations to prevent awkward horizontal overflow.
-- **Chapter Organization**:
+- **Chapter Organization & Markdown-Only Authoring**:
   - Each chapter lives in its own dedicated subfolder: `NN-topic-name/` (e.g., `00-next-word-prediction/`, `01-vectors-and-spaces/`).
-  - Source content is written in Markdown: `NN-topic-name/index.md`.
-  - The viewer is `NN-topic-name/index.html`.
-  - **Navigation Architecture**:
-    - Top site navigation lives in the outer `index.html` shell before `<main id="content">`.
-    - In-page Table of Contents (`<nav aria-label="Table of Contents">`) and bottom chapter navigation (`<nav aria-label="Chapter Navigation">`) live within `index.md` inside `<main id="content">`.
-    - Do **NOT** put a redundant `<nav>` between `</main>` and `<footer>` in `index.html`, which causes duplicate navigation bars at the bottom.
+  - Source content is authored purely in standard Markdown: `NN-topic-name/index.md` (and `index.zh.md`).
+  - Authors write standard Markdown headings (`# Chapter Title`, `## Step 1: ...` through `## Step 6: ...`).
+  - **Zero Manual Navigation Boilerplate in Markdown**:
+    - Authors do **NOT** write manual `<nav aria-label="Table of Contents">` or `<nav aria-label="Chapter Navigation">` tags in `.md` files.
+    - Authors do **NOT** write manual `<h2 id="step-N">` HTML tags in `.md` files.
+    - `build.py` statically and automatically:
+      1. Scans `## Step 1..6` headings and injects `id="step-N"`.
+      2. Generates the in-page Table of Contents (`<nav aria-label="Table of Contents">`) right beneath `<h1>`.
+      3. Wires the previous and next chapter links in `<nav aria-label="Chapter Navigation">` at the bottom of the page from the directory sequence.
+      4. Statically pre-renders production-ready `index.html` and `index.zh.html` viewers with KaTeX math and compact high-density styling.
 - **Chapter Scope Isolation (Strictly Zero Unintended Modifications)**:
   - When authoring, revising, or debugging a chapter, modify **strictly** that chapter's dedicated files (`NN-topic-name/index.md` and `NN-topic-name/index.html`).
   - Do NOT modify, refactor, or touch other existing chapters, global curriculum files, homepages, or unrelated repository files unless explicitly instructed by the user. Keep work laser-focused.

@@ -16,6 +16,8 @@ import re
 import glob
 import shutil
 import subprocess
+import urllib.parse
+from html.parser import HTMLParser
 
 # Self-bootstrap if markdown is missing and uv is available
 try:
@@ -211,7 +213,106 @@ def convert_callouts(text, lang='en'):
             i += 1
     return '\n'.join(out)
 
-def render_markdown_to_html(md_text, lang='en'):
+def strip_manual_navs(md_text):
+    """Strip legacy manual Table of Contents and Chapter Navigation from markdown."""
+    # Remove manual Table of Contents navigation and any trailing hr
+    md_text = re.sub(
+        r'<nav\s+aria-label=[\'"](?:Table of Contents|目录导航|目录)[\'"]>[\s\S]*?</nav>\s*(?:<hr\s*/?>|---)?',
+        '',
+        md_text,
+        flags=re.IGNORECASE
+    )
+    # Remove manual Chapter Navigation and any preceding hr
+    md_text = re.sub(
+        r'(?:<hr\s*/?>|---)?\s*<nav\s+aria-label=[\'"](?:Chapter Navigation|章节导航)[\'"]>[\s\S]*?</nav>',
+        '',
+        md_text,
+        flags=re.IGNORECASE
+    )
+    return md_text
+
+def process_step_headings_and_toc(html_content, lang='en'):
+    """
+    Scans for Step 1..6 headings (both ## markdown-rendered h2 and raw <h2 id=...>),
+    ensures each has an id='step-N', and generates an in-page Table of Contents
+    inserted directly beneath the chapter's <h1> heading.
+    """
+    steps = []
+
+    def repl_h2(m):
+        existing_id = m.group(1) or ''
+        inner = m.group(2)
+
+        # Match Step N (English) or 第 N 步 / 步骤 N (Chinese)
+        m_en = re.search(r'Step\s*(\d+)[:：]?\s*(.*)', inner, re.IGNORECASE)
+        m_zh = re.search(r'(?:第\s*(\d+)\s*步|步骤\s*(\d+))[:：]?\s*(.*)', inner, re.IGNORECASE)
+
+        step_id = None
+        label = None
+
+        if m_en:
+            num = m_en.group(1)
+            raw_title = m_en.group(2)
+            clean_title = re.sub(r'\s*[\(（][^\)）]+[\)）]', '', raw_title).strip()
+            clean_title = re.sub(r'<[^>]+>', '', clean_title).strip()
+            step_id = f"step-{num}"
+            label = f"{num}. {clean_title}" if clean_title else f"Step {num}"
+        elif m_zh:
+            num = str(int(m_zh.group(1) or m_zh.group(2)))
+            raw_title = m_zh.group(3)
+            clean_title = re.sub(r'\s*[\(（][^\)）]+[\)）]', '', raw_title).strip()
+            clean_title = re.sub(r'<[^>]+>', '', clean_title).strip()
+            step_id = f"step-{num}"
+            label = f"{num}. {clean_title}" if clean_title else f"第 {num} 步"
+        elif existing_id.startswith('step-'):
+            step_id = existing_id
+            clean_title = re.sub(r'<[^>]+>', '', inner).strip()
+            label = clean_title
+
+        if step_id and label:
+            if not any(sid == step_id for sid, _ in steps):
+                steps.append((step_id, label))
+            return f'<h2 id="{step_id}">{inner}</h2>'
+        return m.group(0)
+
+    # Process all <h2> tags
+    new_html = re.sub(r'<h2(?:\s+id="([^"]+)")?>(.*?)</h2>', repl_h2, html_content, flags=re.IGNORECASE)
+
+    # Fallback for older Step 1 anchors: <a id="step-1"></a>
+    if '<a id="step-1"></a>' in new_html and not any(sid == 'step-1' for sid, _ in steps):
+        label = "1. 3-Year-Old Intuition" if lang == 'en' else "1. 3 岁小孩直觉"
+        steps.insert(0, ('step-1', label))
+
+    # Sort steps by numerical step index if possible
+    def step_key(item):
+        m = re.search(r'step-(\d+)', item[0])
+        return int(m.group(1)) if m else 999
+    steps.sort(key=step_key)
+
+    if steps:
+        toc_header = "Table of Contents:" if lang == 'en' else "目录导航："
+        links = [f'<a href="#{sid}">{slabel}</a>' for sid, slabel in steps]
+        toc_block = f"""<nav aria-label="Table of Contents">
+  <p>
+    <strong>{toc_header}</strong> 
+    {" &bull; \n    ".join(links)}
+  </p>
+</nav>
+<hr>"""
+
+        h1_match = re.search(r'(<h1[^>]*>.*?</h1>)', new_html, flags=re.IGNORECASE | re.DOTALL)
+        if h1_match:
+            pos = h1_match.end()
+            new_html = new_html[:pos] + "\n\n" + toc_block + "\n\n" + new_html[pos:]
+        else:
+            new_html = toc_block + "\n\n" + new_html
+
+    return new_html
+
+def render_markdown_to_html(md_text, lang='en', is_chapter=False):
+    if is_chapter:
+        md_text = strip_manual_navs(md_text)
+
     # 1. Convert GitHub-style callouts to fieldsets
     text = convert_callouts(md_text, lang)
 
@@ -265,6 +366,10 @@ def render_markdown_to_html(md_text, lang='en'):
     # 8. Post-process tables with semantic HTML styling attributes
     html = re.sub(r'<table>', '<table border="1" cellpadding="8" cellspacing="0">', html)
 
+    # 9. Auto-inject Step IDs and Table of Contents if this is a chapter
+    if is_chapter:
+        html = process_step_headings_and_toc(html, lang)
+
     return html
 
 def extract_first_heading(filepath):
@@ -275,6 +380,71 @@ def extract_first_heading(filepath):
             if line.startswith('# '):
                 return line[2:].strip()
     return None
+
+class AnchorCollector(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = set()
+        self.links = []
+
+    def handle_starttag(self, tag, attrs):
+        d = dict(attrs)
+        if 'id' in d and d['id']:
+            self.ids.add(d['id'])
+        if tag == 'a' and 'href' in d:
+            self.links.append((self.getpos(), d['href']))
+        elif tag == 'img' and 'src' in d:
+            self.links.append((self.getpos(), d['src']))
+
+def verify_site_integrity(html_files):
+    file_data = {}
+    for hf in html_files:
+        if not os.path.exists(hf):
+            continue
+        with open(hf, 'r', encoding='utf-8') as f:
+            parser = AnchorCollector()
+            parser.feed(f.read())
+            file_data[hf] = {'ids': parser.ids, 'links': parser.links}
+
+    broken_links = 0
+    total_links = 0
+    total_anchors = 0
+    roadmap_links = 0
+
+    for hf, data in file_data.items():
+        base_dir = os.path.dirname(hf)
+        for (line, col), href in data['links']:
+            total_links += 1
+            if href.startswith(('http://', 'https://', 'mailto:', 'javascript:')):
+                continue
+            parsed = urllib.parse.urlparse(href)
+            target_path = parsed.path
+            target_frag = parsed.fragment
+
+            if not target_path:
+                if target_frag:
+                    total_anchors += 1
+                    if target_frag not in data['ids']:
+                        print(f"  [ERROR] Broken in-page anchor in {hf}:{line}:{col} -> #{target_frag}")
+                        broken_links += 1
+            else:
+                resolved = os.path.normpath(os.path.join(base_dir, target_path))
+                if target_frag:
+                    total_anchors += 1
+
+                if not os.path.exists(resolved):
+                    if re.search(r'(\d{2}[a-z]?-[\w-]+)', resolved):
+                        roadmap_links += 1
+                    else:
+                        print(f"  [ERROR] Broken relative link in {hf}:{line}:{col} -> {href} (resolved: {resolved})")
+                        broken_links += 1
+                else:
+                    if target_frag and resolved in file_data:
+                        if target_frag not in file_data[resolved]['ids']:
+                            print(f"  [ERROR] Broken cross-page anchor in {hf}:{line}:{col} -> {href} (#{target_frag} not in {resolved})")
+                            broken_links += 1
+
+    return broken_links, total_links, total_anchors, roadmap_links
 
 def build_site():
     print("Building static site for 'The Math Behind Large Language Models'...")
@@ -304,7 +474,7 @@ def build_site():
     if os.path.exists('curriculum.md'):
         with open('curriculum.md', 'r', encoding='utf-8') as f:
             curr_md = f.read()
-        rendered_curr = render_markdown_to_html(curr_md, 'en')
+        rendered_curr = render_markdown_to_html(curr_md, 'en', is_chapter=False)
         nav_bar = """  <nav aria-label="Curriculum Navigation">
     <p><strong>Curriculum Roadmap:</strong> Foundations to Frontier Alignment</p>
   </nav>
@@ -330,7 +500,18 @@ def build_site():
         if os.path.exists(c['en_md']):
             with open(c['en_md'], 'r', encoding='utf-8') as f:
                 en_content = f.read()
-            rendered_en = render_markdown_to_html(en_content, 'en')
+            rendered_en = render_markdown_to_html(en_content, 'en', is_chapter=True)
+
+            # Bottom chapter navigation (EN)
+            prev_link_bottom = f'<a href="../{prev_c["dir"]}/index.html">&larr; {prev_c["en_title"]}</a> &bull; ' if prev_c else ''
+            next_link_bottom = f' &bull; <a href="../{next_c["dir"]}/index.html">{next_c["en_title"]} &rarr;</a>' if next_c else ''
+            bottom_nav_en = f"""<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    {prev_link_bottom}<a href="../index.html">Course Overview</a>{next_link_bottom}
+  </p>
+</nav>"""
+            rendered_en = rendered_en.rstrip() + "\n\n" + bottom_nav_en
 
             # Nav links (EN)
             prev_link = f'<a href="../{prev_c["dir"]}/index.html">&larr; {prev_c["en_title"]}</a> &nbsp;|&nbsp; ' if prev_c else ''
@@ -364,7 +545,18 @@ def build_site():
         if c['zh_md'] and os.path.exists(c['zh_md']):
             with open(c['zh_md'], 'r', encoding='utf-8') as f:
                 zh_content = f.read()
-            rendered_zh = render_markdown_to_html(zh_content, 'zh')
+            rendered_zh = render_markdown_to_html(zh_content, 'zh', is_chapter=True)
+
+            # Bottom chapter navigation (ZH)
+            prev_zh_bottom = f'<a href="../{prev_c["dir"]}/index.zh.html">&larr; {prev_c["zh_title"]}</a> &bull; ' if prev_c and prev_c['zh_md'] else (f'<a href="../{prev_c["dir"]}/index.html">&larr; {prev_c["en_title"]}</a> &bull; ' if prev_c else '')
+            next_zh_bottom = f' &bull; <a href="../{next_c["dir"]}/index.zh.html">{next_c["zh_title"]} &rarr;</a>' if next_c and next_c['zh_md'] else (f' &bull; <a href="../{next_c["dir"]}/index.html">{next_c["en_title"]} &rarr;</a>' if next_c else '')
+            bottom_nav_zh = f"""<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    {prev_zh_bottom}<a href="../index.html">目录概览</a>{next_zh_bottom}
+  </p>
+</nav>"""
+            rendered_zh = rendered_zh.rstrip() + "\n\n" + bottom_nav_zh
 
             # Nav links (ZH)
             prev_zh_link = f'<a href="../{prev_c["dir"]}/index.zh.html">&larr; {prev_c["zh_title"]}</a> &nbsp;|&nbsp; ' if prev_c and prev_c['zh_md'] else (f'<a href="../{prev_c["dir"]}/index.html">&larr; {prev_c["en_title"]}</a> &nbsp;|&nbsp; ' if prev_c else '')
@@ -398,7 +590,7 @@ def build_site():
     emoji_pattern = re.compile(r'[\U00010000-\U0010ffff]', flags=re.UNICODE)
     
     # Check content files only (curriculum.md and chapter folders)
-    content_files = ['curriculum.md']
+    content_files = ['curriculum.md', 'index.html']
     for cd in chapter_dirs:
         content_files.extend([
             os.path.join(cd, 'index.md'),
@@ -432,8 +624,15 @@ def build_site():
                 print(f"  [ERROR] Unintended indented code block containing escaped HTML tags in {fpath}: {m}")
                 leak_violations += 1
 
-    if emoji_violations > 0 or leak_violations > 0:
-        print("\nBUILD FAILED: Quality gate assertions not met.")
+    # Verify site link & anchor integrity
+    html_files = [f for f in content_files if f.endswith('.html')]
+    broken_links, total_links, total_anchors, roadmap_links = verify_site_integrity(html_files)
+    print(f"  [AUDIT] Verified {total_links} links, {total_anchors} anchors across {len(html_files)} HTML pages.")
+    if roadmap_links > 0:
+        print(f"  [AUDIT] {roadmap_links} roadmap curriculum links noted.")
+
+    if emoji_violations > 0 or leak_violations > 0 or broken_links > 0:
+        print(f"\nBUILD FAILED: Quality gate assertions not met (emojis: {emoji_violations}, leaks: {leak_violations}, broken links: {broken_links}).")
         sys.exit(1)
 
     print("\nAll quality gates PASSED! Site built successfully.")
