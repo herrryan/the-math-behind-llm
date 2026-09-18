@@ -63,7 +63,7 @@ $$
 当模型已经观察到前 $t-1$ 个单词组成的序列时：
 
 $$
-w_1, w_2, \dots, w_{t-1} \quad (\text{通常简写为 } w_{<t})
+w_1, w_2, \dots, w_{t-1} \quad (\text{通常简写为 } w_{\lt t})
 $$
 
 它会计算在第 $t$ 个位置出现的下一个词是某个特定候选词 $w \in V$ 的概率。数学上记作：
@@ -78,12 +78,12 @@ $$
 
 1. **非负性与有界性**：任何单词的概率都不能为负数，也不能超过 100%：
    $$
-   0 \le P(w_t = w \mid w_{<t}) \le 1 \quad (\forall w \in V)
+   0 \le P(w_t = w \mid w_{\lt t}) \le 1 \quad (\forall w \in V)
    $$
 
 2. **全概率守恒律**：如果把词典中所有候选词的概率加在一起，总和必须严格等于 $1$（即整张披萨的 100%）：
    $$
-   \sum_{w \in V} P(w_t = w \mid w_{<t}) = 1
+   \sum_{w \in V} P(w_t = w \mid w_{\lt t}) = 1
    $$
 
 ---
@@ -165,13 +165,13 @@ $$
       <td>$w_4 = \text{"cream"}$</td>
     </tr>
     <tr>
-      <td>$w_{<t}$</td>
+      <td>$w_{\lt t}$</td>
       <td>上文语境（Prefix Context）</td>
       <td>之前已经耳语过的所有上无线索</td>
-      <td>$w_{<4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
+      <td>$w_{\lt 4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
     </tr>
     <tr>
-      <td>$P(w_t \mid w_{<t})$</td>
+      <td>$P(w_t \mid w_{\lt t})$</td>
       <td>条件概率（Conditional Prob）</td>
       <td>模型对该词信心的指示计（$0.0$ 到 $1.0$）</td>
       <td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
@@ -209,11 +209,11 @@ $$
   <dt><strong>目标词元（Target Token, $w_t$）</strong></dt>
   <dd>在序列位置 $t$ 处被选中或被预测的具体词元。</dd>
   
-  <dt><strong>前缀历史 / 上文（Prefix History, $w_{<t}$）</strong></dt>
+  <dt><strong>前缀历史 / 上文（Prefix History, $w_{\lt t}$）</strong></dt>
   <dd>在时间步 $t$ 之前出现的所有词元的有序元组：$(w_1, w_2, \dots, w_{t-1})$。</dd>
   
-  <dt><strong>条件概率（Conditional Probability, $P(w_t \mid w_{<t})$）</strong></dt>
-  <dd>介于 $0.0$ 和 $1.0$ 之间的实数标量，在词汇集合上严格满足归一化条件 $\sum_{w \in V} P(w \mid w_{<t}) = 1.0$。</dd>
+  <dt><strong>条件概率（Conditional Probability, $P(w_t \mid w_{\lt t})$）</strong></dt>
+  <dd>介于 $0.0$ 和 $1.0$ 之间的实数标量，在词汇集合上严格满足归一化条件 $\sum_{w \in V} P(w \mid w_{\lt t}) = 1.0$。</dd>
 </dl>
 </details>
 
@@ -243,7 +243,7 @@ $$
 P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)
 $$
 
-<p>如果各个词之间彼此独立，那么英文句子 <em>"The dog bit the man"（狗咬了人）</em> 与 <em>"Bit man dog the the"（乱序单词）</em> 的概率将完全一样，因为它们包含的单词完全相同！但语言的本质在于语序和语境。因此，以上文历史 $w_{<t}$ 为条件是不可或缺的数学前提。</p>
+<p>如果各个词之间彼此独立，那么英文句子 <em>"The dog bit the man"（狗咬了人）</em> 与 <em>"Bit man dog the the"（乱序单词）</em> 的概率将完全一样，因为它们包含的单词完全相同！但语言的本质在于语序和语境。因此，以上文历史 $w_{\lt t}$ 为条件是不可或缺的数学前提。</p>
 </details>
 
 ---
@@ -419,7 +419,7 @@ $$
 为了彻底避免下溢，AI 研究人员在实践中从不直接做概率连乘。相反，他们会将概率取对数（Logarithm）。由于对数具有神奇的性质 $\log(a \times b) = \log(a) + \log(b)$，原本极易崩盘的连乘法，瞬间化为了安全稳定的**对数加法**：
 
 $$
-\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{<t})
+\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{\lt t})
 $$
 
 在第6模块探讨**交叉熵损失函数（Cross-Entropy Loss）**时，我们将深入领略对数空间的非凡威力！

@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -162,12 +162,16 @@
 <hr />
 <h3>Why Can't the Shelf Label (Key) and the Story (Value) Be the Same Thing?</h3>
 <p>Imagine if the librarian were lazy and taped the entire 500-page book onto the outer spine. The shelves would be an unreadable, cluttered mess!
-More importantly: <strong>"indexing clues" and "payload content" are fundamentally different in purpose</strong>.
-- When searching for a cure for a cold, the query keyword matches an index label (Key = <em>"Fever Medicine"</em>);
-- But what you actually want to extract and swallow is the chemical formula inside (Value = <em>"Acetaminophen 500mg"</em>).</p>
-<p>Inside a modern Large Language Model (the Transformer brain):
-- Every single word (Token) acts simultaneously as a <strong>searcher</strong> (emitting a Query) and a <strong>treasured book</strong> (offering a Key for others to inspect, and offering a Value for others to absorb).
-- <strong>These are the legendary three musketeers of Attention: Query, Key, and Value!</strong></p>
+More importantly: <strong>"indexing clues" and "payload content" are fundamentally different in purpose</strong>.</p>
+<ul>
+<li>When searching for a cure for a cold, the query keyword matches an index label (Key = <em>"Fever Medicine"</em>);</li>
+<li>But what you actually want to extract and swallow is the chemical formula inside (Value = <em>"Acetaminophen 500mg"</em>).</li>
+</ul>
+<p>Inside a modern Large Language Model (the Transformer brain):</p>
+<ul>
+<li>Every single word (Token) acts simultaneously as a <strong>searcher</strong> (emitting a Query) and a <strong>treasured book</strong> (offering a Key for others to inspect, and offering a Value for others to absorb).</li>
+<li><strong>These are the legendary three musketeers of Attention: Query, Key, and Value!</strong></li>
+</ul>
 <hr />
 <h2 id="step-2">Step 2: The Bridging Question</h2>
 
@@ -210,9 +214,11 @@ $$
 $$
 
 
-<p>Where:
-- $T$ is the sequence length (number of tokens in the context window, e.g., 2048 or 4096);
-- $d_{\text{model}}$ is the model's hidden dimension (e.g., $d_{\text{model}} = 4096$ in LLaMA-3 8B, or $12288$ in GPT-3 175B).</p>
+<p>Where:</p>
+<ul>
+<li>$T$ is the sequence length (number of tokens in the context window, e.g., 2048 or 4096);</li>
+<li>$d_{\text{model}}$ is the model's hidden dimension (e.g., $d_{\text{model}} = 4096$ in LLaMA-3 8B, or $12288$ in GPT-3 175B).</li>
+</ul>
 <p>To grant the model the ability to observe tokens under different specialized roles, the Transformer introduces <strong>three independent, learnable linear projection parameter matrices</strong>:</p>
 
 
@@ -291,10 +297,12 @@ $$
 <figcaption><strong>Figure 5.3:</strong> A single input vector branches simultaneously into three distinct specialized roles via three learnable projection matrices.</figcaption>
 </figure>
 
-<p>Each vector fulfills an exact mathematical function:
-- <dfn id="def-query-vector"><strong>Query Vector $\mathbf{q}_i$</strong></dfn>: The <strong>retrieval probe</strong> emitted by token $i$. It asks: <em>"To disambiguate my meaning in this sentence, what specific syntactic or semantic clues do I need?"</em>
-- <dfn id="def-key-vector"><strong>Key Vector $\mathbf{k}_j$</strong></dfn>: The <strong>public advertising card</strong> displayed by token $j$. It advertises: <em>"I possess these grammatical roles, semantic features, and entity tags; compare your query against me!"</em>
-- <dfn id="def-value-vector"><strong>Value Vector $\mathbf{v}_j$</strong></dfn>: The <strong>information payload</strong> of token $j$. It declares: <em>"If you find my key relevant, this is the actual knowledge vector I contribute to your updated representation."</em></p>
+<p>Each vector fulfills an exact mathematical function:</p>
+<ul>
+<li><dfn id="def-query-vector"><strong>Query Vector $\mathbf{q}_i$</strong></dfn>: The <strong>retrieval probe</strong> emitted by token $i$. It asks: <em>"To disambiguate my meaning in this sentence, what specific syntactic or semantic clues do I need?"</em></li>
+<li><dfn id="def-key-vector"><strong>Key Vector $\mathbf{k}_j$</strong></dfn>: The <strong>public advertising card</strong> displayed by token $j$. It advertises: <em>"I possess these grammatical roles, semantic features, and entity tags; compare your query against me!"</em></li>
+<li><dfn id="def-value-vector"><strong>Value Vector $\mathbf{v}_j$</strong></dfn>: The <strong>information payload</strong> of token $j$. It declares: <em>"If you find my key relevant, this is the actual knowledge vector I contribute to your updated representation."</em></li>
+</ul>
 <hr />
 <h3>3. First-Principles Deep Dive: Why Three Separate Matrices? (What Breaks if $\mathbf{Q} = \mathbf{K} = \mathbf{V} = \mathbf{X}$?)</h3>
 <p>A natural question arises for anyone first encountering the Transformer:</p>
@@ -312,13 +320,15 @@ $$
 
 
 <p>If raw embeddings interact directly, <strong>the attention score of Token $i$ towards Token $j$ would be 100% strictly identical to the attention score of Token $j$ towards Token $i$</strong>!</p>
-<p>Natural language relationships, however, are deeply <strong>asymmetric and directed</strong>:
-- In the clause <em>"The kitten (Token $A$) chased (Token $B$) the mouse (Token $C$)"</em>:
-  - The transitive verb <em>"chased"</em> desperately needs to attend to its subject (<em>"kitten"</em>) and direct object (<em>"mouse"</em>) to know who did what;
-  - But the noun <em>"kitten"</em> does not need to allocate 90% of its attention back to <em>"chased"</em> just to establish that it is a feline animal!
-- In an adjective-noun phrase like <em>"extremely beautiful"</em>:
-  - The adjective <em>"beautiful"</em> must attend to <em>"extremely"</em> to gauge its intensity;
-  - But the adverb <em>"extremely"</em> is an auxiliary modifier that does not need to duplicate the full physical noun entity.</p>
+<p>Natural language relationships, however, are deeply <strong>asymmetric and directed</strong>:</p>
+<ul>
+<li>In the clause <em>"The kitten (Token $A$) chased (Token $B$) the mouse (Token $C$)"</em>:</li>
+<li>The transitive verb <em>"chased"</em> desperately needs to attend to its subject (<em>"kitten"</em>) and direct object (<em>"mouse"</em>) to know who did what;</li>
+<li>But the noun <em>"kitten"</em> does not need to allocate 90% of its attention back to <em>"chased"</em> just to establish that it is a feline animal!</li>
+<li>In an adjective-noun phrase like <em>"extremely beautiful"</em>:</li>
+<li>The adjective <em>"beautiful"</em> must attend to <em>"extremely"</em> to gauge its intensity;</li>
+<li>But the adverb <em>"extremely"</em> is an auxiliary modifier that does not need to duplicate the full physical noun entity.</li>
+</ul>
 <p>By introducing separate $\mathbf{W}_Q$ and $\mathbf{W}_K$, the attention score becomes:</p>
 
 
@@ -345,16 +355,20 @@ $$
 $$
 
 
-<p>If all word vectors have roughly comparable norms, <strong>a word's dot product with itself is almost guaranteed to be larger than its dot product with any other word in the dictionary</strong>:
-- Without $\mathbf{W}_Q$ and $\mathbf{W}_K$, self-similarity $\mathbf{x}_i \cdot \mathbf{x}_i$ utterly overpowers surrounding tokens;
-- After Softmax normalization, every token assigns 99% of its attention budget to itself, becoming a context-blind narcissist that ignores the rest of the sentence;
-- With distinct projection matrices, $\mathbf{q}_i^\top \mathbf{k}_i = \mathbf{x}_i^\top (\mathbf{W}_Q \mathbf{W}_K^\top) \mathbf{x}_i$. As long as $\mathbf{W}_Q \mathbf{W}_K^\top$ is not a positive-definite identity matrix, a token's self-score can easily be lower than its score with informative context words, forcing the network to look outward.</p>
+<p>If all word vectors have roughly comparable norms, <strong>a word's dot product with itself is almost guaranteed to be larger than its dot product with any other word in the dictionary</strong>:</p>
+<ul>
+<li>Without $\mathbf{W}_Q$ and $\mathbf{W}_K$, self-similarity $\mathbf{x}_i \cdot \mathbf{x}_i$ utterly overpowers surrounding tokens;</li>
+<li>After Softmax normalization, every token assigns 99% of its attention budget to itself, becoming a context-blind narcissist that ignores the rest of the sentence;</li>
+<li>With distinct projection matrices, $\mathbf{q}_i^\top \mathbf{k}_i = \mathbf{x}_i^\top (\mathbf{W}_Q \mathbf{W}_K^\top) \mathbf{x}_i$. As long as $\mathbf{W}_Q \mathbf{W}_K^\top$ is not a positive-definite identity matrix, a token's self-score can easily be lower than its score with informative context words, forcing the network to look outward.</li>
+</ul>
 <h4>Disaster 3: Addressing vs. Payload Conflict</h4>
-<p>In computer architecture and database design, it is a timeless principle: <strong>a memory address (Key) is not memory content (Value)</strong>.
-- <strong>Addressing Space (Query &amp; Key)</strong>: Specialized in routing, tags, and relational predicates (e.g., <em>"needs a singular verb"</em>, <em>"is a temporal adverb"</em>). These are control-flow signals;
-- <strong>Payload Space (Value)</strong>: Specialized in semantic substance and factual knowledge (e.g., <em>"small furry quadruped, weighs 4kg, is sleeping"</em>).
-- Forcing $\mathbf{V} = \mathbf{X}$ corrupts representation learning by tangling routing metadata directly into factual payload vectors across successive layers.
-- An independent $\mathbf{W}_V$ gives the model complete freedom: <strong>even if two tokens have identical key match scores, the model can choose to deliver completely different semantic payloads</strong>.</p>
+<p>In computer architecture and database design, it is a timeless principle: <strong>a memory address (Key) is not memory content (Value)</strong>.</p>
+<ul>
+<li><strong>Addressing Space (Query &amp; Key)</strong>: Specialized in routing, tags, and relational predicates (e.g., <em>"needs a singular verb"</em>, <em>"is a temporal adverb"</em>). These are control-flow signals;</li>
+<li><strong>Payload Space (Value)</strong>: Specialized in semantic substance and factual knowledge (e.g., <em>"small furry quadruped, weighs 4kg, is sleeping"</em>).</li>
+<li>Forcing $\mathbf{V} = \mathbf{X}$ corrupts representation learning by tangling routing metadata directly into factual payload vectors across successive layers.</li>
+<li>An independent $\mathbf{W}_V$ gives the model complete freedom: <strong>even if two tokens have identical key match scores, the model can choose to deliver completely different semantic payloads</strong>.</li>
+</ul>
 <hr />
 <h3>4. Mathematical Symbol &amp; Dimension Catalog</h3>
 <details name="ch05-specs" open>
@@ -457,10 +471,12 @@ $$
 $$
 
 
-<p>Where:
-- $\mathbf{x}_1 = [1, 0, 1, 0]$ (the function word "The")
-- $\mathbf{x}_2 = [0, 2, 0, 1]$ (the hydrological word "river")
-- $\mathbf{x}_3 = [1, 1, 0, 2]$ (the ambiguous word "bank")</p>
+<p>Where:</p>
+<ul>
+<li>$\mathbf{x}_1 = [1, 0, 1, 0]$ (the function word "The")</li>
+<li>$\mathbf{x}_2 = [0, 2, 0, 1]$ (the hydrological word "river")</li>
+<li>$\mathbf{x}_3 = [1, 1, 0, 2]$ (the ambiguous word "bank")</li>
+</ul>
 <hr />
 <h3>2. The Three Projection Matrices $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{4 \times 2}$</h3>
 <p>We choose clean integer weights for transparent manual arithmetic:</p>
@@ -491,18 +507,24 @@ $$
 <hr />
 <h3>3. Step-by-Step Manual Projections</h3>
 <h4>Query Matrix $\mathbf{Q} = \mathbf{X} \mathbf{W}_Q \in \mathbb{R}^{3 \times 2}$</h4>
-<p>For Row 1: $\mathbf{q}_1^\top = [1, 0, 1, 0] \mathbf{W}_Q$:
-- Col 1: $1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$
-- Col 2: $1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$
-- $\mathbf{q}_1^\top = [1, 1]$</p>
-<p>For Row 2: $\mathbf{q}_2^\top = [0, 2, 0, 1] \mathbf{W}_Q$:
-- Col 1: $0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$
-- Col 2: $0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$
-- $\mathbf{q}_2^\top = [1, 2]$</p>
-<p>For Row 3: $\mathbf{q}_3^\top = [1, 1, 0, 2] \mathbf{W}_Q$ (Query for <kbd>"bank"</kbd>):
-- Col 1: $1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$
-- Col 2: $1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$
-- $\mathbf{q}_3^\top = [3, 1]$</p>
+<p>For Row 1: $\mathbf{q}_1^\top = [1, 0, 1, 0] \mathbf{W}_Q$:</p>
+<ul>
+<li>Col 1: $1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$</li>
+<li>Col 2: $1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$</li>
+<li>$\mathbf{q}_1^\top = [1, 1]$</li>
+</ul>
+<p>For Row 2: $\mathbf{q}_2^\top = [0, 2, 0, 1] \mathbf{W}_Q$:</p>
+<ul>
+<li>Col 1: $0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$</li>
+<li>Col 2: $0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$</li>
+<li>$\mathbf{q}_2^\top = [1, 2]$</li>
+</ul>
+<p>For Row 3: $\mathbf{q}_3^\top = [1, 1, 0, 2] \mathbf{W}_Q$ (Query for <kbd>"bank"</kbd>):</p>
+<ul>
+<li>Col 1: $1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$</li>
+<li>Col 2: $1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$</li>
+<li>$\mathbf{q}_3^\top = [3, 1]$</li>
+</ul>
 
 
 $$
@@ -516,18 +538,24 @@ $$
 
 <hr />
 <h4>Key Matrix $\mathbf{K} = \mathbf{X} \mathbf{W}_K \in \mathbb{R}^{3 \times 2}$</h4>
-<p>For Row 1: $\mathbf{k}_1^\top = [1, 0, 1, 0] \mathbf{W}_K$:
-- Col 1: $1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$
-- Col 2: $1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$
-- $\mathbf{k}_1^\top = [1, 1]$</p>
-<p>For Row 2: $\mathbf{k}_2^\top = [0, 2, 0, 1] \mathbf{W}_K$ (Key for <kbd>"river"</kbd>):
-- Col 1: $0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$
-- Col 2: $0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$
-- $\mathbf{k}_2^\top = [2, 1]$</p>
-<p>For Row 3: $\mathbf{k}_3^\top = [1, 1, 0, 2] \mathbf{W}_K$:
-- Col 1: $1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$
-- Col 2: $1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$
-- $\mathbf{k}_3^\top = [1, 3]$</p>
+<p>For Row 1: $\mathbf{k}_1^\top = [1, 0, 1, 0] \mathbf{W}_K$:</p>
+<ul>
+<li>Col 1: $1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$</li>
+<li>Col 2: $1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$</li>
+<li>$\mathbf{k}_1^\top = [1, 1]$</li>
+</ul>
+<p>For Row 2: $\mathbf{k}_2^\top = [0, 2, 0, 1] \mathbf{W}_K$ (Key for <kbd>"river"</kbd>):</p>
+<ul>
+<li>Col 1: $0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$</li>
+<li>Col 2: $0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$</li>
+<li>$\mathbf{k}_2^\top = [2, 1]$</li>
+</ul>
+<p>For Row 3: $\mathbf{k}_3^\top = [1, 1, 0, 2] \mathbf{W}_K$:</p>
+<ul>
+<li>Col 1: $1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$</li>
+<li>Col 2: $1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$</li>
+<li>$\mathbf{k}_3^\top = [1, 3]$</li>
+</ul>
 
 
 $$
@@ -572,19 +600,21 @@ $$
 $$
 
 
-<p>Computing each row:
-- Row 1 (Query "The"):
-  - $S_{11} = 1\times 1 + 1\times 1 = 2$
-  - $S_{12} = 1\times 2 + 1\times 1 = 3$
-  - $S_{13} = 1\times 1 + 1\times 3 = 4$
-- Row 2 (Query "river"):
-  - $S_{21} = 1\times 1 + 2\times 1 = 3$
-  - $S_{22} = 1\times 2 + 2\times 1 = 4$
-  - $S_{23} = 1\times 1 + 2\times 3 = 7$
-- Row 3 (Query <mark>"bank"</mark>):
-  - $S_{31} = \mathbf{q}_3 \cdot \mathbf{k}_1 = 3\times 1 + 1\times 1 = 4$ (match with "The")
-  - $S_{32} = \mathbf{q}_3 \cdot \mathbf{k}_2 = 3\times 2 + 1\times 1 = \mathbf{7}$ (match with <mark>"river"</mark>!)
-  - $S_{33} = \mathbf{q}_3 \cdot \mathbf{k}_3 = 3\times 1 + 1\times 3 = 6$ (self-attention score)</p>
+<p>Computing each row:</p>
+<ul>
+<li>Row 1 (Query "The"):</li>
+<li>$S_{11} = 1\times 1 + 1\times 1 = 2$</li>
+<li>$S_{12} = 1\times 2 + 1\times 1 = 3$</li>
+<li>$S_{13} = 1\times 1 + 1\times 3 = 4$</li>
+<li>Row 2 (Query "river"):</li>
+<li>$S_{21} = 1\times 1 + 2\times 1 = 3$</li>
+<li>$S_{22} = 1\times 2 + 2\times 1 = 4$</li>
+<li>$S_{23} = 1\times 1 + 2\times 3 = 7$</li>
+<li>Row 3 (Query <mark>"bank"</mark>):</li>
+<li>$S_{31} = \mathbf{q}_3 \cdot \mathbf{k}_1 = 3\times 1 + 1\times 1 = 4$ (match with "The")</li>
+<li>$S_{32} = \mathbf{q}_3 \cdot \mathbf{k}_2 = 3\times 2 + 1\times 1 = \mathbf{7}$ (match with <mark>"river"</mark>!)</li>
+<li>$S_{33} = \mathbf{q}_3 \cdot \mathbf{k}_3 = 3\times 1 + 1\times 3 = 6$ (self-attention score)</li>
+</ul>
 
 
 $$
@@ -598,10 +628,12 @@ $$
 
 <hr />
 <h3>5. Physical Verification of Results</h3>
-<p>Notice Row 3 for the ambiguous token <code>"bank"</code>:
-- Score with <code>"The"</code>: $4$
-- Score with itself <code>"bank"</code>: $6$
-- Score with <code>"river"</code>: <strong>$7$</strong>!</p>
+<p>Notice Row 3 for the ambiguous token <code>"bank"</code>:</p>
+<ul>
+<li>Score with <code>"The"</code>: $4$</li>
+<li>Score with itself <code>"bank"</code>: $6$</li>
+<li>Score with <code>"river"</code>: <strong>$7$</strong>!</li>
+</ul>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>Table 5.1:</strong> Raw attention match scores computed by ambiguous token "bank"</caption>
   <thead>
@@ -634,13 +666,15 @@ $$
   </tbody>
 </table>
 
-<p>Visualizing match intensity:
-- Attention towards <code>"river"</code>:
-  <meter min="0" max="10" low="3" high="6" optimum="8" value="7.0">7.0 / 10</meter> (Highest weight; incorporates hydrological meaning)
-- Attention towards itself:
-  <meter min="0" max="10" low="3" high="6" optimum="8" value="6.0">6.0 / 10</meter> (Second highest)
-- Attention towards <code>"The"</code>:
-  <meter min="0" max="10" low="3" high="6" optimum="8" value="4.0">4.0 / 10</meter> (Lowest weight)</p>
+<p>Visualizing match intensity:</p>
+<ul>
+<li>Attention towards <code>"river"</code>:
+  <meter min="0" max="10" low="3" high="6" optimum="8" value="7.0">7.0 / 10</meter> (Highest weight; incorporates hydrological meaning)</li>
+<li>Attention towards itself:
+  <meter min="0" max="10" low="3" high="6" optimum="8" value="6.0">6.0 / 10</meter> (Second highest)</li>
+<li>Attention towards <code>"The"</code>:
+  <meter min="0" max="10" low="3" high="6" optimum="8" value="4.0">4.0 / 10</meter> (Lowest weight)</li>
+</ul>
 <p>Through the collaborative projection of $\mathbf{W}_Q$ and $\mathbf{W}_K$, <code>"bank"</code> successfully escaped the self-absorption trap and directed its highest attention score towards the pivotal clue word <code>"river"</code>.</p>
 <p>In the upcoming Chapter 07, we will discover how <strong>Softmax</strong> converts these raw logits $[4, 7, 6]$ into strict probability weights summing to 100%, which then aggregate the <strong>Value vectors</strong>.</p>
 <hr />
@@ -678,15 +712,24 @@ Raw embeddings $\mathbf{X}$ are static and isolated; by projecting them through 
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

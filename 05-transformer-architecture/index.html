@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -156,20 +156,24 @@
 <p>If we wanted it to look at 10 past words, we had to concatenate 10 vectors together, making the first weight matrix 10 times wider. If we wanted it to read an entire book with 100,000 words, the weight matrix would require trillions of numbers, consuming petabytes of memory before doing a single calculation! Fixed windows simply cannot scale to long stories.</p>
 <h3>Metaphor 2: The Whispering Telephone Game (Recurrent Networks / RNNs &amp; LSTMs)</h3>
 <p>Before 2017, the AI world tried to fix this with <strong>Recurrent Neural Networks (<abbr title="Recurrent Neural Network">RNN</abbr>)</strong> and <strong>Long Short-Term Memory (<abbr title="Long Short-Term Memory">LSTM</abbr>)</strong>.</p>
-<p>Imagine 100 children standing in a single-file line.
-- Child 1 hears a secret: <samp>"A tiny golden puppy with fluffy ears lived in Paris."</samp>
-- Child 1 writes a hurried note in a tiny notebook (the hidden state vector $\mathbf{h}_1$) and passes it to Child 2.
-- Child 2 reads the note, adds their own word, rewrites the notebook, and whispers to Child 3.
-- By the time the notebook reaches Child 100 at the end of the line, the page is smeared with eraser marks and ink stains. What does Child 100 hear? <samp>"A potato lived in Paris."</samp></p>
+<p>Imagine 100 children standing in a single-file line.</p>
+<ul>
+<li>Child 1 hears a secret: <samp>"A tiny golden puppy with fluffy ears lived in Paris."</samp></li>
+<li>Child 1 writes a hurried note in a tiny notebook (the hidden state vector $\mathbf{h}_1$) and passes it to Child 2.</li>
+<li>Child 2 reads the note, adds their own word, rewrites the notebook, and whispers to Child 3.</li>
+<li>By the time the notebook reaches Child 100 at the end of the line, the page is smeared with eraser marks and ink stains. What does Child 100 hear? <samp>"A potato lived in Paris."</samp></li>
+</ul>
 <p>This breakdown suffered from two catastrophic structural flaws:
 1. <strong>The Information Bottleneck</strong>: Squeezing an entire unfolding novel into a single fixed-size vector $\mathbf{h}_t$ causes distant memories to dissolve and vanish.
 2. <strong>The Sequential Prison</strong>: Child 50 <strong>cannot start whispering</strong> until Child 49 finishes! Modern graphics cards (<abbr title="Graphics Processing Unit">GPU</abbr>s) have tens of thousands of tiny computational cores ready to work simultaneously, but an RNN forced them to sit idle, waiting for one word to process at a time.</p>
 <h3>Metaphor 3: The Grand Round Table (The Transformer)</h3>
 <p>In 2017, a team of researchers at Google published a legendary paper with a bold title: <cite>"Attention Is All You Need"</cite>.</p>
-<p>They threw away the whispering line completely. Instead, they placed all the words around a <strong>giant round conference table</strong>:
-- <strong>Simultaneous Arrival</strong>: All 1,000 words of a document walk into the room at the exact same instant.
-- <strong>Direct Eye Contact (Self-Attention)</strong>: If word 800 (<kbd>"it"</kbd>) needs to know what noun it refers to, it does not wait for a whisper chain. It glances directly across the table at word 12 (<kbd>"puppy"</kbd>) in a single step!
-- <strong>Parallel Speed</strong>: Because everyone is at the table at once, the GPU can compute relationships between all words simultaneously in parallel.</p>
+<p>They threw away the whispering line completely. Instead, they placed all the words around a <strong>giant round conference table</strong>:</p>
+<ul>
+<li><strong>Simultaneous Arrival</strong>: All 1,000 words of a document walk into the room at the exact same instant.</li>
+<li><strong>Direct Eye Contact (Self-Attention)</strong>: If word 800 (<kbd>"it"</kbd>) needs to know what noun it refers to, it does not wait for a whisper chain. It glances directly across the table at word 12 (<kbd>"puppy"</kbd>) in a single step!</li>
+<li><strong>Parallel Speed</strong>: Because everyone is at the table at once, the GPU can compute relationships between all words simultaneously in parallel.</li>
+</ul>
 <hr />
 <h2 id="step-2">Step 2: The Bridging Question</h2>
 
@@ -182,7 +186,6 @@ How do we convert a round-table conference into concrete linear algebra?
 If all 1,000 words sit at the table simultaneously, what keeps the room from devolving into deafening chaos? How does each word know <em>who to listen to</em>, <em>what to absorb</em>, and <em>how to think about it privately</em> before speaking the next word?
 </p>
 </fieldset>
-
 <p>To turn this intuitive round table into a working machine, modern large language models use an elegant alternating cycle:
 1. <strong>Communication Phase (Self-Attention)</strong>: Words look around the table, exchange notes with other words, and update their context.
 2. <strong>Thinking Phase (Feed-Forward Network)</strong>: Each word retreats into its private study, evaluates what it just learned, queries its long-term factual memory, and refines its meaning.</p>
@@ -306,54 +309,48 @@ Learners frequently wonder: <em>The Oxford English Dictionary contains over 600,
 <p>
 The secret engine behind this is <strong>BPE (Byte Pair Encoding)</strong>.
 </p>
-
-<h4>1. The 3-Year-Old Intuition: Refrigerator Magnets & Superglue</h4>
+<h4>1. The 3-Year-Old Intuition: Refrigerator Magnets &amp; Superglue</h4>
 <p>
 Imagine you only have the 26 basic letter magnets on your refrigerator (<kbd>a</kbd>, <kbd>b</kbd>, <kbd>c</kbd> ... <kbd>z</kbd>).
 </p>
 <ul>
-  <li><strong>Spelling letter by letter</strong>: Spelling <samp>"unbelievable"</samp> requires grabbing 12 individual magnets. A short paragraph fills up the entire fridge door, and your fingers tire quickly (<strong>sequences become too long, triggering quadratic $\mathcal{O}(T^2)$ self-attention compute blowup</strong>).</li>
-  <li><strong>Molding every dictionary word as a giant single magnet</strong>: You would need millions of bulky magnets in your pockets, and the moment someone invents a new slang word, you have no magnet for it (<strong>vocabulary explosion and catastrophic out-of-vocabulary errors</strong>).</li>
+<li><strong>Spelling letter by letter</strong>: Spelling <samp>"unbelievable"</samp> requires grabbing 12 individual magnets. A short paragraph fills up the entire fridge door, and your fingers tire quickly (<strong>sequences become too long, triggering quadratic $\mathcal{O}(T^2)$ self-attention compute blowup</strong>).</li>
+<li><strong>Molding every dictionary word as a giant single magnet</strong>: You would need millions of bulky magnets in your pockets, and the moment someone invents a new slang word, you have no magnet for it (<strong>vocabulary explosion and catastrophic out-of-vocabulary errors</strong>).</li>
 </ul>
 <p>
 <strong>The BPE Superglue Rule:</strong> You observe which pairs of magnets sit next to each other most frequently. Whenever you notice two adjacent magnets consistently appearing together (like <kbd>t</kbd> and <kbd>h</kbd>), you dab a drop of superglue between them to create a permanent new tile: <kbd>th</kbd>. When you notice <kbd>th</kbd> and <kbd>e</kbd> constantly next to each other, you glue them into <kbd>the</kbd>! You continue gluing until you have exactly <strong>128,256</strong> versatile magnet tiles.
 </p>
-
-<h4>2. The BPE Algorithm & Concrete Toy Walkthrough</h4>
+<h4>2. The BPE Algorithm &amp; Concrete Toy Walkthrough</h4>
 <p>
 Suppose our training corpus has only 4 words with the following occurrence frequencies:
 </p>
 <ul>
-  <li><samp>"low"</samp> (5 times) &rarr; Initial split: <code>l o w &lt;/w&gt;</code></li>
-  <li><samp>"lower"</samp> (2 times) &rarr; Initial split: <code>l o w e r &lt;/w&gt;</code></li>
-  <li><samp>"newest"</samp> (6 times) &rarr; Initial split: <code>n e w e s t &lt;/w&gt;</code></li>
-  <li><samp>"widest"</samp> (3 times) &rarr; Initial split: <code>w i d e s t &lt;/w&gt;</code></li>
+<li><samp>"low"</samp> (5 times) &rarr; Initial split: <code>l o w &lt;/w&gt;</code></li>
+<li><samp>"lower"</samp> (2 times) &rarr; Initial split: <code>l o w e r &lt;/w&gt;</code></li>
+<li><samp>"newest"</samp> (6 times) &rarr; Initial split: <code>n e w e s t &lt;/w&gt;</code></li>
+<li><samp>"widest"</samp> (3 times) &rarr; Initial split: <code>w i d e s t &lt;/w&gt;</code></li>
 </ul>
-
 <p><strong>Greedy Iterative Merging:</strong></p>
 <ol>
-  <li><strong>Merge Step 1</strong>: We count all adjacent symbol pairs in the corpus. The pair <code>(e, s)</code> appears in <samp>"newest"</samp> (6) and <samp>"widest"</samp> (3), totaling **9 occurrences** (the highest frequency!). We form Merge Rule 1: <code>e + s &rarr; es</code> and add <code>es</code> to our vocabulary.</li>
-  <li><strong>Merge Step 2</strong>: Re-counting adjacent pairs reveals <code>(es, t)</code> also appears **9 times**. Merge Rule 2: <code>es + t &rarr; est</code>.</li>
-  <li><strong>Merge Step 3</strong>: The pair <code>(est, &lt;/w&gt;)</code> appears **9 times**. Merge Rule 3: <code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>.</li>
-  <li><strong>Merge Step 4</strong>: The pair <code>(l, o)</code> appears $5 + 2 = 7$ times, and <code>(o, w)</code> appears 7 times. We greedily merge: <code>l + o &rarr; lo</code>, followed by <code>lo + w &rarr; low</code>.</li>
+<li><strong>Merge Step 1</strong>: We count all adjacent symbol pairs in the corpus. The pair <code>(e, s)</code> appears in <samp>"newest"</samp> (6) and <samp>"widest"</samp> (3), totaling <strong>9 occurrences</strong> (the highest frequency!). We form Merge Rule 1: <code>e + s &rarr; es</code> and add <code>es</code> to our vocabulary.</li>
+<li><strong>Merge Step 2</strong>: Re-counting adjacent pairs reveals <code>(es, t)</code> also appears <strong>9 times</strong>. Merge Rule 2: <code>es + t &rarr; est</code>.</li>
+<li><strong>Merge Step 3</strong>: The pair <code>(est, &lt;/w&gt;)</code> appears <strong>9 times</strong>. Merge Rule 3: <code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>.</li>
+<li><strong>Merge Step 4</strong>: The pair <code>(l, o)</code> appears $5 + 2 = 7$ times, and <code>(o, w)</code> appears 7 times. We greedily merge: <code>l + o &rarr; lo</code>, followed by <code>lo + w &rarr; low</code>.</li>
 </ol>
-
 <p><strong>The Inference Moment on an Unseen Word:</strong></p>
 <p>
-Now, a user submits a brand-new word that **never appeared anywhere in our training corpus: <samp>"lowest"</samp>**.
+Now, a user submits a brand-new word that <strong>never appeared anywhere in our training corpus: <samp>"lowest"</samp></strong>.
 </p>
 <ol>
-  <li>Initial character split: <code>[l, o, w, e, s, t, &lt;/w&gt;]</code></li>
-  <li>Apply learned merge rules sequentially: <code>e, s &rarr; es</code> &rarr; <code>es, t &rarr; est</code> &rarr; <code>est, &lt;/w&gt; &rarr; est&lt;/w&gt;</code> &rarr; <code>l, o &rarr; lo</code> &rarr; <code>lo, w &rarr; low</code></li>
-  <li><strong>Final Token Output:</strong> <kbd>"low"</kbd> + <kbd>"est&lt;/w&gt;"</kbd> (represented cleanly with 2 existing subwords, <strong>Zero OOV</strong>!).</li>
+<li>Initial character split: <code>[l, o, w, e, s, t, &lt;/w&gt;]</code></li>
+<li>Apply learned merge rules sequentially: <code>e, s &rarr; es</code> &rarr; <code>es, t &rarr; est</code> &rarr; <code>est, &lt;/w&gt; &rarr; est&lt;/w&gt;</code> &rarr; <code>l, o &rarr; lo</code> &rarr; <code>lo, w &rarr; low</code></li>
+<li><strong>Final Token Output:</strong> <kbd>"low"</kbd> + <kbd>"est&lt;/w&gt;"</kbd> (represented cleanly with 2 existing subwords, <strong>Zero OOV</strong>!).</li>
 </ol>
-
 <h4>3. The 256 Raw Byte Safety Net (Byte-level Fallback)</h4>
 <p>
 In modern LLMs (GPT-4, LLaMA-3) using <strong>Byte-level BPE</strong>, the base vocabulary reserves all <strong>256 raw UTF-8 bytes (<code>0x00</code> to <code>0xFF</code>)</strong>. Even when facing extremely rare CJK ideographs, ancient runes, or unformatted binary data, the tokenizer falls back to raw bytes. It never crashes with an unknown symbol error.
 </p>
 </fieldset>
-
 <h3>2. Stage 1: The Input Representation</h3>
 <p>Given an input prompt consisting of $T$ discrete integer token IDs:</p>
 
@@ -366,14 +363,13 @@ $$
 <fieldset>
 <legend><strong>Symbol Breakdown: $\mathbf{w}$ and $w_t$</strong></legend>
 <ul>
-  <li>$\mathbf{w}$: The discrete token ID sequence vector representing the whole prompt, with total length $T$.</li>
-  <li>$w_t$ (or $w_i$): The <strong>specific integer token ID at position $t$ (or $i$)</strong> in the sequence. For example, in <samp>"The cat sat on the"</samp>, $w_1 = 464$ (for <kbd>"The"</kbd>) and $w_2 = 3797$ (for <kbd>"cat"</kbd>). Each integer $w_t$ lies in $\{1, 2, \dots, |V|\}$.</li>
-  <li>$V = \{v_1, v_2, \dots, v_{|V|}\}$: The discrete vocabulary set containing all $|V|$ recognizable subwords.</li>
-  <li>$|V|$: The vocabulary size (e.g., 128,256 in LLaMA-3).</li>
-  <li>$T$: The sequence length (number of tokens sitting at the round table in this turn).</li>
+<li>$\mathbf{w}$: The discrete token ID sequence vector representing the whole prompt, with total length $T$.</li>
+<li>$w_t$ (or $w_i$): The <strong>specific integer token ID at position $t$ (or $i$)</strong> in the sequence. For example, in <samp>"The cat sat on the"</samp>, $w_1 = 464$ (for <kbd>"The"</kbd>) and $w_2 = 3797$ (for <kbd>"cat"</kbd>). Each integer $w_t$ lies in $\{1, 2, \dots, |V|\}$.</li>
+<li>$V = \{v_1, v_2, \dots, v_{|V|}\}$: The discrete vocabulary set containing all $|V|$ recognizable subwords.</li>
+<li>$|V|$: The vocabulary size (e.g., 128,256 in LLaMA-3).</li>
+<li>$T$: The sequence length (number of tokens sitting at the round table in this turn).</li>
 </ul>
 </fieldset>
-
 <fieldset>
 <legend><strong>Refresher: What is the Embedding Matrix E, and Why Does It Turn Words into Space?</strong></legend>
 <p>
@@ -383,8 +379,8 @@ $$
 If we treat <samp>"cat"</samp> as scalar $3797$, <samp>"dog"</samp> as scalar $3798$, and <samp>"apple"</samp> as scalar $1549$:
 </p>
 <ul>
-  <li>Arithmetic produces nonsense: $3798 = 3797 + 1 \implies \text{dog} = \text{cat} + 1$;</li>
-  <li>Distances are arbitrary: the numerical gap between <samp>"cat"</samp> and <samp>"dog"</samp> is $1$, while the gap between <samp>"cat"</samp> and <samp>"kitten"</samp> (ID 24000) might be 20,000! Raw integer magnitude has zero semantic meaning.</li>
+<li>Arithmetic produces nonsense: $3798 = 3797 + 1 \implies \text{dog} = \text{cat} + 1$;</li>
+<li>Distances are arbitrary: the numerical gap between <samp>"cat"</samp> and <samp>"dog"</samp> is $1$, while the gap between <samp>"cat"</samp> and <samp>"kitten"</samp> (ID 24000) might be 20,000! Raw integer magnitude has zero semantic meaning.</li>
 </ul>
 <p>
 <strong>The Geometric Solution: The Embedding Matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$</strong>
@@ -393,15 +389,14 @@ If we treat <samp>"cat"</samp> as scalar $3797$, <samp>"dog"</samp> as scalar $3
 As established in Chapter 01, words must be mapped to continuous geometric coordinates:
 </p>
 <ul>
-  <li><strong>A Giant Dictionary of Semantic Coordinates</strong>: Matrix $\mathbf{E}$ contains $|V| = 128,256$ rows. Each row is a vector of $d_{\text{model}} = 4,096$ floating-point numbers describing that token's static semantic fingerprint.</li>
-  <li><strong>Semantic Closeness as Spatial Proximity</strong>: In this 4,096-dimensional space, the vectors for <samp>"cat"</samp> and <samp>"dog"</samp> point in almost the same direction (high cosine similarity), while pointing orthogonally to <samp>"refrigerator"</samp>.</li>
-  <li><strong>Algebraic Extraction via One-Hot Product</strong>:
+<li><strong>A Giant Dictionary of Semantic Coordinates</strong>: Matrix $\mathbf{E}$ contains $|V| = 128,256$ rows. Each row is a vector of $d_{\text{model}} = 4,096$ floating-point numbers describing that token's static semantic fingerprint.</li>
+<li><strong>Semantic Closeness as Spatial Proximity</strong>: In this 4,096-dimensional space, the vectors for <samp>"cat"</samp> and <samp>"dog"</samp> point in almost the same direction (high cosine similarity), while pointing orthogonally to <samp>"refrigerator"</samp>.</li>
+<li><strong>Algebraic Extraction via One-Hot Product</strong>:
     Multiplying a one-hot row vector $\mathbf{e}_{w_t}^\top = [0, \dots, 0, 1, 0, \dots, 0] \in \mathbb{R}^{1 \times |V|}$ by matrix $\mathbf{E}$ algebraically zeros out every row except row $w_t$, perfectly extracting <strong>row $w_t$ of $\mathbf{E}$</strong>.
   </li>
-  <li><strong>Hardware Implementation</strong>: In real hardware (e.g., PyTorch's <code>nn.Embedding</code>), GPUs do not perform massive sparse matrix multiplications. They directly slice the row at memory offset <code>E[w_t]</code> in $\mathcal{O}(1)$ time.</li>
+<li><strong>Hardware Implementation</strong>: In real hardware (e.g., PyTorch's <code>nn.Embedding</code>), GPUs do not perform massive sparse matrix multiplications. They directly slice the row at memory offset <code>E[w_t]</code> in $\mathcal{O}(1)$ time.</li>
 </ul>
 </fieldset>
-
 <p>To transform discrete integers into continuous geometric vectors suitable for linear algebra, each token indexes a row from the token embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ and combines with a positional encoding vector $\mathbf{p}_t$:</p>
 
 
@@ -413,16 +408,15 @@ $$
 <fieldset>
 <legend><strong>Symbol Breakdown: Embedding Lookup and Position Injection</strong></legend>
 <ul>
-  <li>$\mathbf{e}_{w_t}$: A one-hot column vector in $\mathbb{R}^{|V| \times 1}$ with a 1 at row index $w_t$ and 0 everywhere else.</li>
-  <li>$\mathbf{e}_{w_t}^\top$: The transposed one-hot row vector of shape $1 \times |V|$.</li>
-  <li>$\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$: The global static embedding matrix. Row $k$ contains the $d_{\text{model}}$-dimensional continuous semantic coordinates for token $k$.</li>
-  <li>$\mathbf{e}_{w_t}^\top \mathbf{E}$: Matrix multiplication that is algebraically identical to <strong>extracting row $w_t$ of matrix $\mathbf{E}$</strong> (as verified in Chapter 01).</li>
-  <li>$\mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}$: The positional encoding vector for slot $t$, injecting word order awareness (detailed in Chapter 10).</li>
-  <li>Superscript $(0)$: Denotes <strong>layer 0</strong>, the base representation before entering any Transformer blocks.</li>
-  <li>$\mathbf{x}_t^{(0)} \in \mathbb{R}^{1 \times d_{\text{model}}}$: The initial row vector for token $t$ combining semantic meaning and position.</li>
+<li>$\mathbf{e}_{w_t}$: A one-hot column vector in $\mathbb{R}^{|V| \times 1}$ with a 1 at row index $w_t$ and 0 everywhere else.</li>
+<li>$\mathbf{e}_{w_t}^\top$: The transposed one-hot row vector of shape $1 \times |V|$.</li>
+<li>$\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$: The global static embedding matrix. Row $k$ contains the $d_{\text{model}}$-dimensional continuous semantic coordinates for token $k$.</li>
+<li>$\mathbf{e}_{w_t}^\top \mathbf{E}$: Matrix multiplication that is algebraically identical to <strong>extracting row $w_t$ of matrix $\mathbf{E}$</strong> (as verified in Chapter 01).</li>
+<li>$\mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}$: The positional encoding vector for slot $t$, injecting word order awareness (detailed in Chapter 10).</li>
+<li>Superscript $(0)$: Denotes <strong>layer 0</strong>, the base representation before entering any Transformer blocks.</li>
+<li>$\mathbf{x}_t^{(0)} \in \mathbb{R}^{1 \times d_{\text{model}}}$: The initial row vector for token $t$ combining semantic meaning and position.</li>
 </ul>
 </fieldset>
-
 <p>Stacking all $T$ token row vectors creates the foundational <strong>input tensor</strong>:</p>
 
 
@@ -453,15 +447,14 @@ $$
 <fieldset>
 <legend><strong>Symbol Breakdown: Self-Attention Sub-Layer</strong></legend>
 <ul>
-  <li>$l$: The current layer index, where $l \in \{1, 2, \dots, L\}$.</li>
-  <li>$\mathbf{X}^{(l-1)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The output tensor from layer $l-1$, serving as input to layer $l$ (with $\mathbf{X}^{(0)}$ at the very start).</li>
-  <li>$\operatorname{RMSNorm}(\cdot)$: Root Mean Square Layer Normalization (derived in Chapter 13), stabilizing vector variance across depth to prevent numerical explosions.</li>
-  <li>$\operatorname{SelfAttention}(\cdot)$: The causal self-attention mechanism (Chapters 06–09), computing dynamic attention weights via Queries, Keys, and Values to mix tokens across time. Output shape remains $T \times d_{\text{model}}$.</li>
-  <li>Core symbol $+$: The <strong>Residual Connection</strong> (Chapter 12). It adds communication updates as incremental hints directly to the central stream, preserving base information and giving backpropagation gradients an uninterrupted superhighway.</li>
-  <li>$\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The intermediate hidden state tensor after horizontal communication.</li>
+<li>$l$: The current layer index, where $l \in \{1, 2, \dots, L\}$.</li>
+<li>$\mathbf{X}^{(l-1)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The output tensor from layer $l-1$, serving as input to layer $l$ (with $\mathbf{X}^{(0)}$ at the very start).</li>
+<li>$\operatorname{RMSNorm}(\cdot)$: Root Mean Square Layer Normalization (derived in Chapter 13), stabilizing vector variance across depth to prevent numerical explosions.</li>
+<li>$\operatorname{SelfAttention}(\cdot)$: The causal self-attention mechanism (Chapters 06–09), computing dynamic attention weights via Queries, Keys, and Values to mix tokens across time. Output shape remains $T \times d_{\text{model}}$.</li>
+<li>Core symbol $+$: The <strong>Residual Connection</strong> (Chapter 12). It adds communication updates as incremental hints directly to the central stream, preserving base information and giving backpropagation gradients an uninterrupted superhighway.</li>
+<li>$\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The intermediate hidden state tensor after horizontal communication.</li>
 </ul>
 </fieldset>
-
 <h4>Sub-Layer B: The Thinking Chamber (Feed-Forward Network / SwiGLU)</h4>
 <p>Having collected information from its neighbors, each token processes that information privately and independently:</p>
 
@@ -482,16 +475,15 @@ $$
 <fieldset>
 <legend><strong>Symbol Breakdown: SwiGLU Feed-Forward Sub-Layer</strong></legend>
 <ul>
-  <li>$\mathbf{h} \in \mathbb{R}^{1 \times d_{\text{model}}}$: A single token's row vector from $\mathbf{H}^{(l)}$ (or vectorized over all $T$ rows $\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$).</li>
-  <li>$\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$: The gate projection weight matrix, deciding which knowledge channels to open or suppress.</li>
-  <li>$\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$: The up-projection weight matrix, expanding features into the wide thinking space $d_{\text{ffn}}$ (e.g. 14,336).</li>
-  <li>$\operatorname{Swish}(u) = u \cdot \sigma(u) = \frac{u}{1 + e^{-u}}$: The smooth nonlinear activation function (Chapter 04).</li>
-  <li>$\odot$: The <strong>element-wise Hadamard product</strong>, executing continuous, smooth gating.</li>
-  <li>$\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$: The down-projection weight matrix, compressing retrieved knowledge back into $d_{\text{model}}$ highway width.</li>
-  <li>$\mathbf{X}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The completed output tensor of layer $l$, ready to enter layer $l+1$.</li>
+<li>$\mathbf{h} \in \mathbb{R}^{1 \times d_{\text{model}}}$: A single token's row vector from $\mathbf{H}^{(l)}$ (or vectorized over all $T$ rows $\mathbf{H}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$).</li>
+<li>$\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$: The gate projection weight matrix, deciding which knowledge channels to open or suppress.</li>
+<li>$\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$: The up-projection weight matrix, expanding features into the wide thinking space $d_{\text{ffn}}$ (e.g. 14,336).</li>
+<li>$\operatorname{Swish}(u) = u \cdot \sigma(u) = \frac{u}{1 + e^{-u}}$: The smooth nonlinear activation function (Chapter 04).</li>
+<li>$\odot$: The <strong>element-wise Hadamard product</strong>, executing continuous, smooth gating.</li>
+<li>$\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$: The down-projection weight matrix, compressing retrieved knowledge back into $d_{\text{model}}$ highway width.</li>
+<li>$\mathbf{X}^{(l)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The completed output tensor of layer $l$, ready to enter layer $l+1$.</li>
 </ul>
 </fieldset>
-
 <ul>
 <li><strong>Notice the crucial property &mdash; The FFN operates on each token independently!</strong></li>
 <li>Attention is <strong>horizontal</strong> (mixes tokens across time $T$).</li>
@@ -538,14 +530,13 @@ $$
 <fieldset>
 <legend><strong>Symbol Breakdown: Unembedding Projection</strong></legend>
 <ul>
-  <li>$\mathbf{X}^{(L)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The deep feature tensor exiting layer $L$.</li>
-  <li>$\mathbf{X}_{\text{final}} \in \mathbb{R}^{T \times d_{\text{model}}}$: The final RMSNorm-normalized representations.</li>
-  <li>$\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$: The unembedding projection matrix (often tied to $\mathbf{E}^\top$ in weight-tied models).</li>
-  <li>$\mathbf{Z} \in \mathbb{R}^{T \times |V|}$: The <strong>logits matrix</strong> across the entire sequence.</li>
-  <li>$\mathbf{z}_T \in \mathbb{R}^{1 \times |V|}$: The last row (row $T$), containing raw unnormalized prediction scores for what token should follow position $T$.</li>
+<li>$\mathbf{X}^{(L)} \in \mathbb{R}^{T \times d_{\text{model}}}$: The deep feature tensor exiting layer $L$.</li>
+<li>$\mathbf{X}_{\text{final}} \in \mathbb{R}^{T \times d_{\text{model}}}$: The final RMSNorm-normalized representations.</li>
+<li>$\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$: The unembedding projection matrix (often tied to $\mathbf{E}^\top$ in weight-tied models).</li>
+<li>$\mathbf{Z} \in \mathbb{R}^{T \times |V|}$: The <strong>logits matrix</strong> across the entire sequence.</li>
+<li>$\mathbf{z}_T \in \mathbb{R}^{1 \times |V|}$: The last row (row $T$), containing raw unnormalized prediction scores for what token should follow position $T$.</li>
 </ul>
 </fieldset>
-
 <p>Passing the final row $\mathbf{z}_T$ through the <strong>Softmax function</strong> produces genuine probabilities:</p>
 
 
@@ -557,15 +548,14 @@ $$
 <fieldset>
 <legend><strong>Symbol Breakdown: Softmax Probability Distribution</strong></legend>
 <ul>
-  <li>$w_{\le T}$: The known prompt history $(w_1, w_2, \dots, w_T)$.</li>
-  <li>$w_{T+1}$: The target token to generate at position $T+1$.</li>
-  <li>$v_i$: The $i$-th candidate token in vocabulary $V$ ($i \in \{1, 2, \dots, |V|\}$).</li>
-  <li>$z_{T, i}$: The logit score assigned to candidate $v_i$ by the model.</li>
-  <li>$\exp(z_{T, i})$: Natural exponential $e^{z_{T, i}}$, ensuring scores are positive and amplifying differences.</li>
-  <li>Denominator $\sum_{j=1}^{|V|} \exp(z_{T, j})$: Sum of exponential scores over all candidates, ensuring all $|V|$ probabilities sum strictly to $1.0$ (100%).</li>
+<li>$w_{\le T}$: The known prompt history $(w_1, w_2, \dots, w_T)$.</li>
+<li>$w_{T+1}$: The target token to generate at position $T+1$.</li>
+<li>$v_i$: The $i$-th candidate token in vocabulary $V$ ($i \in \{1, 2, \dots, |V|\}$).</li>
+<li>$z_{T, i}$: The logit score assigned to candidate $v_i$ by the model.</li>
+<li>$\exp(z_{T, i})$: Natural exponential $e^{z_{T, i}}$, ensuring scores are positive and amplifying differences.</li>
+<li>Denominator $\sum_{j=1}^{|V|} \exp(z_{T, j})$: Sum of exponential scores over all candidates, ensuring all $|V|$ probabilities sum strictly to $1.0$ (100%).</li>
 </ul>
 </fieldset>
-
 <p>The word with the highest probability is sampled, appended to the sequence, and the entire round table runs again to predict the next token. This is <strong>Autoregressive Generation</strong>.</p>
 <hr />
 <h2 id="step-4">Step 4: Where Did It Come From? (The Historical Lineage)</h2>
@@ -623,7 +613,6 @@ $$
 <p><input type="checkbox" checked disabled> <strong>Step 4:</strong> Thinking (Feed-Forward Network) synthesizes the contextualized vector.</p>
 <p><input type="checkbox" checked disabled> <strong>Step 5:</strong> Unembedding projection predicts the next token "flows".</p>
 </fieldset>
-
 <h3>Step 1: Initial Static Embeddings</h3>
 <p>Suppose our embedding table maps our 3 input tokens to 2D vectors:</p>
 
@@ -665,7 +654,7 @@ Learners naturally ask at this step: <em>How does the network know that "river" 
 This is the core mechanic of Self-Attention: <strong>the Dot-Product Resonance between Query and Key vectors</strong> (explored comprehensively in Chapter 06):
 </p>
 <ol>
-  <li><strong>Megaphones and Nametags (Q and K)</strong>:
+<li><strong>Megaphones and Nametags (Q and K)</strong>:
     The model provides every token with a "Megaphone" ($\mathbf{q}$, announcing its needs) and a "Nametag" ($\mathbf{k}$, advertising its attributes).
     <ul>
       <li><samp>"bank"</samp> raises its megaphone with query $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$ (declaring: <em>"I need water/nature clues to disambiguate my meaning!"</em>).</li>
@@ -694,12 +683,11 @@ $$
 
 
   </li>
-  <li><strong>Why did the weights learn this?</strong>
+<li><strong>Why did the weights learn this?</strong>
     During pretraining, backpropagation penalized incorrect predictions, training the projection matrices $\mathbf{W}_Q$ and $\mathbf{W}_K$ to align the Query of ambiguous words directly with the Key vectors of their clarifying context!
   </li>
 </ol>
 </fieldset>
-
 <p>Look at what happened: $\Delta \mathbf{x}_2$ has absorbed the heavy water feature ($0.82$) from its neighbor <samp>"river"</samp>!</p>
 <h3>Step 3: The Residual Highway</h3>
 <p>We add the communication update $\Delta \mathbf{x}_2$ back into the original embedding $\mathbf{x}_2^{(0)}$:</p>
@@ -749,26 +737,32 @@ $$
 $$
 
 
-<p>Let's compute each logit:
-- For token 0 (<samp>"the"</samp>): $0.50(-1.0) + 2.00(-0.5) = -0.5 - 1.0 = \mathbf{-1.50}$
-- For token 1 (<samp>"bank"</samp>): $0.50(0.2) + 2.00(-0.8) = 0.1 - 1.6 = \mathbf{-1.50}$
-- For token 2 (<samp>"river"</samp>): $0.50(0.5) + 2.00(-0.2) = 0.25 - 0.4 = \mathbf{-0.15}$
-- For token 3 (<samp>"flows"</samp>): $0.50(0.1) + 2.00(1.5) = 0.05 + 3.0 = \mathbf{+3.05}$</p>
-<p>Passing logits $\mathbf{z} = [-1.50, -1.50, -0.15, +3.05]$ through Softmax:
-- $e^{-1.50} \approx 0.223$
-- $e^{-1.50} \approx 0.223$
-- $e^{-0.15} \approx 0.861$
-- $e^{+3.05} \approx 21.115$
-- $\sum = 0.223 + 0.223 + 0.861 + 21.115 = 22.422$</p>
-<p>Resulting probabilities:
-- $P(\text{"the"}) = \frac{0.223}{22.422} \approx 1.0\%$
-  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.010">1.0%</meter>
-- $P(\text{"bank"}) = \frac{0.223}{22.422} \approx 1.0\%$
-  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.010">1.0%</meter>
-- $P(\text{"river"}) = \frac{0.861}{22.422} \approx 3.8\%$
-  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.038">3.8%</meter>
-- $P(\text{"flows"}) = \frac{21.115}{22.422} \approx \mathbf{94.2\%}$
-  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.942">94.2%</meter></p>
+<p>Let's compute each logit:</p>
+<ul>
+<li>For token 0 (<samp>"the"</samp>): $0.50(-1.0) + 2.00(-0.5) = -0.5 - 1.0 = \mathbf{-1.50}$</li>
+<li>For token 1 (<samp>"bank"</samp>): $0.50(0.2) + 2.00(-0.8) = 0.1 - 1.6 = \mathbf{-1.50}$</li>
+<li>For token 2 (<samp>"river"</samp>): $0.50(0.5) + 2.00(-0.2) = 0.25 - 0.4 = \mathbf{-0.15}$</li>
+<li>For token 3 (<samp>"flows"</samp>): $0.50(0.1) + 2.00(1.5) = 0.05 + 3.0 = \mathbf{+3.05}$</li>
+</ul>
+<p>Passing logits $\mathbf{z} = [-1.50, -1.50, -0.15, +3.05]$ through Softmax:</p>
+<ul>
+<li>$e^{-1.50} \approx 0.223$</li>
+<li>$e^{-1.50} \approx 0.223$</li>
+<li>$e^{-0.15} \approx 0.861$</li>
+<li>$e^{+3.05} \approx 21.115$</li>
+<li>$\sum = 0.223 + 0.223 + 0.861 + 21.115 = 22.422$</li>
+</ul>
+<p>Resulting probabilities:</p>
+<ul>
+<li>$P(\text{"the"}) = \frac{0.223}{22.422} \approx 1.0\%$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.010">1.0%</meter></li>
+<li>$P(\text{"bank"}) = \frac{0.223}{22.422} \approx 1.0\%$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.010">1.0%</meter></li>
+<li>$P(\text{"river"}) = \frac{0.861}{22.422} \approx 3.8\%$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.038">3.8%</meter></li>
+<li>$P(\text{"flows"}) = \frac{21.115}{22.422} \approx \mathbf{94.2\%}$
+  <meter min="0" max="1" low="0.2" high="0.6" optimum="0.9" value="0.942">94.2%</meter></li>
+</ul>
 <p><mark>The Transformer predicted <samp>"flows"</samp> with overwhelming 94.2% confidence!</mark></p>
 <fieldset>
 <legend><strong>Deep Question: If +3.05 is Already the Highest Logit, Why Compute Probabilities P Instead of Just Using z?</strong></legend>
@@ -780,7 +774,7 @@ Under greedy decoding ($\arg\max$), picking the largest logit yields the exact s
 Why then does modern deep learning insist on passing logits through Softmax to produce probability distribution $P$? Three non-negotiable reasons:
 </p>
 <ol>
-  <li><strong>Training Requires Smooth Derivatives (The Engine of Backpropagation)</strong>:
+<li><strong>Training Requires Smooth Derivatives (The Engine of Backpropagation)</strong>:
     The $\arg\max$ operation is a flat step function with zero derivatives everywhere &mdash; backpropagation stops dead in its tracks!
     In contrast, the <strong>Cross-Entropy Loss $\mathcal{L} = -\log P_{\text{target}}$</strong> produces one of the most celebrated gradients in all of machine learning:
 
@@ -796,17 +790,16 @@ $$
 
     The gradient is simply the error between predicted probability and true target label! Without $P$, neural networks cannot learn.
   </li>
-  <li><strong>Inference Sampling & Creativity (Temperature, Top-$p$, and Top-$k$)</strong>:
+<li><strong>Inference Sampling &amp; Creativity (Temperature, Top-$p$, and Top-$k$)</strong>:
     Greedy decoding makes language models repetitive, robotic, and prone to endless loops.
     Real language is creative. Having true probabilities that sum to 1.0 allows the model to spin a weighted wheel (Multinomial Sampling), balancing predictability and creativity via <strong>Temperature</strong> and <strong>Nucleus (Top-$p$) sampling</strong>. You cannot roll a probability wheel over negative raw numbers like $-1.50$!
   </li>
-  <li><strong>Confidence Calibration & Hallucination Prevention</strong>:
+<li><strong>Confidence Calibration &amp; Hallucination Prevention</strong>:
     Raw logits have no absolute scale. If the top two logits are $[+3.05, +3.04]$ (the model is agonizingly torn) versus $[+3.05, -10.0]$ (the model is rock-solid certain), $\arg\max$ sees no difference.
     Converting to probabilities ($50.2\%$ vs $99.99\%$) provides the calibrated confidence scores essential for detecting hallucinations in code, medical, and legal tasks.
   </li>
 </ol>
 </fieldset>
-
 <p>It succeeded where our Lab 01 micro-brain failed because it allowed <samp>"bank"</samp> to look at <samp>"river"</samp> across space, fuse the clues, process the factual meaning, and make an enlightened contextual prediction.</p>
 <hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
@@ -849,15 +842,24 @@ That brings us directly to the foundational mechanics of <strong>Queries, Keys, 
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

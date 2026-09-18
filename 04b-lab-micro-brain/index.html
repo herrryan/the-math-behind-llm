@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -129,16 +129,15 @@
 [Stage 1 (Current)] 80 Lines Pure Python: Bengio 2003 MLP Language Model (Embeddings, Dense Layers, Manual Backprop)
        │
        ▼ (Fatal Flaw Discovered: 1-word context window; instant amnesia on long clauses)
-[Stage 2 (Chapter 08)] 140 Lines Pure Python: Attention Brain (Unlocking Q, K, V & Full-Sequence Dynamic Routing)
+[Stage 2 (Chapter 08)] 140 Lines Pure Python: Attention Brain (Unlocking Q, K, V &amp; Full-Sequence Dynamic Routing)
        │
-       ▼ (Depth Limit Discovered: Vanishing gradients & numerical blowups at scale)
-[Stage 3 (Chapter 13)] 220 Lines Pure Python: Modern Transformer Block (Residuals, RMSNorm, & SwiGLU Gating)
+       ▼ (Depth Limit Discovered: Vanishing gradients &amp; numerical blowups at scale)
+[Stage 3 (Chapter 13)] 220 Lines Pure Python: Modern Transformer Block (Residuals, RMSNorm, &amp; SwiGLU Gating)
        │
        ▼ (Generation Polish: Stiff, mechanical greedy outputs)
-[Stage 4 (Chapter 17)] 300 Lines Pure Python Final: Production-Grade Inference Engine (KV Cache & Top-p Sampling)
+[Stage 4 (Chapter 17)] 300 Lines Pure Python Final: Production-Grade Inference Engine (KV Cache &amp; Top-p Sampling)
 </pre>
 </fieldset>
-
 <hr />
 <h2 id="step-1">Step 1: 3-Year-Old Intuition (The Clockwork Punched Music Box)</h2>
 
@@ -377,10 +376,12 @@ print("Generated:", " ".join(generated))
 <hr />
 <h2 id="step-4">Step 4: Historical Origin (Bengio 2003 &amp; The Dawn of Modern NLP)</h2>
 
-<p>Prior to 2003, computer scientists built language models entirely through <strong>n-gram statistical frequency counting</strong>:
-- If an exact phrase never occurred in the training text (e.g. <samp>"astronaut rides a camel"</samp>), its statistical count was $0$;
-- The model rigidly declared the phrase grammatically impossible ($P = 0$).
-- As context length grew to 5 words or more, the number of required table states exploded exponentially as $|V|^5$. For a 100,000-word vocabulary, that required $10^{25}$ table entries&mdash;exceeding the storage capacity of every hard drive on Earth. This is the classic <dfn id="def-curse-of-dim"><strong>Curse of Dimensionality</strong></dfn>.</p>
+<p>Prior to 2003, computer scientists built language models entirely through <strong>n-gram statistical frequency counting</strong>:</p>
+<ul>
+<li>If an exact phrase never occurred in the training text (e.g. <samp>"astronaut rides a camel"</samp>), its statistical count was $0$;</li>
+<li>The model rigidly declared the phrase grammatically impossible ($P = 0$).</li>
+<li>As context length grew to 5 words or more, the number of required table states exploded exponentially as $|V|^5$. For a 100,000-word vocabulary, that required $10^{25}$ table entries&mdash;exceeding the storage capacity of every hard drive on Earth. This is the classic <dfn id="def-curse-of-dim"><strong>Curse of Dimensionality</strong></dfn>.</li>
+</ul>
 <dl>
   <dt><time datetime="2003">2003</time> &mdash; <strong>Yoshua Bengio et al.</strong>: A Neural Probabilistic Language Model</dt>
   <dd>
@@ -473,17 +474,18 @@ Generated: cat sat on the rug the rug
 
 <fieldset>
 <legend><strong>Stage 1 Milestone Core Takeaway</strong></legend>
-Deep learning is not an impenetrable black box. Using only linear algebra, one-way ReLU hinges, and the calculus chain rule, you have given a computer the power to self-correct and learn grammar. Mathematically, you have built your very first functional neural language model!
+<p>Deep learning is not an impenetrable black box. Using only linear algebra, one-way ReLU hinges, and the calculus chain rule, you have given a computer the power to self-correct and learn grammar. Mathematically, you have built your very first functional neural language model!</p>
 </fieldset>
-
 <h3>The Fatal Bottleneck: Severe Short-Term Amnesia</h3>
 <p>Notice the generated text above:
 <samp>"cat sat on the rug the rug"</samp></p>
 <p>Why did it fall into an infinite loop of <samp>"the rug the rug"</samp>?
-<strong>Because this micro-brain suffers from incurable short-term amnesia!</strong>
-- It is a <strong>Markovian 1-word predictor</strong>: its vision is restricted strictly to the <strong>immediately preceding token</strong>.
-- When it sees <code>"the"</code>, it knows that <code>"the"</code> is followed by either <code>"rug"</code> or <code>"mat"</code>. But it has zero recollection whether the original subject 3 words ago was <code>cat</code> or <code>dog</code>!
-- In real-world language (<em>"The boy who held the red balloon on Tuesday walked..."</em>), the model would completely forget the subject <code>boy</code> before reaching the verb <code>walked</code>.</p>
+<strong>Because this micro-brain suffers from incurable short-term amnesia!</strong></p>
+<ul>
+<li>It is a <strong>Markovian 1-word predictor</strong>: its vision is restricted strictly to the <strong>immediately preceding token</strong>.</li>
+<li>When it sees <code>"the"</code>, it knows that <code>"the"</code> is followed by either <code>"rug"</code> or <code>"mat"</code>. But it has zero recollection whether the original subject 3 words ago was <code>cat</code> or <code>dog</code>!</li>
+<li>In real-world language (<em>"The boy who held the red balloon on Tuesday walked..."</em>), the model would completely forget the subject <code>boy</code> before reaching the verb <code>walked</code>.</li>
+</ul>
 <p><strong>How can a neural network break past the 1-word horizon? How can a model look back across thousands of past words and instantly shine a spotlight on the single most relevant clue?</strong></p>
 <p>That urgent question leads us directly to the architecture that powers every modern frontier LLM: <strong>Chapter 05: The Transformer Architecture</strong>!</p>
 
@@ -511,15 +513,24 @@ Deep learning is not an impenetrable black box. Using only linear algebra, one-w
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

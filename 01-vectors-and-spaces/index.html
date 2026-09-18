@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -122,24 +122,19 @@
 
 <h2 id="step-1">Step 1: 3-Year-Old Intuition (The Giant Playground Map)</h2>
 
-<fieldset><legend><strong>3-Year-Old Intuition: The Giant Playground Map</strong></legend>
-
-Imagine you bring all your toys outside into a giant grassy playground.
-
-You arrange the playground into large sandboxes where similar toys sit side by side in neighboring sandboxes: teddy bears, kittens, and puppies in the soft cuddly sandbox; wooden airplanes and racecars in the zoom-machine sandbox; and bananas and apples in the snack sandbox.
-
-Now imagine drawing chalk grid lines across the playground:
-- Walk 2 steps North and 8 steps East: you reach the kitten in the cuddly animal sandbox.
-- Walk 9 steps North and 1 step East: you reach the airplane in the machine sandbox.
-
-Every toy now has an exact **address** on the playground map. 
-
-If two toys are similar, their addresses sit close together in neighboring sandboxes. If two toys have nothing in common (like a fluffy kitten and a giant Boeing 747 airplane), their addresses are far apart on opposite sides of the playground.
-
-This is what an LLM does with human language. It gives every word an address on a giant mathematical playground map so words with similar meanings sit right next to each other!
-
+<fieldset>
+<legend><strong>3-Year-Old Intuition: The Giant Playground Map</strong></legend>
+<p>Imagine you bring all your toys outside into a giant grassy playground.</p>
+<p>You arrange the playground into large sandboxes where similar toys sit side by side in neighboring sandboxes: teddy bears, kittens, and puppies in the soft cuddly sandbox; wooden airplanes and racecars in the zoom-machine sandbox; and bananas and apples in the snack sandbox.</p>
+<p>Now imagine drawing chalk grid lines across the playground:</p>
+<ul>
+<li>Walk 2 steps North and 8 steps East: you reach the kitten in the cuddly animal sandbox.</li>
+<li>Walk 9 steps North and 1 step East: you reach the airplane in the machine sandbox.</li>
+</ul>
+<p>Every toy now has an exact <strong>address</strong> on the playground map. </p>
+<p>If two toys are similar, their addresses sit close together in neighboring sandboxes. If two toys have nothing in common (like a fluffy kitten and a giant Boeing 747 airplane), their addresses are far apart on opposite sides of the playground.</p>
+<p>This is what an LLM does with human language. It gives every word an address on a giant mathematical playground map so words with similar meanings sit right next to each other!</p>
 </fieldset>
-
 <hr />
 <h2 id="step-2">Step 2: The Bridging Question (From Words to Numbers)</h2>
 
@@ -147,11 +142,13 @@ This is what an LLM does with human language. It gives every word an address on 
 <p>However, computer chips and GPUs are built from silicon and electric circuits. They do not know what the English letters <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> mean. A computer processor cannot multiply the word <kbd>"kitten"</kbd> by $0.90$.</p>
 <p><strong>How do we convert human words into physical coordinates (lists of numbers) that a computer chip can store, add, and multiply?</strong></p>
 <h3>The Failed Shortcut: Why We Cannot Simply Number Words 1, 2, 3</h3>
-<p>A tempting first idea is to assign a single integer ID to each word:
-- $\text{"cat"} = 1$
-- $\text{"dog"} = 2$
-- $\text{"kitten"} = 3$
-- $\text{"airplane"} = 4$</p>
+<p>A tempting first idea is to assign a single integer ID to each word:</p>
+<ul>
+<li>$\text{"cat"} = 1$</li>
+<li>$\text{"dog"} = 2$</li>
+<li>$\text{"kitten"} = 3$</li>
+<li>$\text{"airplane"} = 4$</li>
+</ul>
 <p>This simple scalar numbering fails catastrophically for two fundamental reasons:</p>
 <ol>
 <li>
@@ -205,9 +202,11 @@ $$
 $$
 
 
-<p>Where:
-- $|V|$ is the total number of words in the vocabulary (the number of rows).
-- $d$ is the <strong>embedding dimension</strong> or <strong>hidden size</strong> (the number of columns).</p>
+<p>Where:</p>
+<ul>
+<li>$|V|$ is the total number of words in the vocabulary (the number of rows).</li>
+<li>$d$ is the <strong>embedding dimension</strong> or <strong>hidden size</strong> (the number of columns).</li>
+</ul>
 <p>Each row $i$ of the matrix $\mathbf{E}$, written as $\mathbf{E}[i, :]$, is the dense vector embedding for word $i$:</p>
 
 
@@ -255,14 +254,11 @@ One-Hot Vector e_i^T (1 × |V|)           Embedding Matrix E (|V| × d)         
 <figcaption><strong>Figure 1.1:</strong> Vector lookup formulated as one-hot matrix multiplication: the solitary 1 selects row i.</figcaption>
 </figure>
 
-<fieldset><legend><strong>Practical Engineering Note: Lookup vs. Matrix Multiply</strong></legend>
-
-In mathematical theory, vector lookup is expressed as $\mathbf{e}_i^\top \mathbf{E}$ because neural networks are defined as continuous differentiable matrix operations.
-
-In production code (such as PyTorch's `torch.nn.Embedding`), multiplying a 100,000-element sparse vector on GPU is wasteful. Hardware libraries instead perform an instantaneous direct array index `E[i]`, which runs in $O(1)$ time and produces the exact same numerical result.
-
+<fieldset>
+<legend><strong>Practical Engineering Note: Lookup vs. Matrix Multiply</strong></legend>
+<p>In mathematical theory, vector lookup is expressed as $\mathbf{e}_i^\top \mathbf{E}$ because neural networks are defined as continuous differentiable matrix operations.</p>
+<p>In production code (such as PyTorch's <code>torch.nn.Embedding</code>), multiplying a 100,000-element sparse vector on GPU is wasteful. Hardware libraries instead perform an instantaneous direct array index <code>E[i]</code>, which runs in $O(1)$ time and produces the exact same numerical result.</p>
 </fieldset>
-
 <hr />
 <h3>Mathematical Symbol Breakdown Table</h3>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
@@ -344,21 +340,21 @@ In production code (such as PyTorch's `torch.nn.Embedding`), multiplying a 100,0
 <hr />
 <h2 id="step-4">Step 4: Where Did It Come From?</h2>
 
-<fieldset><legend><strong>The Historical Journey: From Firth to Word2Vec</strong></legend>
-
-How did AI researchers discover that words could be treated as points on a map?
-
+<fieldset>
+<legend><strong>The Historical Journey: From Firth to Word2Vec</strong></legend>
+<p>How did AI researchers discover that words could be treated as points on a map?</p>
 </fieldset>
-
 <h3>1. The Distributional Hypothesis (1957)</h3>
 <p>In 1957, British linguist John Rupert Firth wrote one of the most famous sentences in the history of linguistics:</p>
 <blockquote>
 <p><em>"You shall know a word by the company it keeps."</em><br />
 &mdash; <strong>J. R. Firth (1957)</strong></p>
 </blockquote>
-<p>Firth observed that words with similar meanings naturally appear in similar sentence environments:
-- <kbd>"The fluffy [kitten] drank warm milk from the saucer."</kbd>
-- <kbd>"The fluffy [cat] drank warm milk from the saucer."</kbd></p>
+<p>Firth observed that words with similar meanings naturally appear in similar sentence environments:</p>
+<ul>
+<li><kbd>"The fluffy [kitten] drank warm milk from the saucer."</kbd></li>
+<li><kbd>"The fluffy [cat] drank warm milk from the saucer."</kbd></li>
+</ul>
 <p>Because <kbd>"kitten"</kbd> and <kbd>"cat"</kbd> share nearly identical surrounding context words, their mathematical coordinates should be close together.</p>
 <h3>2. The Orthogonality Catastrophe of One-Hot Vectors</h3>
 <p>Before dense embeddings, early computational linguistics relied entirely on one-hot vectors $\mathbf{e}_i$. </p>
@@ -372,9 +368,11 @@ $$
 
 
 <p>In linear algebra, when the dot product between two non-zero vectors is zero, the vectors are <strong>perpendicular (orthogonal)</strong>.</p>
-<p>In one-hot space, every single word is 90 degrees away from every other word!
-- Distance from <kbd>"puppy"</kbd> to <kbd>"dog"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
-- Distance from <kbd>"puppy"</kbd> to <kbd>"nuclear reactor"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</p>
+<p>In one-hot space, every single word is 90 degrees away from every other word!</p>
+<ul>
+<li>Distance from <kbd>"puppy"</kbd> to <kbd>"dog"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</li>
+<li>Distance from <kbd>"puppy"</kbd> to <kbd>"nuclear reactor"</kbd>: $\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</li>
+</ul>
 <p>The computer was completely blind to meaning: it considered a puppy just as unrelated to a dog as it was to a submarine or a sandwich!</p>
 <h3>3. The Dense Vector Revolution: Word2Vec (2013)</h3>
 <p>In 2013, Tomas Mikolov and his team at Google introduced <strong>Word2Vec</strong>. Instead of huge orthogonal one-hot vectors, they trained a neural network to compress words into small, continuous dense vectors ($d = 300$).</p>
@@ -392,12 +390,10 @@ $$
 <hr />
 <h2 id="step-5">Step 5: Concrete Toy Example</h2>
 
-<fieldset><legend><strong>Concrete Toy Example: The 2D Pet-and-Vehicle Playground</strong></legend>
-
-Let's perform the exact vector math by hand using pencil-and-paper numbers.
-
+<fieldset>
+<legend><strong>Concrete Toy Example: The 2D Pet-and-Vehicle Playground</strong></legend>
+<p>Let's perform the exact vector math by hand using pencil-and-paper numbers.</p>
 </fieldset>
-
 <h3>The Setup</h3>
 <ul>
 <li>
@@ -605,14 +601,11 @@ Size (Axis 2)
 <hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
 
-<fieldset><legend><strong>Core Takeaway</strong></legend>
-
-An embedding matrix $\mathbf{E}$ is the **universal translation bridge** of an LLM: it converts flat, isolated human words into living, geometric coordinates in multi-dimensional space.
-
-By placing words with similar meanings close together, the neural network can reason about concepts, analogies, and contexts using pure linear algebra.
-
-But this brings us to our next crucial question: **When an LLM wants to measure how closely two words are related, what exact mathematical ruler does it use to measure alignment?**
-
+<fieldset>
+<legend><strong>Core Takeaway</strong></legend>
+<p>An embedding matrix $\mathbf{E}$ is the <strong>universal translation bridge</strong> of an LLM: it converts flat, isolated human words into living, geometric coordinates in multi-dimensional space.</p>
+<p>By placing words with similar meanings close together, the neural network can reason about concepts, analogies, and contexts using pure linear algebra.</p>
+<p>But this brings us to our next crucial question: <strong>When an LLM wants to measure how closely two words are related, what exact mathematical ruler does it use to measure alignment?</strong></p>
 </fieldset>
 
 <hr>
@@ -639,15 +632,24 @@ But this brings us to our next crucial question: **When an LLM wants to measure 
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

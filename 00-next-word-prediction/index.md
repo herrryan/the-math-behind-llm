@@ -60,7 +60,7 @@ The total count of distinct words in this box is called the **Vocabulary Size**,
 
 When the model has already observed a sequence of $t-1$ words:
 
-$$w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{<t})$$
+$$w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{\lt t})$$
 
 it calculates the probability that the next word at position $t$ is a specific candidate word $w \in V$. We write this as:
 
@@ -71,10 +71,10 @@ The vertical bar $\mid$ translates into plain English as **"given that we alread
 Every valid probability distribution in an LLM must satisfy two unbreakable mathematical laws:
 
 1. **Non-negativity & Boundedness**: No word can have a negative chance, and no word can have more than a 100% chance:
-   $$0 \le P(w_t = w \mid w_{<t}) \le 1 \quad \text{for all } w \in V$$
+   $$0 \le P(w_t = w \mid w_{\lt t}) \le 1 \quad \text{for all } w \in V$$
 
 2. **Total Probability Conservation**: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ (100% of the pie):
-   $$\sum_{w \in V} P(w_t = w \mid w_{<t}) = 1$$
+   $$\sum_{w \in V} P(w_t = w \mid w_{\lt t}) = 1$$
 
 ---
 
@@ -151,13 +151,13 @@ There are three foundational reasons:
       <td>$w_4 = \text{"cream"}$</td>
     </tr>
     <tr>
-      <td>$w_{<t}$</td>
+      <td>$w_{\lt t}$</td>
       <td>Prefix Context</td>
       <td>All previous clues whispered into the funnel</td>
-      <td>$w_{<4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
+      <td>$w_{\lt 4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
     </tr>
     <tr>
-      <td>$P(w_t \mid w_{<t})$</td>
+      <td>$P(w_t \mid w_{\lt t})$</td>
       <td>Conditional Probability</td>
       <td>The model's belief meter ($0.0$ to $1.0$) for that word</td>
       <td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
@@ -195,11 +195,11 @@ There are three foundational reasons:
   <dt><strong>Target Token ($w_t$)</strong></dt>
   <dd>The specific word chosen or predicted at sequence position $t$.</dd>
   
-  <dt><strong>Prefix History / Context ($w_{<t}$)</strong></dt>
+  <dt><strong>Prefix History / Context ($w_{\lt t}$)</strong></dt>
   <dd>The ordered tuple of all tokens preceding step $t$: $(w_1, w_2, \dots, w_{t-1})$.</dd>
   
-  <dt><strong>Conditional Probability ($P(w_t \mid w_{<t})$)</strong></dt>
-  <dd>A real scalar between $0.0$ and $1.0$ satisfying $\sum_{w \in V} P(w \mid w_{<t}) = 1.0$.</dd>
+  <dt><strong>Conditional Probability ($P(w_t \mid w_{\lt t})$)</strong></dt>
+  <dd>A real scalar between $0.0$ and $1.0$ satisfying $\sum_{w \in V} P(w \mid w_{\lt t}) = 1.0$.</dd>
 </dl>
 </details>
 
@@ -227,7 +227,7 @@ Why do all modern LLMs formulate language generation as a chain of conditional p
 <p>Why can't we just assume words are independent? That is, why not compute:</p>
 $$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
 
-<p>If words were independent, the sentence <em>"The dog bit the man"</em> would have the exact same probability as <em>"Bit man dog the the"</em>, because both contain identical words! Language relies entirely on word order and context. Therefore, conditioning on the past prefix $w_{<t}$ is mathematically essential.</p>
+<p>If words were independent, the sentence <em>"The dog bit the man"</em> would have the exact same probability as <em>"Bit man dog the the"</em>, because both contain identical words! Language relies entirely on word order and context. Therefore, conditioning on the past prefix $w_{\lt t}$ is mathematically essential.</p>
 </details>
 
 ---
@@ -385,7 +385,7 @@ If a computer chip tries to store a number like $10^{-250}$ using standard float
 **The Mathematical Solution (Log-Probabilities):**
 To prevent this underflow, AI researchers never multiply probabilities directly. Instead, they convert probabilities into logarithms. Because $\log(a \times b) = \log(a) + \log(b)$, dangerous multiplication turns into safe, stable addition:
 
-$$\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{<t})$$
+$$\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{\lt t})$$
 
 We will explore this logarithmic superpower in depth when we train models with **Cross-Entropy Loss** in Module 6!
 

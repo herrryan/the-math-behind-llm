@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -376,14 +376,18 @@ $$
 <p>A natural question arises:
 <em>Why don't LLMs just measure Euclidean distance $\|\mathbf{u} - \mathbf{v}\| = \sqrt{\sum (u_i - v_i)^2}$ to see how close words are?</em></p>
 <p>Because Euclidean distance falls into the <strong>Magnitude Trap</strong> (also called the Frequency or Document Length Bias).</p>
-<p>Consider two documents:
-- Document A: A 10-word tweet announcing that a cat won a prize.
-- Document B: A 5,000-word encyclopedic article explaining feline anatomy.</p>
+<p>Consider two documents:</p>
+<ul>
+<li>Document A: A 10-word tweet announcing that a cat won a prize.</li>
+<li>Document B: A 5,000-word encyclopedic article explaining feline anatomy.</li>
+</ul>
 <p>Both documents are about the exact same topic: <strong>cats</strong>!
 Because both discuss cats, their feature vectors point in the <strong>exact same direction</strong>.</p>
-<p>However, because Document B has 5,000 words, its word counts and activation values are massive compared to the short tweet. In coordinate space:
-- Vector A is a short arrow: $\mathbf{u}_A = [1, 2]$
-- Vector B is a gigantic arrow: $\mathbf{u}_B = [100, 200]$</p>
+<p>However, because Document B has 5,000 words, its word counts and activation values are massive compared to the short tweet. In coordinate space:</p>
+<ul>
+<li>Vector A is a short arrow: $\mathbf{u}_A = [1, 2]$</li>
+<li>Vector B is a gigantic arrow: $\mathbf{u}_B = [100, 200]$</li>
+</ul>
 <p>If you compute their <strong>Euclidean Distance</strong>:</p>
 
 
@@ -404,11 +408,9 @@ $$
 <p>Cosine similarity instantly reveals the truth: <strong>they are pointing in the exact same direction ($\cos(\theta) = 1.0$)</strong>!</p>
 <fieldset>
 <legend><strong>Why LLMs Care About Direction Over Length</strong></legend>
-In modern Transformer embeddings, frequent words (like <kbd>"the"</kbd> or <kbd>"is"</kbd>) and words that carry strong emotional valence can naturally develop larger vector norms during training. 
-
-By taking the cosine or normalizing vectors, the model ensures that semantic comparison measures conceptual direction rather than mere token frequency.
+<p>In modern Transformer embeddings, frequent words (like <kbd>"the"</kbd> or <kbd>"is"</kbd>) and words that carry strong emotional valence can naturally develop larger vector norms during training. </p>
+<p>By taking the cosine or normalizing vectors, the model ensures that semantic comparison measures conceptual direction rather than mere token frequency.</p>
 </fieldset>
-
 <hr />
 <h3>3. The Silicon Secret: Why GPUs Love Dot Products</h3>
 <p>Why is the dot product the heartbeat of modern deep learning?</p>
@@ -433,9 +435,11 @@ $$
 <hr />
 <h2 id="step-5">Step 5: Concrete Toy Example</h2>
 
-<p>Let's compute the exact dot products, vector lengths, and cosine similarities by hand using tiny numbers in a 2-dimensional conceptual space:
-- Axis 1: <strong>Feline Nature</strong>
-- Axis 2: <strong>Playfulness</strong></p>
+<p>Let's compute the exact dot products, vector lengths, and cosine similarities by hand using tiny numbers in a 2-dimensional conceptual space:</p>
+<ul>
+<li>Axis 1: <strong>Feline Nature</strong></li>
+<li>Axis 2: <strong>Playfulness</strong></li>
+</ul>
 <p>We have three words in our vocabulary:
 1. <kbd>"cat"</kbd>: $\mathbf{u} = \begin{bmatrix} 3 \\ 4 \end{bmatrix}$
 2. <kbd>"kitten"</kbd>: $\mathbf{v} = \begin{bmatrix} 6 \\ 8 \end{bmatrix}$
@@ -605,14 +609,11 @@ $$
 <hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
 
-<fieldset><legend><strong>Core Takeaway</strong></legend>
-
-The **dot product** is the fundamental affinity sensor of modern AI: it converts directional alignment into simple arithmetic that GPU tensor cores can execute at trillions of operations per second.
-
-By dividing by vector lengths, **cosine similarity** strips away word frequency and token length, allowing the language model to judge pure conceptual meaning.
-
-But words do not stay static: in a real sentence, words interact and transform each other. **How does an LLM reshape, bend, and project these vectors across layers?** That brings us to Module 2 and the power of **Matrix Multiplication**.
-
+<fieldset>
+<legend><strong>Core Takeaway</strong></legend>
+<p>The <strong>dot product</strong> is the fundamental affinity sensor of modern AI: it converts directional alignment into simple arithmetic that GPU tensor cores can execute at trillions of operations per second.</p>
+<p>By dividing by vector lengths, <strong>cosine similarity</strong> strips away word frequency and token length, allowing the language model to judge pure conceptual meaning.</p>
+<p>But words do not stay static: in a real sentence, words interact and transform each other. <strong>How does an LLM reshape, bend, and project these vectors across layers?</strong> That brings us to Module 2 and the power of <strong>Matrix Multiplication</strong>.</p>
 </fieldset>
 
 <hr>
@@ -639,15 +640,24 @@ But words do not stay static: in a real sentence, words interact and transform e
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

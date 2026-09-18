@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -138,10 +138,12 @@
 <figcaption><strong>图 3.1:</strong> 抓紧边缘拉伸橡胶布，会把原本规整的正方形方格拉伸为倾斜的平行四边形，但直线依然笔直，平行线依然平行。</figcaption>
 </figure>
 
-<p>现在，想象你双手抓住橡胶布的边缘用力拉扯：
-- 你用力往右拉，把整张布拉宽了一倍（<strong>拉伸</strong>）。
-- 你双手一上一下倾斜扭动，让方格向一侧斜斜倒去（<strong>剪切与旋转</strong>）。
-- 你从上面往下压，把整个布压得更扁（<strong>压缩</strong>）。</p>
+<p>现在，想象你双手抓住橡胶布的边缘用力拉扯：</p>
+<ul>
+<li>你用力往右拉，把整张布拉宽了一倍（<strong>拉伸</strong>）。</li>
+<li>你双手一上一下倾斜扭动，让方格向一侧斜斜倒去（<strong>剪切与旋转</strong>）。</li>
+<li>你从上面往下压，把整个布压得更扁（<strong>压缩</strong>）。</li>
+</ul>
 <p>在这个拉扯游戏里，请牢牢观察并记住三条黄金法则：</p>
 <ol>
 <li><strong>原点被死死钉在地面</strong>：红色小汽车坐落的中心点 $(0, 0)$ 绝对不能移位，它如同被图钉牢牢钉死在地板上。</li>
@@ -154,9 +156,11 @@
 <h2 id="step-2">Step 2: 承上启下的问题</h2>
 
 <p>在第01章与第02章中，我们认识到单词在大模型的语义地图上栖息为静止的坐标箭头（向量）。</p>
-<p>例如，英文单词 <kbd>"bank"</kbd> 进入模型时具有一个固定的初始词嵌入。但是在真实的人类语言中，同一个词在不同句子里的含义千差万别：
-- 在 <em>"river bank"</em>（河岸）中，这个词需要朝“流水、大自然、地理地貌”的方向移动。
-- 在 <em>"bank deposit"</em>（银行存款）中，这个词必须朝“金钱、金融、金库”的方向移动。</p>
+<p>例如，英文单词 <kbd>"bank"</kbd> 进入模型时具有一个固定的初始词嵌入。但是在真实的人类语言中，同一个词在不同句子里的含义千差万别：</p>
+<ul>
+<li>在 <em>"river bank"</em>（河岸）中，这个词需要朝“流水、大自然、地理地貌”的方向移动。</li>
+<li>在 <em>"bank deposit"</em>（银行存款）中，这个词必须朝“金钱、金融、金库”的方向移动。</li>
+</ul>
 <p>光有一本静态的词嵌入字典，是远远无法构成人工智能大脑的——单词的含义不能像冰雕一样凝固不动！</p>
 <p>这就引出了两个最根本的疑惑：
 1. <strong>什么是“权重”（$\mathbf{W}$）？它与我们在第01章学到的“嵌入”（$\mathbf{x}$）有何本质区别？</strong>
@@ -208,11 +212,8 @@
 
 <fieldset>
 <legend><strong>回溯第01章：你其实已经结识过第一个权重矩阵了！</strong></legend>
-在第01章中，我们引入了<strong>嵌入查找矩阵</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$。
-请留意这个奇妙的统一性：$\mathbf{E}$ 本质上就是我们遇到的第一个权重矩阵！它容纳了 $|V|$ 个词向量，负责将离散的单词编号（一热编码向量）翻译成连续的语义空间坐标：
-
-
-
+<p>在第01章中，我们引入了<strong>嵌入查找矩阵</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$。
+请留意这个奇妙的统一性：$\mathbf{E}$ 本质上就是我们遇到的第一个权重矩阵！它容纳了 $|V|$ 个词向量，负责将离散的单词编号（一热编码向量）翻译成连续的语义空间坐标：</p>
 
 
 $$
@@ -220,14 +221,9 @@ $$
 $$
 
 
-
-
-
-而到了第03章，层级中的<strong>权重矩阵</strong> $\mathbf{W}$ 则接过了接力棒：它接收现有的词嵌入 $\mathbf{x}$，并将它进一步投影、旋转到更深层、更高级的特征空间中。
-
-如果说嵌入矩阵 $\mathbf{E}$ 是一本给每个单词赋予初始定义的<strong>词典</strong>，那么权重矩阵 $\mathbf{W}$ 就是负责理解这些词语如何相互作用的<strong>思维透镜</strong>。
+<p>而到了第03章，层级中的<strong>权重矩阵</strong> $\mathbf{W}$ 则接过了接力棒：它接收现有的词嵌入 $\mathbf{x}$，并将它进一步投影、旋转到更深层、更高级的特征空间中。</p>
+<p>如果说嵌入矩阵 $\mathbf{E}$ 是一本给每个单词赋予初始定义的<strong>词典</strong>，那么权重矩阵 $\mathbf{W}$ 就是负责理解这些词语如何相互作用的<strong>思维透镜</strong>。</p>
 </fieldset>
-
 <hr />
 <h3>2. 核心变换方程式</h3>
 <p>对于一个维度为 $k$ 的输入词嵌入向量 $\mathbf{x} \in \mathbb{R}^{k \times 1}$、一个权重矩阵 $\mathbf{W} \in \mathbb{R}^{m \times k}$，以及一个偏置向量 $\mathbf{b} \in \mathbb{R}^{m \times 1}$，变换后的输出向量 $\mathbf{y} \in \mathbb{R}^{m \times 1}$ 为：</p>
@@ -246,9 +242,11 @@ $$
 $$
 
 
-<p>在这个公式中：
-- $\mathbf{W}\mathbf{x}$ 负责执行<strong>橡胶布拉伸</strong>：拉伸、旋转、倾斜剪切，或者改变词嵌入空间的维度大小。
-- $+\, \mathbf{b}$ 负责执行<strong>平移移动</strong>：把拉伸好的整个坐标网格平移滑动，将坐标原点挪到更合适的新位置。</p>
+<p>在这个公式中：</p>
+<ul>
+<li>$\mathbf{W}\mathbf{x}$ 负责执行<strong>橡胶布拉伸</strong>：拉伸、旋转、倾斜剪切，或者改变词嵌入空间的维度大小。</li>
+<li>$+\, \mathbf{b}$ 负责执行<strong>平移移动</strong>：把拉伸好的整个坐标网格平移滑动，将坐标原点挪到更合适的新位置。</li>
+</ul>
 <hr />
 <h3>3. 内维匹配兼容法则</h3>
 <p>两个矩阵能够相乘的<strong>充分必要条件</strong>是：第一个矩阵的列数，必须严格等于第二个矩阵的行数。</p>
@@ -286,12 +284,10 @@ $$
 
 <fieldset>
 <legend><strong>矩阵乘法本质上就是一张并行的点积阵列！</strong></legend>
-请留意它与第02章的深刻契合：
-乘积矩阵 $\mathbf{C}$ 里的每一个格子，纯粹就是左矩阵的一条水平横行向量与右矩阵的一条垂直坚列向量之间的<strong>点积</strong>。
-
-矩阵乘法是一个高度组织化、结构化的并行计算流水线，用一场行云流水的运算同时并行求解成千上万个点积。
+<p>请留意它与第02章的深刻契合：
+乘积矩阵 $\mathbf{C}$ 里的每一个格子，纯粹就是左矩阵的一条水平横行向量与右矩阵的一条垂直坚列向量之间的<strong>点积</strong>。</p>
+<p>矩阵乘法是一个高度组织化、结构化的并行计算流水线，用一场行云流水的运算同时并行求解成千上万个点积。</p>
 </fieldset>
-
 <hr />
 <h3>4. 几何秘密：基向量最终落在了何处？（基于词嵌入的直观透视）</h3>
 <p>为什么研究神经网络模型的研究人员要如此执着于“基向量落在了何处”？</p>
@@ -307,9 +303,11 @@ $$
 <p>从<strong>矩阵的列（基向量的归宿）</strong>来审视矩阵乘法，才能揭示神经网络重塑语义特征的真正工程蓝图。</p>
 <h4>从词嵌入的角度看，“基向量”究竟是什么？</h4>
 <p>回想第01章，我们知道每个词嵌入 $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ 都是由具体的语义坐标组成的（例如 $x_1 = 2$ 代表猫科属性，$x_2 = 1$ 代表活泼程度）。</p>
-<p>而所谓标准基向量，其实就是该语义空间中<strong>最纯粹、最极端的纯特征嵌入</strong>：
-- $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ 代表一个拥有 <strong>100% 纯粹第1特征</strong>（如纯粹的“猫科属性”）、其余属性完全为 0 的纯概念嵌入。
-- $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ 代表一个拥有 <strong>100% 纯粹第2特征</strong>（如纯粹的“活泼程度”）、其余属性完全为 0 的纯概念嵌入。</p>
+<p>而所谓标准基向量，其实就是该语义空间中<strong>最纯粹、最极端的纯特征嵌入</strong>：</p>
+<ul>
+<li>$\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ 代表一个拥有 <strong>100% 纯粹第1特征</strong>（如纯粹的“猫科属性”）、其余属性完全为 0 的纯概念嵌入。</li>
+<li>$\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ 代表一个拥有 <strong>100% 纯粹第2特征</strong>（如纯粹的“活泼程度”）、其余属性完全为 0 的纯概念嵌入。</li>
+</ul>
 <p>现实中任何一个具体单词的嵌入向量，都只是这两样纯粹特征原料的调配产物：$\mathbf{x} = x_1 \hat{\mathbf{i}} + x_2 \hat{\mathbf{j}}$。</p>
 <h4>矩阵各列：神经网络的“特征转译词典”</h4>
 <p>现在，请观察当权重矩阵透镜 $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ 投射在这些纯特征基向量嵌入上时，会发生什么：</p>
@@ -331,9 +329,11 @@ $$
 <blockquote>
 <p><strong>权重矩阵的每一列，正是该层将纯特征基向量变换后，它们在输出空间中着陆的新坐标！</strong></p>
 </blockquote>
-<p>矩阵 $\mathbf{W}$ 的每一列，实际上是该网络层编写的一条<strong>特征转译词典词条</strong>：
-- <strong>第 1 列（$\mathbf{w}_{:, 1}$）</strong>回答了：<em>“如果输入的词汇携带 1 个单位的第1特征（猫科属性），本层应该为它催生出怎样的新特征？”</em>
-- <strong>第 2 列（$\mathbf{w}_{:, 2}$）</strong>回答了：<em>“如果输入的词汇携带 1 个单位的第2特征（活泼度），本层应该为它催生出怎样的新特征？”</em></p>
+<p>矩阵 $\mathbf{W}$ 的每一列，实际上是该网络层编写的一条<strong>特征转译词典词条</strong>：</p>
+<ul>
+<li><strong>第 1 列（$\mathbf{w}_{:, 1}$）</strong>回答了：<em>“如果输入的词汇携带 1 个单位的第1特征（猫科属性），本层应该为它催生出怎样的新特征？”</em></li>
+<li><strong>第 2 列（$\mathbf{w}_{:, 2}$）</strong>回答了：<em>“如果输入的词汇携带 1 个单位的第2特征（活泼度），本层应该为它催生出怎样的新特征？”</em></li>
+</ul>
 <h4>矩阵乘法本质是“概念配方搅拌机”</h4>
 <p>当一个真实的词嵌入向量 $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$（如 $\text{"cat"} = [2, 1]^\top$）进入神经网络层时，矩阵乘法在几何上执行的是：</p>
 
@@ -349,22 +349,23 @@ $$
 </blockquote>
 <fieldset>
 <legend><strong>为什么“基向量-列视角”能彻底贯通后续模块？</strong></legend>
-掌握矩阵的列视角，是理解后续深层神经网络机制的关键钥匙：
+<p>掌握矩阵的列视角，是理解后续深层神经网络机制的关键钥匙：</p>
 <ol>
-  <li><strong>注意力投影矩阵（$\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$）（第3模块）</strong>：当词嵌入被转译为“查询（Query）”时，$\mathbf{W}_Q$ 的各列定义了搜索空间的全新坐标轴——将原始词汇特征转译为<em>“当前词元正在向上下文探寻什么问题？”</em>。</li>
-  <li><strong>前馈记忆网络（FFN）（第5模块）</strong>：在 LLaMA 和 GPT 中，中间层将向量升维至上万维再降维投影。这些矩阵的列构成了大模型的键值记忆槽，存储着庞大的事实性知识联想。</li>
-  <li><strong>机制可解释性（Mechanistic Interpretability）</strong>：当 AI 安全研究人员尝试在模型内部寻找“拒绝回答方向”或“诚实向量”时，他们分析的正是这些矩阵各列所张成的线性组合方向。</li>
+<li><strong>注意力投影矩阵（$\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$）（第3模块）</strong>：当词嵌入被转译为“查询（Query）”时，$\mathbf{W}_Q$ 的各列定义了搜索空间的全新坐标轴——将原始词汇特征转译为<em>“当前词元正在向上下文探寻什么问题？”</em>。</li>
+<li><strong>前馈记忆网络（FFN）（第5模块）</strong>：在 LLaMA 和 GPT 中，中间层将向量升维至上万维再降维投影。这些矩阵的列构成了大模型的键值记忆槽，存储着庞大的事实性知识联想。</li>
+<li><strong>机制可解释性（Mechanistic Interpretability）</strong>：当 AI 安全研究人员尝试在模型内部寻找“拒绝回答方向”或“诚实向量”时，他们分析的正是这些矩阵各列所张成的线性组合方向。</li>
 </ol>
 </fieldset>
-
 <hr />
 <h3>5. 深度学习约定：行向量与批处理矩阵</h3>
 <p>在纯数学教科书中，向量传统上被写为竖立的列向量：$\mathbf{y} = \mathbf{W}\mathbf{x}$。</p>
 <p>然而在工业界深度学习框架（PyTorch、JAX、Hugging Face）中，文本是按<strong>词元批次（Batches of Tokens）</strong>进行并行处理的，其中每一个词元被表示为一条<strong>水平行向量</strong>。</p>
-<p>对于一个包含 $T$ 个词元的序列，每个词元维度为 $d_{\text{in}}$：
-- 输入矩阵为 $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{in}}}$（每一行是一个词元的嵌入向量）。
-- 权重矩阵为 $\mathbf{W} \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$。
-- 偏置向量为 $\mathbf{b} \in \mathbb{R}^{1 \times d_{\text{out}}}$（自动广播加到全部 $T$ 行上）。</p>
+<p>对于一个包含 $T$ 个词元的序列，每个词元维度为 $d_{\text{in}}$：</p>
+<ul>
+<li>输入矩阵为 $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{in}}}$（每一行是一个词元的嵌入向量）。</li>
+<li>权重矩阵为 $\mathbf{W} \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$。</li>
+<li>偏置向量为 $\mathbf{b} \in \mathbb{R}^{1 \times d_{\text{out}}}$（自动广播加到全部 $T$ 行上）。</li>
+</ul>
 <p>前向传播计算将输入矩阵置于左侧：</p>
 
 
@@ -537,17 +538,18 @@ $$
 <h2 id="step-5">Step 5: 具象微型算例（笔算验证）</h2>
 
 <fieldset>
-  <legend><strong>第5步手算数值执行流水线</strong></legend>
-  <p><input type="checkbox" checked disabled> <strong>步骤 5.1:</strong> 核对维度契合性：$(2 \times 2) \times (2 \times 1) \longrightarrow (2 \times 1)$</p>
-  <p><input type="checkbox" checked disabled> <strong>步骤 5.2:</strong> 并行点积计算原始矩阵-向量乘积 $\mathbf{W}\mathbf{x}_{\text{cat}} = [5, 3]^\top$</p>
-  <p><input type="checkbox" checked disabled> <strong>步骤 5.3:</strong> 加上偏置向量平移 $\mathbf{b} = [1, -1]^\top \longrightarrow \mathbf{y}_{\text{cat}} = [6, 2]^\top$</p>
-  <p><input type="checkbox" checked disabled> <strong>步骤 5.4:</strong> 验证基向量在新空间中的着陆点 $\mathbf{W}\hat{\mathbf{i}} = [2, 0]^\top$ 与 $\mathbf{W}\hat{\mathbf{j}} = [1, 3]^\top$</p>
+<legend><strong>第5步手算数值执行流水线</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.1:</strong> 核对维度契合性：$(2 \times 2) \times (2 \times 1) \longrightarrow (2 \times 1)$</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.2:</strong> 并行点积计算原始矩阵-向量乘积 $\mathbf{W}\mathbf{x}_{\text{cat}} = [5, 3]^\top$</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.3:</strong> 加上偏置向量平移 $\mathbf{b} = [1, -1]^\top \longrightarrow \mathbf{y}_{\text{cat}} = [6, 2]^\top$</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.4:</strong> 验证基向量在新空间中的着陆点 $\mathbf{W}\hat{\mathbf{i}} = [2, 0]^\top$ 与 $\mathbf{W}\hat{\mathbf{j}} = [1, 3]^\top$</p>
 </fieldset>
-
 <p>让我们用简单的微型数字，在纸上一笔一划推演完整的矩阵变换过程。</p>
-<p>我们有一个输入词向量 <kbd>"cat"</kbd>，位于 2 维空间中：
-- 维度 1：<strong>毛茸茸度</strong> $= 2$
-- 维度 2：<strong>活泼度</strong> $= 1$</p>
+<p>我们有一个输入词向量 <kbd>"cat"</kbd>，位于 2 维空间中：</p>
+<ul>
+<li>维度 1：<strong>毛茸茸度</strong> $= 2$</li>
+<li>维度 2：<strong>活泼度</strong> $= 1$</li>
+</ul>
 
 
 $$
@@ -566,11 +568,13 @@ $$
 <p>让我们一步一步手算出最终的输出向量 $\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}$。</p>
 <hr />
 <h3>第 5.1 步：核对维度兼容性</h3>
-<p>在动手算数前，始终先检查形状：
-- 权重矩阵 $\mathbf{W}$：形状为 $(2 \times 2)$，所以 $m = 2, k = 2$。
-- 输入向量 $\mathbf{x}$：形状为 $(2 \times 1)$，所以 $k = 2, n = 1$。
-- 内维度吻合：$k = 2 = 2$。
-- 输出形状将为：$(m \times n) = (2 \times 1)$。</p>
+<p>在动手算数前，始终先检查形状：</p>
+<ul>
+<li>权重矩阵 $\mathbf{W}$：形状为 $(2 \times 2)$，所以 $m = 2, k = 2$。</li>
+<li>输入向量 $\mathbf{x}$：形状为 $(2 \times 1)$，所以 $k = 2, n = 1$。</li>
+<li>内维度吻合：$k = 2 = 2$。</li>
+<li>输出形状将为：$(m \times n) = (2 \times 1)$。</li>
+</ul>
 <p>维度 100% 完美匹配。</p>
 <hr />
 <h3>第 5.2 步：矩阵 $\mathbf{W}$ 乘以向量 $\mathbf{x}$</h3>
@@ -684,14 +688,11 @@ $$
 <hr />
 <h2 id="step-6">Step 6: 核心精髓</h2>
 
-<fieldset><legend><strong>核心精髓</strong></legend>
-
-**权重矩阵**是一张可编程的弹性橡胶布，它在多维空间中拉伸、旋转并投射语义向量；而**偏置向量**则将坐标框架滑动到最佳的原点位置。
-
-矩阵乘法是大语言模型的动力核心引擎，因为它将平滑优雅的可微求导特性，与 GPU 张量核心无与伦比的硬件并行吞吐量完美结合。
-
-但这里隐藏着一个深刻的致命困境：**如果你将两层、三层甚至一百层拉伸橡胶布叠在一起，会发生什么？** 正如我们在第04章即将发现的那样，纯粹的连续矩阵相乘会在数学上瞬间坍缩为一张扁平的单层拉伸！为了孕育深邃的智能，我们必须引入**激活函数：单向单向阀门（Activation Functions）**。
-
+<fieldset>
+<legend><strong>核心精髓</strong></legend>
+<p><strong>权重矩阵</strong>是一张可编程的弹性橡胶布，它在多维空间中拉伸、旋转并投射语义向量；而<strong>偏置向量</strong>则将坐标框架滑动到最佳的原点位置。</p>
+<p>矩阵乘法是大语言模型的动力核心引擎，因为它将平滑优雅的可微求导特性，与 GPU 张量核心无与伦比的硬件并行吞吐量完美结合。</p>
+<p>但这里隐藏着一个深刻的致命困境：<strong>如果你将两层、三层甚至一百层拉伸橡胶布叠在一起，会发生什么？</strong> 正如我们在第04章即将发现的那样，纯粹的连续矩阵相乘会在数学上瞬间坍缩为一张扁平的单层拉伸！为了孕育深邃的智能，我们必须引入<strong>激活函数：单向单向阀门（Activation Functions）</strong>。</p>
 </fieldset>
 
 <hr>
@@ -718,15 +719,24 @@ $$
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

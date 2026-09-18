@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -162,12 +162,16 @@
 <hr />
 <h3>为什么不能把“标签卡（Key）”和“宝藏故事（Value）”混为一谈？</h3>
 <p>设想一下：如果图书管理员偷懒，把书本正文的 500 页故事直接印在书脊外面，书架立刻会变得臃肿不堪！
-更关键的是：<strong>“检索线索”与“内容本身”在逻辑上是截然不同的两件事</strong>。
-- 当你想查阅“治疗感冒的药方”时，你检索的关键词是标签（Key = “医学退烧”）；
-- 但你最终希望带走的，是药方里记载的真实成分配比（Value = “对乙酰氨基酚 500 毫克”）。</p>
-<p>在现代大语言模型（Transformer）的大脑里：
-- 每一个词（Token）都同时扮演<strong>寻宝者</strong>（发出 Query）和<strong>藏宝书</strong>（提供 Key 供人检索，奉献 Value 给人吸纳）。
-- <strong>这就是著名的注意力机制三剑客：Query、Key、Value！</strong></p>
+更关键的是：<strong>“检索线索”与“内容本身”在逻辑上是截然不同的两件事</strong>。</p>
+<ul>
+<li>当你想查阅“治疗感冒的药方”时，你检索的关键词是标签（Key = “医学退烧”）；</li>
+<li>但你最终希望带走的，是药方里记载的真实成分配比（Value = “对乙酰氨基酚 500 毫克”）。</li>
+</ul>
+<p>在现代大语言模型（Transformer）的大脑里：</p>
+<ul>
+<li>每一个词（Token）都同时扮演<strong>寻宝者</strong>（发出 Query）和<strong>藏宝书</strong>（提供 Key 供人检索，奉献 Value 给人吸纳）。</li>
+<li><strong>这就是著名的注意力机制三剑客：Query、Key、Value！</strong></li>
+</ul>
 <hr />
 <h2 id="step-2">第 2 步：计算跨越的桥梁问题（The Bridging Question）</h2>
 
@@ -210,9 +214,11 @@ $$
 $$
 
 
-<p>其中：
-- $T$ 为序列的时间步长度（Token 数量，如上下文窗口内的 2048 个词）；
-- $d_{\text{model}}$ 为大模型的隐层主维度（如 LLaMA-3 8B 中 $d_{\text{model}} = 4096$，GPT-3 中 $d_{\text{model}} = 12288$）。</p>
+<p>其中：</p>
+<ul>
+<li>$T$ 为序列的时间步长度（Token 数量，如上下文窗口内的 2048 个词）；</li>
+<li>$d_{\text{model}}$ 为大模型的隐层主维度（如 LLaMA-3 8B 中 $d_{\text{model}} = 4096$，GPT-3 中 $d_{\text{model}} = 12288$）。</li>
+</ul>
 <p>为了赋予模型在不同角色维度上观察信息的能力，Transformer 引入了<strong>三个完全独立、可学习的线性投影参数矩阵</strong>：</p>
 
 
@@ -291,10 +297,12 @@ $$
 <figcaption><strong>图 5.3：</strong> 单个 Token 输入向量通过三个独立的投影矩阵，同时分化为三种不同职责的角色向量。</figcaption>
 </figure>
 
-<p>每个分化出的向量承担着极其精确的分工：
-- <dfn id="def-query-vector"><strong>查询向量 $\mathbf{q}_i$</strong></dfn>：当前 Token 向全宇宙发射的<strong>“检索探针”</strong>。它在问：“为了理解我现在的语境，我需要哪些特定的线索？”
-- <dfn id="def-key-vector"><strong>键向量 $\mathbf{k}_j$</strong></dfn>：第 $j$ 个 Token 面向外部世界的<strong>“身份名片”</strong>。它在公示：“我拥有这些语法属性、语义类型和实体标签，欢迎比对！”
-- <dfn id="def-value-vector"><strong>值向量 $\mathbf{v}_j$</strong></dfn>：第 $j$ 个 Token 蕴含的<strong>“有效载荷（Payload）”</strong>。它代表了：“一旦你确定我很重要，这就是我贡献给你融入新表示的真实知识编码。”</p>
+<p>每个分化出的向量承担着极其精确的分工：</p>
+<ul>
+<li><dfn id="def-query-vector"><strong>查询向量 $\mathbf{q}_i$</strong></dfn>：当前 Token 向全宇宙发射的<strong>“检索探针”</strong>。它在问：“为了理解我现在的语境，我需要哪些特定的线索？”</li>
+<li><dfn id="def-key-vector"><strong>键向量 $\mathbf{k}_j$</strong></dfn>：第 $j$ 个 Token 面向外部世界的<strong>“身份名片”</strong>。它在公示：“我拥有这些语法属性、语义类型和实体标签，欢迎比对！”</li>
+<li><dfn id="def-value-vector"><strong>值向量 $\mathbf{v}_j$</strong></dfn>：第 $j$ 个 Token 蕴含的<strong>“有效载荷（Payload）”</strong>。它代表了：“一旦你确定我很重要，这就是我贡献给你融入新表示的真实知识编码。”</li>
+</ul>
 <hr />
 <h3>3. 第一性原理深潜：为什么必须设立三套独立的矩阵？（直接用原始向量 $\mathbf{X}$ 会发生什么灾难？）</h3>
 <p>许多初学 Transformer 的人都会产生一个本能的疑问：</p>
@@ -312,13 +320,15 @@ $$
 
 
 <p>如果直接使用原始向量计算相关性，那么 <strong>Token $i$ 对 Token $j$ 的注意力强度，必然百分之百严格等于 Token $j$ 对 Token $i$ 的注意力强度</strong>！</p>
-<p>但这完全违背了人类自然语言的逻辑本质：
-- 在句子 <em>“小猫（Token $A$）追赶（Token $B$）大老鼠（Token $C$）”</em> 中：
-  - 动词 <em>“追赶”</em> 极度渴求找到它的主语 <em>“小猫”</em> 和宾语 <em>“老鼠”</em>（需要分配高达 90% 的注意力）；
-  - 但名词 <em>“小猫”</em> 在表达自身实体时，对动词 <em>“追赶”</em> 的依赖程度往往要弱得多；
-- 在英语修饰结构 <em>“extremely（极其）beautiful（美丽）”</em> 中：
-  - 形容词 <em>“beautiful”</em> 必须深刻依赖副词 <em>“extremely”</em> 来确定修饰程度；
-  - 但副词本身只是一个轻量修饰符，并不需要吸收整个形容词的复杂实体特征。</p>
+<p>但这完全违背了人类自然语言的逻辑本质：</p>
+<ul>
+<li>在句子 <em>“小猫（Token $A$）追赶（Token $B$）大老鼠（Token $C$）”</em> 中：</li>
+<li>动词 <em>“追赶”</em> 极度渴求找到它的主语 <em>“小猫”</em> 和宾语 <em>“老鼠”</em>（需要分配高达 90% 的注意力）；</li>
+<li>但名词 <em>“小猫”</em> 在表达自身实体时，对动词 <em>“追赶”</em> 的依赖程度往往要弱得多；</li>
+<li>在英语修饰结构 <em>“extremely（极其）beautiful（美丽）”</em> 中：</li>
+<li>形容词 <em>“beautiful”</em> 必须深刻依赖副词 <em>“extremely”</em> 来确定修饰程度；</li>
+<li>但副词本身只是一个轻量修饰符，并不需要吸收整个形容词的复杂实体特征。</li>
+</ul>
 <p><strong>语言的关系是高度有向、高度不对称的（Asymmetric &amp; Directed）</strong>。
 通过引入独立的 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$，相关度计算变成了：</p>
 
@@ -346,16 +356,20 @@ $$
 $$
 
 
-<p>如果两个词向量的模长相仿，那么<strong>一个词与自己的点积，几乎永远大于它与其他任何不同词的点积</strong>！
-- 如果没有 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 的转置投影，每个词计算出的自相关分数 $\mathbf{x}_i \cdot \mathbf{x}_i$ 会以压倒性优势碾压周围的所有词；
-- 经过 Softmax 归一化后，每个词将分配 99% 的注意力给自己，变成目中无人的“超级自恋狂”，对上下文的信息视而不见！
-- 引入 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 后，$\mathbf{q}_i$ 与 $\mathbf{k}_i$ 被映射到了不同的空间：$\mathbf{q}_i^\top \mathbf{k}_i = \mathbf{x}_i^\top (\mathbf{W}_Q \mathbf{W}_K^\top) \mathbf{x}_i$。只要 $\mathbf{W}_Q \mathbf{W}_K^\top$ 不是正定单位阵，词语对自己计算出的相关度就完全可以低于对上下文关键线索词的相关度，迫使模型将目光投向浩瀚的上下文！</p>
+<p>如果两个词向量的模长相仿，那么<strong>一个词与自己的点积，几乎永远大于它与其他任何不同词的点积</strong>！</p>
+<ul>
+<li>如果没有 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 的转置投影，每个词计算出的自相关分数 $\mathbf{x}_i \cdot \mathbf{x}_i$ 会以压倒性优势碾压周围的所有词；</li>
+<li>经过 Softmax 归一化后，每个词将分配 99% 的注意力给自己，变成目中无人的“超级自恋狂”，对上下文的信息视而不见！</li>
+<li>引入 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 后，$\mathbf{q}_i$ 与 $\mathbf{k}_i$ 被映射到了不同的空间：$\mathbf{q}_i^\top \mathbf{k}_i = \mathbf{x}_i^\top (\mathbf{W}_Q \mathbf{W}_K^\top) \mathbf{x}_i$。只要 $\mathbf{W}_Q \mathbf{W}_K^\top$ 不是正定单位阵，词语对自己计算出的相关度就完全可以低于对上下文关键线索词的相关度，迫使模型将目光投向浩瀚的上下文！</li>
+</ul>
 <h4>灾难 3：寻址模式与内容载荷的冲突（Address vs. Payload Conflict）</h4>
-<p>在计算机体系结构与数据库设计中，这是早已被奉为圭臬的准则：<strong>内存地址（Address/Key）绝不等于内存数据（Data/Value）</strong>。
-- <strong>寻址空间（Query &amp; Key）</strong>：关注的是“模式、关系与匹配标签”。例如：“我是一个需要动词的助动词”、“我是一个阴性单数名词”。这些是用来建立几何几何关联的控制流信号；
-- <strong>载荷空间（Value）</strong>：关注的是“实体、概念与知识语义”。例如：“这是一只体重 4 公斤、花斑色、正在打瞌睡的折耳猫”。
-- 如果强令 $\mathbf{V} = \mathbf{X}$，那么每次注意力更新都会把“控制检索特征”和“知识语义特征”硬性掺杂在一起，导致词向量在网络层层递进时产生严重的信息污染与表征退化。
-- 独立的 $\mathbf{W}_V$ 赋予了模型终极的自由度：<strong>哪怕 Key 匹配得分完全相同，模型也可以决定向后传递完全不同维度的有效载荷！</strong></p>
+<p>在计算机体系结构与数据库设计中，这是早已被奉为圭臬的准则：<strong>内存地址（Address/Key）绝不等于内存数据（Data/Value）</strong>。</p>
+<ul>
+<li><strong>寻址空间（Query &amp; Key）</strong>：关注的是“模式、关系与匹配标签”。例如：“我是一个需要动词的助动词”、“我是一个阴性单数名词”。这些是用来建立几何几何关联的控制流信号；</li>
+<li><strong>载荷空间（Value）</strong>：关注的是“实体、概念与知识语义”。例如：“这是一只体重 4 公斤、花斑色、正在打瞌睡的折耳猫”。</li>
+<li>如果强令 $\mathbf{V} = \mathbf{X}$，那么每次注意力更新都会把“控制检索特征”和“知识语义特征”硬性掺杂在一起，导致词向量在网络层层递进时产生严重的信息污染与表征退化。</li>
+<li>独立的 $\mathbf{W}_V$ 赋予了模型终极的自由度：<strong>哪怕 Key 匹配得分完全相同，模型也可以决定向后传递完全不同维度的有效载荷！</strong></li>
+</ul>
 <hr />
 <h3>4. 严谨数学变量与维度对照表</h3>
 <details name="ch05-specs" open>
@@ -458,10 +472,12 @@ $$
 $$
 
 
-<p>其中：
-- $\mathbf{x}_1 = [1, 0, 1, 0]$（虚词 "The"）
-- $\mathbf{x}_2 = [0, 2, 0, 1]$（水利词 "river"）
-- $\mathbf{x}_3 = [1, 1, 0, 2]$（待明确语境的多义词 "bank"）</p>
+<p>其中：</p>
+<ul>
+<li>$\mathbf{x}_1 = [1, 0, 1, 0]$（虚词 "The"）</li>
+<li>$\mathbf{x}_2 = [0, 2, 0, 1]$（水利词 "river"）</li>
+<li>$\mathbf{x}_3 = [1, 1, 0, 2]$（待明确语境的多义词 "bank"）</li>
+</ul>
 <hr />
 <h3>2. 设定三个投影矩阵 $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{4 \times 2}$</h3>
 <p>为了让算术过程一目了然，我们精心设计包含简单整数与小数的投影参数：</p>
@@ -492,18 +508,24 @@ $$
 <hr />
 <h3>3. 一步一步手算投影结果</h3>
 <h4>计算查询矩阵 $\mathbf{Q} = \mathbf{X} \mathbf{W}_Q \in \mathbb{R}^{3 \times 2}$</h4>
-<p>对于第 1 行 $\mathbf{q}_1^\top = [1, 0, 1, 0] \mathbf{W}_Q$：
-- 第 1 列：$1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$
-- 第 2 列：$1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$
-- $\mathbf{q}_1^\top = [1, 1]$</p>
-<p>对于第 2 行 $\mathbf{q}_2^\top = [0, 2, 0, 1] \mathbf{W}_Q$：
-- 第 1 列：$0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$
-- 第 2 列：$0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$
-- $\mathbf{q}_2^\top = [1, 2]$</p>
-<p>对于第 3 行 $\mathbf{q}_3^\top = [1, 1, 0, 2] \mathbf{W}_Q$（关注多义词 <code>"bank"</code> 的查询意图！）：
-- 第 1 列：$1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$
-- 第 2 列：$1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$
-- $\mathbf{q}_3^\top = [3, 1]$</p>
+<p>对于第 1 行 $\mathbf{q}_1^\top = [1, 0, 1, 0] \mathbf{W}_Q$：</p>
+<ul>
+<li>第 1 列：$1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$</li>
+<li>第 2 列：$1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$</li>
+<li>$\mathbf{q}_1^\top = [1, 1]$</li>
+</ul>
+<p>对于第 2 行 $\mathbf{q}_2^\top = [0, 2, 0, 1] \mathbf{W}_Q$：</p>
+<ul>
+<li>第 1 列：$0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$</li>
+<li>第 2 列：$0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$</li>
+<li>$\mathbf{q}_2^\top = [1, 2]$</li>
+</ul>
+<p>对于第 3 行 $\mathbf{q}_3^\top = [1, 1, 0, 2] \mathbf{W}_Q$（关注多义词 <code>"bank"</code> 的查询意图！）：</p>
+<ul>
+<li>第 1 列：$1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$</li>
+<li>第 2 列：$1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$</li>
+<li>$\mathbf{q}_3^\top = [3, 1]$</li>
+</ul>
 <p>汇总得出完整查询矩阵：</p>
 
 
@@ -518,18 +540,24 @@ $$
 
 <hr />
 <h4>计算键矩阵 $\mathbf{K} = \mathbf{X} \mathbf{W}_K \in \mathbb{R}^{3 \times 2}$</h4>
-<p>对于第 1 行 $\mathbf{k}_1^\top = [1, 0, 1, 0] \mathbf{W}_K$：
-- 第 1 列：$1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$
-- 第 2 列：$1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$
-- $\mathbf{k}_1^\top = [1, 1]$</p>
-<p>对于第 2 行 $\mathbf{k}_2^\top = [0, 2, 0, 1] \mathbf{W}_K$（词语 <code>"river"</code> 对外亮出的身份标签）：
-- 第 1 列：$0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$
-- 第 2 列：$0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$
-- $\mathbf{k}_2^\top = [2, 1]$</p>
-<p>对于第 3 行 $\mathbf{k}_3^\top = [1, 1, 0, 2] \mathbf{W}_K$：
-- 第 1 列：$1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$
-- 第 2 列：$1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$
-- $\mathbf{k}_3^\top = [1, 3]$</p>
+<p>对于第 1 行 $\mathbf{k}_1^\top = [1, 0, 1, 0] \mathbf{W}_K$：</p>
+<ul>
+<li>第 1 列：$1\times 0 + 0\times 1 + 1\times 1 + 0\times 0 = 1$</li>
+<li>第 2 列：$1\times 1 + 0\times 0 + 1\times 0 + 0\times 1 = 1$</li>
+<li>$\mathbf{k}_1^\top = [1, 1]$</li>
+</ul>
+<p>对于第 2 行 $\mathbf{k}_2^\top = [0, 2, 0, 1] \mathbf{W}_K$（词语 <code>"river"</code> 对外亮出的身份标签）：</p>
+<ul>
+<li>第 1 列：$0\times 0 + 2\times 1 + 0\times 1 + 1\times 0 = 2$</li>
+<li>第 2 列：$0\times 1 + 2\times 0 + 0\times 0 + 1\times 1 = 1$</li>
+<li>$\mathbf{k}_2^\top = [2, 1]$</li>
+</ul>
+<p>对于第 3 行 $\mathbf{k}_3^\top = [1, 1, 0, 2] \mathbf{W}_K$：</p>
+<ul>
+<li>第 1 列：$1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$</li>
+<li>第 2 列：$1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$</li>
+<li>$\mathbf{k}_3^\top = [1, 3]$</li>
+</ul>
 <p>汇总得出完整键矩阵：</p>
 
 
@@ -544,12 +572,18 @@ $$
 
 <hr />
 <h4>计算值矩阵 $\mathbf{V} = \mathbf{X} \mathbf{W}_V \in \mathbb{R}^{3 \times 2}$</h4>
-<p>对于第 1 行 $\mathbf{v}_1^\top = [1, 0, 1, 0] \mathbf{W}_V$：
-- $\mathbf{v}_1^\top = [1\times 1 + 0 + 0 + 0, 0 + 0 + 1\times 2 + 0] = [1, 2]$</p>
-<p>对于第 2 行 $\mathbf{v}_2^\top = [0, 2, 0, 1] \mathbf{W}_V$：
-- $\mathbf{v}_2^\top = [0 + 0 + 0 + 0, 0 + 0 + 0 + 1\times 1] = [0, 1]$</p>
-<p>对于第 3 行 $\mathbf{v}_3^\top = [1, 1, 0, 2] \mathbf{W}_V$：
-- $\mathbf{v}_3^\top = [1\times 1 + 0 + 0 + 0, 0 + 0 + 0 + 2\times 1] = [1, 2]$</p>
+<p>对于第 1 行 $\mathbf{v}_1^\top = [1, 0, 1, 0] \mathbf{W}_V$：</p>
+<ul>
+<li>$\mathbf{v}_1^\top = [1\times 1 + 0 + 0 + 0, 0 + 0 + 1\times 2 + 0] = [1, 2]$</li>
+</ul>
+<p>对于第 2 行 $\mathbf{v}_2^\top = [0, 2, 0, 1] \mathbf{W}_V$：</p>
+<ul>
+<li>$\mathbf{v}_2^\top = [0 + 0 + 0 + 0, 0 + 0 + 0 + 1\times 1] = [0, 1]$</li>
+</ul>
+<p>对于第 3 行 $\mathbf{v}_3^\top = [1, 1, 0, 2] \mathbf{W}_V$：</p>
+<ul>
+<li>$\mathbf{v}_3^\top = [1\times 1 + 0 + 0 + 0, 0 + 0 + 0 + 2\times 1] = [1, 2]$</li>
+</ul>
 <p>汇总得出完整值矩阵：</p>
 
 
@@ -580,19 +614,21 @@ $$
 $$
 
 
-<p>逐项相乘求和：
-- 第 1 行（"The" 的注意力倾向）：
-  - $S_{11} = 1\times 1 + 1\times 1 = 2$
-  - $S_{12} = 1\times 2 + 1\times 1 = 3$
-  - $S_{13} = 1\times 1 + 1\times 3 = 4$
-- 第 2 行（"river" 的注意力倾向）：
-  - $S_{21} = 1\times 1 + 2\times 1 = 3$
-  - $S_{22} = 1\times 2 + 2\times 1 = 4$
-  - $S_{23} = 1\times 1 + 2\times 3 = 7$
-- 第 3 行（多义词 <mark>"bank"</mark> 的主动匹配结果！）：
-  - $S_{31} = \mathbf{q}_3 \cdot \mathbf{k}_1 = 3\times 1 + 1\times 1 = 4$ （对虚词 "The" 的匹配分）
-  - $S_{32} = \mathbf{q}_3 \cdot \mathbf{k}_2 = 3\times 2 + 1\times 1 = \mathbf{7}$ （对水利词 <mark>"river"</mark> 的匹配分！）
-  - $S_{33} = \mathbf{q}_3 \cdot \mathbf{k}_3 = 3\times 1 + 1\times 3 = 6$ （对自身的自相关分）</p>
+<p>逐项相乘求和：</p>
+<ul>
+<li>第 1 行（"The" 的注意力倾向）：</li>
+<li>$S_{11} = 1\times 1 + 1\times 1 = 2$</li>
+<li>$S_{12} = 1\times 2 + 1\times 1 = 3$</li>
+<li>$S_{13} = 1\times 1 + 1\times 3 = 4$</li>
+<li>第 2 行（"river" 的注意力倾向）：</li>
+<li>$S_{21} = 1\times 1 + 2\times 1 = 3$</li>
+<li>$S_{22} = 1\times 2 + 2\times 1 = 4$</li>
+<li>$S_{23} = 1\times 1 + 2\times 3 = 7$</li>
+<li>第 3 行（多义词 <mark>"bank"</mark> 的主动匹配结果！）：</li>
+<li>$S_{31} = \mathbf{q}_3 \cdot \mathbf{k}_1 = 3\times 1 + 1\times 1 = 4$ （对虚词 "The" 的匹配分）</li>
+<li>$S_{32} = \mathbf{q}_3 \cdot \mathbf{k}_2 = 3\times 2 + 1\times 1 = \mathbf{7}$ （对水利词 <mark>"river"</mark> 的匹配分！）</li>
+<li>$S_{33} = \mathbf{q}_3 \cdot \mathbf{k}_3 = 3\times 1 + 1\times 3 = 6$ （对自身的自相关分）</li>
+</ul>
 
 
 $$
@@ -607,10 +643,12 @@ $$
 <hr />
 <h3>5. 结果透视与物理检验</h3>
 <p>请起立为第 3 行的结果鼓掌：
-对于多义词 <code>"bank"</code>（第 3 行），它的原始注意力得分为：
-- 对 <code>"The"</code>：得分 $4$
-- 对自身 <code>"bank"</code>：得分 $6$
-- 对 <code>"river"</code>：得分 <strong>$7$</strong>！</p>
+对于多义词 <code>"bank"</code>（第 3 行），它的原始注意力得分为：</p>
+<ul>
+<li>对 <code>"The"</code>：得分 $4$</li>
+<li>对自身 <code>"bank"</code>：得分 $6$</li>
+<li>对 <code>"river"</code>：得分 <strong>$7$</strong>！</li>
+</ul>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
   <caption><strong>表 5.1：</strong> 多义词 "bank" 对上下文中各个词的注意力匹配量化表</caption>
   <thead>
@@ -643,13 +681,15 @@ $$
   </tbody>
 </table>
 
-<p>可视化匹配强度仪表盘：
-- 对 <code>"river"</code> 的关注度：
-  <meter min="0" max="10" low="3" high="6" optimum="8" value="7.0">7.0 / 10</meter> (最高权重，决定将“河岸”含义注入自身)
-- 对自身的关注度：
-  <meter min="0" max="10" low="3" high="6" optimum="8" value="6.0">6.0 / 10</meter> (次高权重)
-- 对 <code>"The"</code> 的关注度：
-  <meter min="0" max="10" low="3" high="6" optimum="8" value="4.0">4.0 / 10</meter> (最低权重)</p>
+<p>可视化匹配强度仪表盘：</p>
+<ul>
+<li>对 <code>"river"</code> 的关注度：
+  <meter min="0" max="10" low="3" high="6" optimum="8" value="7.0">7.0 / 10</meter> (最高权重，决定将“河岸”含义注入自身)</li>
+<li>对自身的关注度：
+  <meter min="0" max="10" low="3" high="6" optimum="8" value="6.0">6.0 / 10</meter> (次高权重)</li>
+<li>对 <code>"The"</code> 的关注度：
+  <meter min="0" max="10" low="3" high="6" optimum="8" value="4.0">4.0 / 10</meter> (最低权重)</li>
+</ul>
 <p>通过投影矩阵 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 的协同，多义词 <code>"bank"</code> 成功跨越了自恋陷阱，把全场最高的注意力精准投射到了决定其真正语义的关键词 <code>"river"</code> 上！</p>
 <p>在接下来的第 07 章中，我们将学习如何通过 <strong>Softmax</strong> 把这组得分 $[4, 7, 6]$ 转化为严格相加等于 100% 的概率权重，并最终加权融合 <strong>Value 向量</strong>。</p>
 <hr />
@@ -687,15 +727,24 @@ $$
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

@@ -246,9 +246,9 @@
 
 <p><strong>迭代统计与贪心合并：</strong></p>
 <ol>
-  <li><strong>第 1 轮合并</strong>：统计语料库中所有相邻二元组出现的次数，发现 <code>(e, s)</code> 在 <samp>"newest"</samp> (6) 与 <samp>"widest"</samp> (3) 中合计共现 **9 次**（最高频！）。因此执行合并规则 1：<code>e + s &rarr; es</code>，将新词元 <code>es</code> 加入词表。</li>
-  <li><strong>第 2 轮合并</strong>：重新统计发现 <code>(es, t)</code> 同样共现 **9 次**。执行合并规则 2：<code>es + t &rarr; est</code>。</li>
-  <li><strong>第 3 轮合并</strong>：发现 <code>(est, &lt;/w&gt;)</code> 共现 **9 次**。执行合并规则 3：<code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>。</li>
+  <li><strong>第 1 轮合并</strong>：统计语料库中所有相邻二元组出现的次数，发现 <code>(e, s)</code> 在 <samp>"newest"</samp> (6) 与 <samp>"widest"</samp> (3) 中合计共现 <strong>9 次</strong>（最高频！）。因此执行合并规则 1：<code>e + s &rarr; es</code>，将新词元 <code>es</code> 加入词表。</li>
+  <li><strong>第 2 轮合并</strong>：重新统计发现 <code>(es, t)</code> 同样共现 <strong>9 次</strong>。执行合并规则 2：<code>es + t &rarr; est</code>。</li>
+  <li><strong>第 3 轮合并</strong>：发现 <code>(est, &lt;/w&gt;)</code> 共现 <strong>9 次</strong>。执行合并规则 3：<code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>。</li>
   <li><strong>第 4 轮合并</strong>：统计发现 <code>(l, o)</code> 共现 $5 + 2 = 7$ 次，<code>(o, w)</code> 共现 7 次。依次执行合并：<code>l + o &rarr; lo</code>，接着 <code>lo + w &rarr; low</code>。</li>
 </ol>
 

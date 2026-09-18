@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -122,24 +122,19 @@
 
 <h2 id="step-1">Step 1: 3岁小孩的直觉（巨型操场地图）</h2>
 
-<fieldset><legend><strong>3岁小孩的直觉：巨型操场地图</strong></legend>
-
-想象一下，你把心爱的所有玩具统统带到了一个巨大的绿草地操场上。
-
-你在操场上划分出不同的沙坑，让相似的玩具聚在相邻的沙盒里：泰迪熊、小猫咪和小狗坐在软绵绵、毛茸茸的沙盒里；木头飞机和小赛车坐在呼呼飞驰的机器沙盒里；香蕉和红苹果坐在美味零食沙盒里。
-
-现在，想象你在操场地面上用粉笔画出整齐的方格坐标线：
-- 向北走 2 步，向东走 8 步：你找到了毛茸茸沙盒里的小猫咪。
-- 向北走 9 步，向东走 1 步：你找到了机器沙盒里的巨型飞机。
-
-这样，操场上的每一个玩具都拥有了一个独一无二的**专属门牌地址**。
-
-如果两个玩具很像，它们的门牌号就在同一个或隔壁沙盒里，彼此挨得很近；如果两个玩具毫无共同点（比如一只毛茸茸的小猫和一架庞大的波音747客机），它们的地址就隔了十万八千里。
-
-这就是大语言模型（LLM）对待人类语言的方式。它给每个单词都在一张巨大的数学操场地图上分配一个门牌地址，让含义相近的词并肩坐在一起！
-
+<fieldset>
+<legend><strong>3岁小孩的直觉：巨型操场地图</strong></legend>
+<p>想象一下，你把心爱的所有玩具统统带到了一个巨大的绿草地操场上。</p>
+<p>你在操场上划分出不同的沙坑，让相似的玩具聚在相邻的沙盒里：泰迪熊、小猫咪和小狗坐在软绵绵、毛茸茸的沙盒里；木头飞机和小赛车坐在呼呼飞驰的机器沙盒里；香蕉和红苹果坐在美味零食沙盒里。</p>
+<p>现在，想象你在操场地面上用粉笔画出整齐的方格坐标线：</p>
+<ul>
+<li>向北走 2 步，向东走 8 步：你找到了毛茸茸沙盒里的小猫咪。</li>
+<li>向北走 9 步，向东走 1 步：你找到了机器沙盒里的巨型飞机。</li>
+</ul>
+<p>这样，操场上的每一个玩具都拥有了一个独一无二的<strong>专属门牌地址</strong>。</p>
+<p>如果两个玩具很像，它们的门牌号就在同一个或隔壁沙盒里，彼此挨得很近；如果两个玩具毫无共同点（比如一只毛茸茸的小猫和一架庞大的波音747客机），它们的地址就隔了十万八千里。</p>
+<p>这就是大语言模型（LLM）对待人类语言的方式。它给每个单词都在一张巨大的数学操场地图上分配一个门牌地址，让含义相近的词并肩坐在一起！</p>
 </fieldset>
-
 <hr />
 <h2 id="step-2">Step 2: 承上启下的问题（从文字到数字）</h2>
 
@@ -147,11 +142,13 @@
 <p>然而，计算机芯片和 GPU 是由硅片与电子线路构成的物理器件。硬件根本无法理解英文字母 <kbd>"c"</kbd>, <kbd>"a"</kbd>, <kbd>"t"</kbd> 或汉字“猫”。计算机处理器不可能拿单词 <kbd>"kitten"</kbd> 直接去乘以 $0.90$。</p>
 <p><strong>我们究竟该如何把人类的自然语言单词，转换为计算机芯片能够存储、相加、相乘的物理坐标（数字列表）？</strong></p>
 <h3>失败的捷径：为什么不能简单给单词编号 1, 2, 3？</h3>
-<p>初学者最容易想到的直觉，是给词典里的每个词编一个顺序整数 ID：
-- $\text{"cat"} = 1$
-- $\text{"dog"} = 2$
-- $\text{"kitten"} = 3$
-- $\text{"airplane"} = 4$</p>
+<p>初学者最容易想到的直觉，是给词典里的每个词编一个顺序整数 ID：</p>
+<ul>
+<li>$\text{"cat"} = 1$</li>
+<li>$\text{"dog"} = 2$</li>
+<li>$\text{"kitten"} = 3$</li>
+<li>$\text{"airplane"} = 4$</li>
+</ul>
 <p>这种简单的标量整数编号会遭遇灾难性的彻底失败，根源在于两大数学漏洞：</p>
 <ol>
 <li>
@@ -205,9 +202,11 @@ $$
 $$
 
 
-<p>其中：
-- $|V|$ 是词表中词元的总数量（即矩阵的行数）。
-- $d$ 是<strong>词嵌入维度</strong>（Embedding Dimension）或称<strong>隐藏层大小</strong>（Hidden Size，即矩阵的列数）。</p>
+<p>其中：</p>
+<ul>
+<li>$|V|$ 是词表中词元的总数量（即矩阵的行数）。</li>
+<li>$d$ 是<strong>词嵌入维度</strong>（Embedding Dimension）或称<strong>隐藏层大小</strong>（Hidden Size，即矩阵的列数）。</li>
+</ul>
 <p>矩阵 $\mathbf{E}$ 的每一行 $\mathbf{E}[i, :]$，就代表了第 $i$ 个词元在连续语义空间里的稠密向量坐标：</p>
 
 
@@ -255,14 +254,11 @@ $$
 <figcaption><strong>图 1.1:</strong> 独热向量矩阵乘法查表：孤立的数字 1 充当了行选择器。</figcaption>
 </figure>
 
-<fieldset><legend><strong>工程实践注解：查表 vs 矩阵乘法</strong></legend>
-
-在纯粹的数学理论中，词查表被写作 $\mathbf{e}_i^\top \mathbf{E}$，这是为了保持神经网络作为端到端可微分矩阵映射系统的优雅与统一。
-
-但在生产代码（如 PyTorch 的 `torch.nn.Embedding`）中，在 GPU 上做 100,000 维的稀疏向量乘法是极大的算力浪费。因此底层硬件库直接通过数组内存索引 `E[i]` 在 $O(1)$ 常数时间内完成提取，两者数学结果分毫不差。
-
+<fieldset>
+<legend><strong>工程实践注解：查表 vs 矩阵乘法</strong></legend>
+<p>在纯粹的数学理论中，词查表被写作 $\mathbf{e}_i^\top \mathbf{E}$，这是为了保持神经网络作为端到端可微分矩阵映射系统的优雅与统一。</p>
+<p>但在生产代码（如 PyTorch 的 <code>torch.nn.Embedding</code>）中，在 GPU 上做 100,000 维的稀疏向量乘法是极大的算力浪费。因此底层硬件库直接通过数组内存索引 <code>E[i]</code> 在 $O(1)$ 常数时间内完成提取，两者数学结果分毫不差。</p>
 </fieldset>
-
 <hr />
 <h3>数学符号拆解速查表</h3>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
@@ -344,21 +340,21 @@ $$
 <hr />
 <h2 id="step-4">Step 4: 公式从何而来？</h2>
 
-<fieldset><legend><strong>历史演进之路：从弗斯到 Word2Vec</strong></legend>
-
-人工智能研究者是如何领悟到“单词可以作为地图上的几何点”这一真谛的？
-
+<fieldset>
+<legend><strong>历史演进之路：从弗斯到 Word2Vec</strong></legend>
+<p>人工智能研究者是如何领悟到“单词可以作为地图上的几何点”这一真谛的？</p>
 </fieldset>
-
 <h3>1. 分布假说（1957）</h3>
 <p>1957年，英国语言学家约翰·鲁珀特·弗斯（John Rupert Firth）写下了语言学史上最著名的论断之一：</p>
 <blockquote>
 <p><em>“观其伴，知其意。”（You shall know a word by the company it keeps.）</em><br />
 &mdash; <strong>J. R. Firth (1957)</strong></p>
 </blockquote>
-<p>弗斯敏锐地指出，含义相似的词必然会频繁出现在相似的上下文语境中：
-- <kbd>“毛茸茸的【小猫咪】在小碟子里喝着温牛奶。”</kbd>
-- <kbd>“毛茸茸的【猫】在小碟子里喝着温牛奶。”</kbd></p>
+<p>弗斯敏锐地指出，含义相似的词必然会频繁出现在相似的上下文语境中：</p>
+<ul>
+<li><kbd>“毛茸茸的【小猫咪】在小碟子里喝着温牛奶。”</kbd></li>
+<li><kbd>“毛茸茸的【猫】在小碟子里喝着温牛奶。”</kbd></li>
+</ul>
 <p>既然 <kbd>“kitten”</kbd> 和 <kbd>“cat”</kbd> 的前后邻居几乎完全一致，那么它们在数学地图上的坐标就理所应当紧紧挨在一起。</p>
 <h3>2. 独热编码的正交性灾难</h3>
 <p>在稠密嵌入诞生前，早期的计算语言学完全依赖独热向量 $\mathbf{e}_i$。</p>
@@ -372,9 +368,11 @@ $$
 
 
 <p>在线性代数中，非零向量点积为零意味着它们彼此<strong>垂直（正交）</strong>。</p>
-<p>在独热空间里，每一个词都与其他所有词保持着冰冷的 90 度垂直直角：
-- <kbd>“小狗”</kbd> 到 <kbd>“狗”</kbd> 的欧氏距离：$\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$
-- <kbd>“小狗”</kbd> 到 <kbd>“核反应堆”</kbd> 的欧氏距离：$\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</p>
+<p>在独热空间里，每一个词都与其他所有词保持着冰冷的 90 度垂直直角：</p>
+<ul>
+<li><kbd>“小狗”</kbd> 到 <kbd>“狗”</kbd> 的欧氏距离：$\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</li>
+<li><kbd>“小狗”</kbd> 到 <kbd>“核反应堆”</kbd> 的欧氏距离：$\sqrt{1^2 + (-1)^2} = \sqrt{2} \approx 1.414$</li>
+</ul>
 <p>计算机对语义毫无感知：在它眼里，一只小狗和小狗的亲近程度，竟然和一只小狗与一座核电站完全一样！</p>
 <h3>3. 稠密向量革命：Word2Vec（2013）</h3>
 <p>2013年，Tomas Mikolov 带领 Google 团队提出了轰动学术界的 <strong>Word2Vec</strong>。他们抛弃了庞大正交的独热编码，训练神经网络把词汇压缩进低维连续的稠密空间（如 $d=300$）。</p>
@@ -392,12 +390,10 @@ $$
 <hr />
 <h2 id="step-5">Step 5: 具象微型算例（纸笔手算验证）</h2>
 
-<fieldset><legend><strong>具象微型算例：2维宠物与载具操场</strong></legend>
-
-让我们用具体的微型数字在纸上一步步完成手算。
-
+<fieldset>
+<legend><strong>具象微型算例：2维宠物与载具操场</strong></legend>
+<p>让我们用具体的微型数字在纸上一步步完成手算。</p>
 </fieldset>
-
 <h3>场景设定</h3>
 <ul>
 <li>
@@ -605,14 +601,11 @@ $$
 <hr />
 <h2 id="step-6">Step 6: 核心精髓</h2>
 
-<fieldset><legend><strong>核心精髓</strong></legend>
-
-嵌入矩阵 $\mathbf{E}$ 是大语言模型的**通用语言转译桥梁**：它将孤立离散的人类文字符号，映射为多维空间中具有生命力的几何坐标。
-
-通过让相似含义的词在空间中比邻而居，神经网络就能单纯凭借纯粹的线性代数来理解概念、类比常识和推演语境。
-
-但这引发了下一个关键的数学问题：**当大语言模型需要衡量两个词之间的关联程度到底有多紧密时，它在底层究竟使用了哪把精准的数学标尺？**
-
+<fieldset>
+<legend><strong>核心精髓</strong></legend>
+<p>嵌入矩阵 $\mathbf{E}$ 是大语言模型的<strong>通用语言转译桥梁</strong>：它将孤立离散的人类文字符号，映射为多维空间中具有生命力的几何坐标。</p>
+<p>通过让相似含义的词在空间中比邻而居，神经网络就能单纯凭借纯粹的线性代数来理解概念、类比常识和推演语境。</p>
+<p>但这引发了下一个关键的数学问题：<strong>当大语言模型需要衡量两个词之间的关联程度到底有多紧密时，它在底层究竟使用了哪把精准的数学标尺？</strong></p>
 </fieldset>
 
 <hr>
@@ -639,15 +632,24 @@ $$
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

@@ -163,7 +163,7 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 
 - [Chapter 00: The Next-Word Guessing Game](00-next-word-prediction/index.html)
   - **The Metaphor**: Guessing the hidden animal in the box using clues one by one.
-  - **The Math**: Discrete probability distributions $P(w_t \mid w_{<t})$, vocabulary space $V$, and the chain rule of joint probability $\prod_{t=1}^T P(w_t \mid w_{<t})$.
+  - **The Math**: Discrete probability distributions $P(w_t \mid w_{\lt t})$, vocabulary space $V$, and the chain rule of joint probability $\prod_{t=1}^T P(w_t \mid w_{\lt t})$.
   - **Formula Origin**: Andrey Markov (1913) counting letters in Pushkin's poem & Claude Shannon (1948) modeling sequence communication.
 
 ---
@@ -229,7 +229,7 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 - [Chapter 09: Blindfolds on Future Words (Causal Masking)](09-causal-masking/index.html)
   - **The Metaphor**: Taking a reading quiz without being allowed to peek at the answers on tomorrow's page.
   - **The Math**: Mask matrix $\mathbf{M} \in \mathbb{R}^{T \times T}$ where $M_{ij} = -\infty$ for $j > i$. Since $e^{-\infty} = 0$, attention weights to future tokens strictly vanish.
-  - **Formula Origin**: Enforcing the autoregressive causal condition $P(w_t \mid w_{<t})$ in self-attention matrices.
+  - **Formula Origin**: Enforcing the autoregressive causal condition $P(w_t \mid w_{\lt t})$ in self-attention matrices.
 
 ---
 

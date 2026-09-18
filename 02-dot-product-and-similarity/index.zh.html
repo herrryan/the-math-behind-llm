@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -375,14 +375,18 @@ $$
 <p>初学者常常发问：
 <em>既然要衡量词语之间的距离，为什么 LLM 不直接用欧氏距离 $\|\mathbf{u} - \mathbf{v}\| = \sqrt{\sum (u_i - v_i)^2}$，反而要大费周章去求夹角余弦？</em></p>
 <p>因为欧氏距离会掉入致命的<strong>模长陷阱（Magnitude Trap）</strong>（亦称文本长度/频次偏差）。</p>
-<p>来看一个绝佳的直观对比：
-- 文档 A：一条只有 10 个词的推特短讯，宣布“一只可爱的小猫赢得了比赛”。
-- 文档 B：一篇长达 5000 字的维基百科百科全书词条，详尽剖析猫科动物的解剖生理构造。</p>
+<p>来看一个绝佳的直观对比：</p>
+<ul>
+<li>文档 A：一条只有 10 个词的推特短讯，宣布“一只可爱的小猫赢得了比赛”。</li>
+<li>文档 B：一篇长达 5000 字的维基百科百科全书词条，详尽剖析猫科动物的解剖生理构造。</li>
+</ul>
 <p>两篇文档探讨的主题完全相同：<strong>猫（Cat）</strong>！
 既然核心主题完全一致，它们的语义特征向量在空间中就指向<strong>完全相同的方向</strong>。</p>
-<p>然而，因为文档 B 拥有 5000 个词，它的词频统计和特征激活值极其庞大。在坐标系中：
-- 向量 A 是一支很短的轻量级箭头：$\mathbf{u}_A = [1, 2]$
-- 向量 B 是一支长达百倍的重型大箭头：$\mathbf{u}_B = [100, 200]$</p>
+<p>然而，因为文档 B 拥有 5000 个词，它的词频统计和特征激活值极其庞大。在坐标系中：</p>
+<ul>
+<li>向量 A 是一支很短的轻量级箭头：$\mathbf{u}_A = [1, 2]$</li>
+<li>向量 B 是一支长达百倍的重型大箭头：$\mathbf{u}_B = [100, 200]$</li>
+</ul>
 <p>计算它们的<strong>欧几里得距离</strong>：</p>
 
 
@@ -403,11 +407,9 @@ $$
 <p>余弦相似度瞬间看穿了假象：<strong>它们指向完全相同的绝对方向（$\cos(\theta) = 1.0$）</strong>！</p>
 <fieldset>
 <legend><strong>为什么大语言模型看重方向而非长度？</strong></legend>
-在现代 Transformer 嵌入中，高频虚词（如 <kbd>"the"</kbd>、<kbd>"is"</kbd>）以及附带强烈情绪色彩的词汇，在预训练优化过程中往往会自然生长出很大的向量模长。
-
-通过计算余弦值或对向量进行单位化归一，模型得以确保语义比较始终基于纯粹的概念朝向，而不受词元出现频次的喧宾夺主。
+<p>在现代 Transformer 嵌入中，高频虚词（如 <kbd>"the"</kbd>、<kbd>"is"</kbd>）以及附带强烈情绪色彩的词汇，在预训练优化过程中往往会自然生长出很大的向量模长。</p>
+<p>通过计算余弦值或对向量进行单位化归一，模型得以确保语义比较始终基于纯粹的概念朝向，而不受词元出现频次的喧宾夺主。</p>
 </fieldset>
-
 <hr />
 <h3>3. 硅基硬件的秘密：为什么 GPU 极度热爱点积？</h3>
 <p>为什么点积能够成为当代深度学习无可撼动的核心脉搏？</p>
@@ -432,9 +434,11 @@ $$
 <hr />
 <h2 id="step-5">Step 5: 具象微型算例（笔算验证）</h2>
 
-<p>让我们在一个 2 维语义概念空间中，用简单明了的微型数字一步一步完成笔算：
-- 维度 1：<strong>猫科动物特征</strong>
-- 维度 2：<strong>活泼好动程度</strong></p>
+<p>让我们在一个 2 维语义概念空间中，用简单明了的微型数字一步一步完成笔算：</p>
+<ul>
+<li>维度 1：<strong>猫科动物特征</strong></li>
+<li>维度 2：<strong>活泼好动程度</strong></li>
+</ul>
 <p>词汇表中有 3 个代表性概念：
 1. <kbd>"cat"</kbd>（成年猫）：$\mathbf{u} = \begin{bmatrix} 3 \\ 4 \end{bmatrix}$
 2. <kbd>"kitten"</kbd>（小猫咪）：$\mathbf{v} = \begin{bmatrix} 6 \\ 8 \end{bmatrix}$
@@ -604,14 +608,11 @@ $$
 <hr />
 <h2 id="step-6">Step 6: 核心精髓</h2>
 
-<fieldset><legend><strong>核心精髓</strong></legend>
-
-**点积**是现代人工智能的基础亲和力传感器：它将几何空间中的方向协同，巧妙转化为 GPU 张量核心每秒可执行上万亿次的极速乘累加运算。
-
-而通过除以模长，**余弦相似度**剥离了词频与序列长度的干扰，赋予大模型直接审视纯粹概念内涵的能力。
-
-然而，现实语言中的单词绝非一成不变：在真实句子里，上下文会不断互动并改造词义。**大语言模型究竟是如何在层与层之间旋转、拉伸并投射这些向量的？** 这正是第2模块的核心——**矩阵乘法（Matrix Multiplication）**。
-
+<fieldset>
+<legend><strong>核心精髓</strong></legend>
+<p><strong>点积</strong>是现代人工智能的基础亲和力传感器：它将几何空间中的方向协同，巧妙转化为 GPU 张量核心每秒可执行上万亿次的极速乘累加运算。</p>
+<p>而通过除以模长，<strong>余弦相似度</strong>剥离了词频与序列长度的干扰，赋予大模型直接审视纯粹概念内涵的能力。</p>
+<p>然而，现实语言中的单词绝非一成不变：在真实句子里，上下文会不断互动并改造词义。<strong>大语言模型究竟是如何在层与层之间旋转、拉伸并投射这些向量的？</strong> 这正是第2模块的核心——<strong>矩阵乘法（Matrix Multiplication）</strong>。</p>
 </fieldset>
 
 <hr>
@@ -638,15 +639,24 @@ $$
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

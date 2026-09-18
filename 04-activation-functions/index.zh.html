@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -140,23 +140,31 @@
 <p>无论你把一张平整的纸拉伸或旋转多少万次，你都<strong>绝不可能</strong>折出一只立体的千纸鹤、一把手风琴或一架纸飞机。</p>
 <p>要将二维平纸变成丰富的三维立体结构，你必须创造一道<strong>锋利的折痕</strong> &mdash; 也就是在某条线上，平直的规则被瞬间打破。</p>
 <h3>叠加平板玻璃的困局</h3>
-<p>再想象组装一架天文望远镜：
-- 如果你把 100 块平整的窗户玻璃整整齐齐地叠在一起，然后透过它们看天空。所有的星星依然是原来的大小。把 100 块平板玻璃叠在一起，在光学上等价于<strong>一块更厚的单层平板玻璃</strong>，它根本无法放大任何微小的天体。
-- 要放大遥远的星光，你必须磨制出<strong>凸透镜或凹透镜</strong>。透镜之所以能弯折光线，正是因为它的表面是<strong>弯曲</strong>的，每一个位置的斜率都在动态变化。</p>
+<p>再想象组装一架天文望远镜：</p>
+<ul>
+<li>如果你把 100 块平整的窗户玻璃整整齐齐地叠在一起，然后透过它们看天空。所有的星星依然是原来的大小。把 100 块平板玻璃叠在一起，在光学上等价于<strong>一块更厚的单层平板玻璃</strong>，它根本无法放大任何微小的天体。</li>
+<li>要放大遥远的星光，你必须磨制出<strong>凸透镜或凹透镜</strong>。透镜之所以能弯折光线，正是因为它的表面是<strong>弯曲</strong>的，每一个位置的斜率都在动态变化。</li>
+</ul>
 <h3>游乐园的单向旋转闸门</h3>
-<p>现在再想象游乐园入口处的单向旋转闸机：
-- 如果小朋友带着正向的动力向前走，闸机顺畅旋转，放他们轻松通过。
-- 如果有人想要倒退往回走，内部的棘爪齿轮瞬间锁死，坚决将其阻截在零位刻度线（$0$）。</p>
+<p>现在再想象游乐园入口处的单向旋转闸机：</p>
+<ul>
+<li>如果小朋友带着正向的动力向前走，闸机顺畅旋转，放他们轻松通过。</li>
+<li>如果有人想要倒退往回走，内部的棘爪齿轮瞬间锁死，坚决将其阻截在零位刻度线（$0$）。</li>
+</ul>
 <p>这个单向旋转门，就是<strong>激活函数（Activation Function）</strong>。</p>
 <p>在人工神经网络中，矩阵乘法就是平整的玻璃板；而激活函数，就是赋予整个网络<strong>空间弯曲能力</strong>的透镜与单向阀门。它使模型能够执行逻辑判断、筛选有效信息、并孕育出深邃的逻辑推理能力。</p>
 <h3>咔哒响的硬开关 vs. 平滑无级调光旋钮</h3>
-<p>在 20 世纪 80 年代之前，早期人工智能先驱们把神经元想象成墙壁上那种粗糙的、一按即响的咔哒开关：
-- 轻轻按开关：什么都不会发生。
-- 用力推过某个临界阈值：<em>咔哒！</em> 灯光瞬间全亮（输出 $1$）。</p>
+<p>在 20 世纪 80 年代之前，早期人工智能先驱们把神经元想象成墙壁上那种粗糙的、一按即响的咔哒开关：</p>
+<ul>
+<li>轻轻按开关：什么都不会发生。</li>
+<li>用力推过某个临界阈值：<em>咔哒！</em> 灯光瞬间全亮（输出 $1$）。</li>
+</ul>
 <p>设想你置身于一间漆黑的暗室中，试图通过微调 10,000 个隐藏的开关来调出最适宜的房间亮度。如果每一个开关都只有绝对亮（1）和绝对灭（0）两个状态，你将彻底陷入抓瞎绝境。当你把手搭在一个开关上时，由于开关在被触碰的大部分位置表面都是完全平坦的（斜率恒为零），你<strong>根本无法知道</strong>自己距离触发它究竟只差一毫米，还是差了整整一米！</p>
-<p>现在，把这个硬性开关换成一个<strong>平滑无级的调光旋钮</strong>：
-- 当你的手指轻轻拨动哪怕十分之一毫米，室内的光线就会随之泛起一丝极其微弱的明暗变化。
-- 这正是<strong>微积分中的导数（Derivative，即 $\frac{dy}{dx}$）</strong>：它度量了“输入微弱扰动所引发的输出微弱变化”。</p>
+<p>现在，把这个硬性开关换成一个<strong>平滑无级的调光旋钮</strong>：</p>
+<ul>
+<li>当你的手指轻轻拨动哪怕十分之一毫米，室内的光线就会随之泛起一丝极其微弱的明暗变化。</li>
+<li>这正是<strong>微积分中的导数（Derivative，即 $\frac{dy}{dx}$）</strong>：它度量了“输入微弱扰动所引发的输出微弱变化”。</li>
+</ul>
 <p>导数赋予了计算机<strong>触觉反馈</strong>：它清晰地告诉优化算法<strong>旋钮应当往哪个方向拧</strong>、以及<strong>用力该多大多猛</strong>，才能有效减少预测误差。没有导数，计算机就宛如在漆黑绝境中失去了全部触觉与痛觉，根本无法展开学习。</p>
 <h3>录音棚里的黄金搭档：主唱与调音师（门控与 SwiGLU 的物理直觉）</h3>
 <p>在传统的激活函数（如 ReLU 或 GELU）中，每个神经元就像一个<strong>既要唱歌又要自己按静音键的独唱歌手</strong>：它只能看着自己的嗓门高低，孤零零地决定放行还是静默。</p>
@@ -253,9 +261,8 @@ $$
 
 <fieldset>
 <legend><strong>线性塌陷定理（Linear Collapse Theorem）</strong></legend>
-无论你堆叠多少个隐藏层、耗费多少亿参数、燃烧多少千瓦时的算力：<strong>连续纯线性变换的级联，在数学上完全等价于仅仅单个线性变换层</strong>。它只能在空间中画出平直的超平面，甚至连最简单的 <dfn id="def-xor-problem">XOR（异或）</dfn> 逻辑关卡都无法突破。
+<p>无论你堆叠多少个隐藏层、耗费多少亿参数、燃烧多少千瓦时的算力：<strong>连续纯线性变换的级联，在数学上完全等价于仅仅单个线性变换层</strong>。它只能在空间中画出平直的超平面，甚至连最简单的 <dfn id="def-xor-problem">XOR（异或）</dfn> 逻辑关卡都无法突破。</p>
 </fieldset>
-
 <p>为了打破这种线性塌陷，我们必须在每次线性矩阵乘法之后，<strong>穿插植入</strong>一个逐元素执行的非线性标量函数 $\sigma(\cdot)$：</p>
 
 
@@ -280,20 +287,28 @@ $$
 
 
 <p>这个偏导数本质上就是<strong>参数调整量向误差变动量映射的“杠杆转换率”</strong>，它同时提供了参数更新的两大核心情报：
-1. <strong>调整方向（符号指示）</strong>：
-   - 若 $\frac{\partial \mathcal{L}}{\partial w} > 0$：说明 $w$ 越往大调，模型误差越大；为了让误差减小（$\Delta \mathcal{L} < 0$），我们必须<strong>调小</strong>该参数（$\Delta w < 0$）。
-   - 若 $\frac{\partial \mathcal{L}}{\partial w} < 0$：说明 $w$ 越大，模型误差反而越小；为了让误差减小，我们必须<strong>调大</strong>该参数（$\Delta w > 0$）。
-   - 这正是最经典的负梯度更新规则：$w \leftarrow w - \eta \frac{\partial \mathcal{L}}{\partial w}$（其中 $\eta > 0$ 为学习率）。
-2. <strong>调整幅度（绝对值大小）</strong>：
-   - 绝对值 $\left|\frac{\partial \mathcal{L}}{\partial w}\right|$ 越大，说明该参数是决定模型成败的“高杠杆命门”，稍有晃动就会带来误差巨幅变动；
-   - 绝对值趋近于 $0$，说明无论怎么拨动这个参数，对最终预测几乎毫无影响。</p>
+1. <strong>调整方向（符号指示）</strong>：</p>
+<ul>
+<li>若 $\frac{\partial \mathcal{L}}{\partial w} > 0$：说明 $w$ 越往大调，模型误差越大；为了让误差减小（$\Delta \mathcal{L} < 0$），我们必须<strong>调小</strong>该参数（$\Delta w < 0$）。</li>
+<li>若 $\frac{\partial \mathcal{L}}{\partial w} < 0$：说明 $w$ 越大，模型误差反而越小；为了让误差减小，我们必须<strong>调大</strong>该参数（$\Delta w > 0$）。</li>
+<li>
+<p>这正是最经典的负梯度更新规则：$w \leftarrow w - \eta \frac{\partial \mathcal{L}}{\partial w}$（其中 $\eta > 0$ 为学习率）。
+2. <strong>调整幅度（绝对值大小）</strong>：</p>
+</li>
+<li>
+<p>绝对值 $\left|\frac{\partial \mathcal{L}}{\partial w}\right|$ 越大，说明该参数是决定模型成败的“高杠杆命门”，稍有晃动就会带来误差巨幅变动；</p>
+</li>
+<li>绝对值趋近于 $0$，说明无论怎么拨动这个参数，对最终预测几乎毫无影响。</li>
+</ul>
 <h4>为什么非算敏感度不可？（责任归因困境与算力绝境）</h4>
 <p>想象一架拥有 700 亿个控制旋钮的超巨型客机驾驶舱（对应 70B 权重参数 $w_1, w_2, \dots, w_B$）。飞机突然偏离航线 500 米（最终终端只产生了一个标量误差：$\mathcal{L} = 500$）。</p>
 <p>此时仪表盘上只跳动着这一个最终误差数字，你该如何调整旋钮？究竟是第 4,231 号旋钮拧偏了，还是第 12,890,442 号旋钮拧反了？这就是著名的<dfn id="def-credit-assignment"><strong>责任归因困境（Credit Assignment Problem）</strong></dfn>。</p>
-<p>如果我们不借助微积分求解敏感度，现实中只有两种绝望的替代路径：
-- <strong>盲目试凑（蒙特卡洛随机搜索）</strong>：在 700 亿维超高维空间中，最优解所在的超体积测度趋近于零。即便动用全宇宙的所有粒子进行并行随机抽样，到宇宙热寂也绝不可能试凑出一组能通顺交流的参数组合。
-- <strong>逐个试探（有限差分数值扰动）</strong>：
-  若采用物理测试法，即对每个参数单独施加微小扰动 $\epsilon$，通过两次前向传播相减测量敏感度：</p>
+<p>如果我们不借助微积分求解敏感度，现实中只有两种绝望的替代路径：</p>
+<ul>
+<li><strong>盲目试凑（蒙特卡洛随机搜索）</strong>：在 700 亿维超高维空间中，最优解所在的超体积测度趋近于零。即便动用全宇宙的所有粒子进行并行随机抽样，到宇宙热寂也绝不可能试凑出一组能通顺交流的参数组合。</li>
+<li><strong>逐个试探（有限差分数值扰动）</strong>：
+  若采用物理测试法，即对每个参数单独施加微小扰动 $\epsilon$，通过两次前向传播相减测量敏感度：</li>
+</ul>
 
 
 $$
@@ -307,18 +322,30 @@ $$
 <p>许多教科书直接甩出复杂的偏导数符号，让人望而生畏。但剥开术语外衣，反向传播的物理本质和计算逻辑极其自然。</p>
 <h5>1. 直觉比喻：汽车流水线与质量责任溯源</h5>
 <ul>
-<li><strong>前向传播（Forward Pass）</strong>：
-  如同汽车制造流水线。原料钢板（输入词向量 $\mathbf{x}$）从最左边送入：</li>
-<li>1 号工位（第 1 层）冲压焊接底盘；</li>
+<li>
+<p><strong>前向传播（Forward Pass）</strong>：
+  如同汽车制造流水线。原料钢板（输入词向量 $\mathbf{x}$）从最左边送入：</p>
+</li>
+<li>
+<p>1 号工位（第 1 层）冲压焊接底盘；</p>
+</li>
 <li>2 号工位（第 2 层）装配发动机；</li>
 <li>3 号工位（第 3 层）安装车身车门……</li>
-<li>最终流水线末端驶出一辆成品车（预测词概率分布 $\hat{\mathbf{y}}$）。
-  <strong>整个过程信息严格从左向右单向流动。各工位只负责处理上游送来的零件，没有任何学习行为。</strong></li>
-<li><strong>损失计算（Loss Computation）</strong>：
-  质检员在终点用卡尺测量，发现车门缝隙偏大了 5 毫米（产生标量损失 $\mathcal{L} = 5\text{ mm}$）。</li>
-<li><strong>反向传播（Backward Pass）</strong>：
-  质检员不可能把车砸掉重来，而是<strong>沿着流水线倒着走回车间，逐级向下追溯责任</strong>：</li>
-<li>质检员对 3 号工位（车门组装）说：“整车误差 5 毫米，你的铰链螺栓有直接责任，回调你的螺栓！”</li>
+<li>
+<p>最终流水线末端驶出一辆成品车（预测词概率分布 $\hat{\mathbf{y}}$）。
+  <strong>整个过程信息严格从左向右单向流动。各工位只负责处理上游送来的零件，没有任何学习行为。</strong></p>
+</li>
+<li>
+<p><strong>损失计算（Loss Computation）</strong>：
+  质检员在终点用卡尺测量，发现车门缝隙偏大了 5 毫米（产生标量损失 $\mathcal{L} = 5\text{ mm}$）。</p>
+</li>
+<li>
+<p><strong>反向传播（Backward Pass）</strong>：
+  质检员不可能把车砸掉重来，而是<strong>沿着流水线倒着走回车间，逐级向下追溯责任</strong>：</p>
+</li>
+<li>
+<p>质检员对 3 号工位（车门组装）说：“整车误差 5 毫米，你的铰链螺栓有直接责任，回调你的螺栓！”</p>
+</li>
 <li>3 号工位收到反馈后，检查发现：“我这边的 5 毫米里，有 3 毫米是因为 2 号工位送来的发动机底座倾斜被放大了！”于是他立刻拍 2 号工位的肩膀：“你的底盘偏了，把你的底座往回调！”</li>
 <li>2 号工位依此类推，继续向 1 号工位反向传达修正指标……
   <strong>误差信号逆流而上，每个工位在收到下游反馈后，立刻就能算出自己手中的工具该拧松还是拧紧。</strong></li>
@@ -326,16 +353,28 @@ $$
 <h5>2. 构成反向传播的三大底层积木</h5>
 <p>要把上述故事搬进计算机，我们只需要三个极其简单的前置数学积木：</p>
 <ul>
-<li><strong>积木一：计算图（Computational Graph）</strong>
-  复杂的神经网络在计算机底层，会被拆解成由最简单的基本算子节点构成的有向图：加法节点（$+$）、乘法节点（$\times$）、激活函数节点（$\sigma$）。每个节点只做一步小学级别的运算。</li>
-<li><strong>积木二：局部导数（Local Derivative / 本地齿轮比）</strong>
-  每个独立算子只对自己的局部输入输出负责，完全不关心全局：</li>
-<li>例如乘法算子 $z = w \cdot x$：如果参数输入 $w$ 变动一丁点，局部输出 $z$ 会变动多少？答案就是输入信号的大小：$\frac{\partial z}{\partial w} = x$。</li>
-<li>例如激活函数算子 $a = \sigma(z)$：如果输入 $z$ 变动一丁点，局部输出 $a$ 会变动多少？答案就是激活函数本身的导数：$\frac{\partial a}{\partial z} = \sigma'(z)$。
-  <strong>前向计算执行的同时，每个节点就能顺手在显存中存好自己的局部导数。</strong></li>
-<li><strong>积木三：链式法则（The Chain Rule / 齿轮级联定律）</strong>
-  想象三个咬合在一起的齿轮 A、B、C：齿轮 A 带动齿轮 B，齿轮 B 带动齿轮 C。</li>
-<li>齿轮 A 转 1 圈，齿轮 B 会转 3 圈（齿轮比 $\frac{dB}{dA} = 3$）；</li>
+<li>
+<p><strong>积木一：计算图（Computational Graph）</strong>
+  复杂的神经网络在计算机底层，会被拆解成由最简单的基本算子节点构成的有向图：加法节点（$+$）、乘法节点（$\times$）、激活函数节点（$\sigma$）。每个节点只做一步小学级别的运算。</p>
+</li>
+<li>
+<p><strong>积木二：局部导数（Local Derivative / 本地齿轮比）</strong>
+  每个独立算子只对自己的局部输入输出负责，完全不关心全局：</p>
+</li>
+<li>
+<p>例如乘法算子 $z = w \cdot x$：如果参数输入 $w$ 变动一丁点，局部输出 $z$ 会变动多少？答案就是输入信号的大小：$\frac{\partial z}{\partial w} = x$。</p>
+</li>
+<li>
+<p>例如激活函数算子 $a = \sigma(z)$：如果输入 $z$ 变动一丁点，局部输出 $a$ 会变动多少？答案就是激活函数本身的导数：$\frac{\partial a}{\partial z} = \sigma'(z)$。
+  <strong>前向计算执行的同时，每个节点就能顺手在显存中存好自己的局部导数。</strong></p>
+</li>
+<li>
+<p><strong>积木三：链式法则（The Chain Rule / 齿轮级联定律）</strong>
+  想象三个咬合在一起的齿轮 A、B、C：齿轮 A 带动齿轮 B，齿轮 B 带动齿轮 C。</p>
+</li>
+<li>
+<p>齿轮 A 转 1 圈，齿轮 B 会转 3 圈（齿轮比 $\frac{dB}{dA} = 3$）；</p>
+</li>
 <li>齿轮 B 转 1 圈，齿轮 C 会转 2 圈（齿轮比 $\frac{dC}{dB} = 2$）；</li>
 <li>请问：当齿轮 A 转动 1 圈时，最终的齿轮 C 会转动几圈？</li>
 </ul>
@@ -351,17 +390,23 @@ $$
 <p><strong>链式法则本质：终点对起点的总敏感度，就是沿途每一级局部导数（齿轮比）的连乘积！</strong></p>
 <h5>3. 为什么必须“反向”而不是“正向”推导？（动态规划对重复计算的终结）</h5>
 <p>既然链式法则就是把局部导数乘起来，为什么不能从输入端顺着往前乘，非要从损失端逆着往回推？</p>
-<p>答案在于<strong>网络维度的极端不对称性</strong>：
-- <strong>起点有 700 亿个参数，但终点只有一个标量损失 $\mathcal{L}$。</strong>
-- <strong>如果正向推导（Forward-Mode）</strong>：
+<p>答案在于<strong>网络维度的极端不对称性</strong>：</p>
+<ul>
+<li><strong>起点有 700 亿个参数，但终点只有一个标量损失 $\mathcal{L}$。</strong></li>
+<li>
+<p><strong>如果正向推导（Forward-Mode）</strong>：
   从参数 $w_1$ 出发一路向后追踪到 $\mathcal{L}$，得到 $\frac{\partial \mathcal{L}}{\partial w_1}$；然后再从参数 $w_2$ 出发，把后面的网络又重新追踪一遍……
-  由于 700 亿个参数共用同一个下游网络，网络后半段将被<strong>完全重复遍历 700 亿次</strong>！计算量直接爆表。
-- <strong>如果反向推导（Reverse-Mode / 反向传播）</strong>：
+  由于 700 亿个参数共用同一个下游网络，网络后半段将被<strong>完全重复遍历 700 亿次</strong>！计算量直接爆表。</p>
+</li>
+<li>
+<p><strong>如果反向推导（Reverse-Mode / 反向传播）</strong>：
   从唯一的终点损失 $\mathcal{L}$ 出发！终点对自己的敏感度显而易见是 $\frac{\partial \mathcal{L}}{\partial \mathcal{L}} = 1$。
   我们往回退一步，计算输出层的误差信号 $\delta = \frac{\partial \mathcal{L}}{\partial a}$；
   再退一步，用已经算好的 $\delta$ 乘以当前节点的局部导数，得到上一节点的误差信号；
   <strong>每一层计算出的误差信号立即缓存在内存中，供更早的所有上游节点直接复用！全网每一个算子节点仅被逆向遍历了一次。</strong>
   仅仅用一次反向遍历（耗时仅为前向的 2 倍左右），全网全部 700 亿个参数对损失的偏导数同时求出！</p>
+</li>
+</ul>
 <h4>单神经元内前向与反向的数据流微观全景</h4>
 <p>现在，我们把这套反向机制对准神经元内部的激活函数。</p>
 <p>考虑一个单神经元结构，它计算加权线性组合 $z = \sum_k w_k x_k + b$，随后经过激活函数 $a = \sigma(z)$。在前向传播中，特征信号从左流向右；在反向传播中，误差信号从右流向左：</p>
@@ -410,9 +455,11 @@ $$
 <figcaption><strong>图 4.3：</strong> 激活函数的导数 $\sigma'(z)$ 是误差梯度回传的传动阀门。若导数为零，误差信号将在此瞬间中断，连接前端的权重完全丧失更新能力。</figcaption>
 </figure>
 
-<p>观察链式乘积中间项 $\frac{\partial a}{\partial z} = \sigma'(z)$ 的枢纽地位：
-- <strong>导数就是物理水阀的开合度</strong>：它直接决定了下游的误差信号是以多大比例传导给权重。
-- <strong>阶跃函数的毁灭性打击</strong>：如果使用赫维赛德阶跃函数 $\Theta(z)$，除了跳跃点外其导数处处为 0（在跳跃点导数不存在）：</p>
+<p>观察链式乘积中间项 $\frac{\partial a}{\partial z} = \sigma'(z)$ 的枢纽地位：</p>
+<ul>
+<li><strong>导数就是物理水阀的开合度</strong>：它直接决定了下游的误差信号是以多大比例传导给权重。</li>
+<li><strong>阶跃函数的毁灭性打击</strong>：如果使用赫维赛德阶跃函数 $\Theta(z)$，除了跳跃点外其导数处处为 0（在跳跃点导数不存在）：</li>
+</ul>
 
 
 $$
@@ -447,14 +494,20 @@ $$
 <p>只要第 $l$ 层的激活导数 $\sigma'(\mathbf{z}_l) = \mathbf{0}$，传向上游的误差信号就变成了绝对的零向量 $\mathbf{0}$。
    这就像供水管道在第 50 层被一道铁闸门死死焊死：不仅第 50 层收不到水，<strong>位于它前面的第 49 层、第 48 层……直到第 1 层的所有上游权重，全部同时断水断粮</strong>！整座大厦的上游完全沦为瘫痪的“数字僵尸”。
 3. <strong>表征学习彻底破产：模型“五官未开”，深层在乱码上搭积木</strong>
-   深度模型具备强大的语言理解能力，根本原因在于各层分工明确的<strong>层次化表征学习</strong>：
-   - <strong>底层（第 1 ~ 10 层）</strong>：学习词根、标点、词性、基础语法规则等基本砖石；
-   - <strong>中层（第 11 ~ 40 层）</strong>：学习句法结构、指代关系、实体关联；
-   - <strong>高层（第 41 ~ 96 层）</strong>：学习复杂逻辑、长程推理、常识推理。
+   深度模型具备强大的语言理解能力，根本原因在于各层分工明确的<strong>层次化表征学习</strong>：</p>
+<ul>
+<li><strong>底层（第 1 ~ 10 层）</strong>：学习词根、标点、词性、基础语法规则等基本砖石；</li>
+<li><strong>中层（第 11 ~ 40 层）</strong>：学习句法结构、指代关系、实体关联；</li>
+<li>
+<p><strong>高层（第 41 ~ 96 层）</strong>：学习复杂逻辑、长程推理、常识推理。
    如果反向误差信号无法下渗到浅层，浅层网络就永远停留在刚初始化时的随机噪声状态！模型的“眼睛与耳朵”从头到尾都是瞎的。高层网络只能被动地试图在一堆未经训练的乱码之上去拼凑高阶逻辑，最终整个模型吐出的只能是毫无意义的胡言乱语。
 4. <strong>虚假深度的算力欺骗：百层架构退化为极浅层网络</strong>
-   如果你花数千万美元搭建了一个 100 层的深层网络，但误差梯度在第 90 层就已彻底衰减熄灭，那么前面 89 层的作用与一个纯随机数发生器毫无区别。你实质上只是在用前 89 层的随机乱码作为输入，去训练一个仅仅 11 层的极浅层模型！这就是为什么在 20 世纪 90 年代，研究人员发现“把网络做深反而比浅层网络表现更差”的根本根源。
-- <strong>20 世纪 80 年代的算力奇迹</strong>：在早期 CPU 算力极度匮乏的年代，浮点指数与除法运算极其昂贵。Sigmoid（$\sigma$）与 Tanh（$\tanh$）之所以被奉为圭臬，正是因为它们的导数可以<strong>直接利用前向传播已经存入内存的激活值 $a$ 极速算出</strong>，无需调用任何昂贵的超越函数：</p>
+   如果你花数千万美元搭建了一个 100 层的深层网络，但误差梯度在第 90 层就已彻底衰减熄灭，那么前面 89 层的作用与一个纯随机数发生器毫无区别。你实质上只是在用前 89 层的随机乱码作为输入，去训练一个仅仅 11 层的极浅层模型！这就是为什么在 20 世纪 90 年代，研究人员发现“把网络做深反而比浅层网络表现更差”的根本根源。</p>
+</li>
+<li>
+<p><strong>20 世纪 80 年代的算力奇迹</strong>：在早期 CPU 算力极度匮乏的年代，浮点指数与除法运算极其昂贵。Sigmoid（$\sigma$）与 Tanh（$\tanh$）之所以被奉为圭臬，正是因为它们的导数可以<strong>直接利用前向传播已经存入内存的激活值 $a$ 极速算出</strong>，无需调用任何昂贵的超越函数：</p>
+</li>
+</ul>
 
 
 $$
@@ -647,9 +700,11 @@ a_j = f(z_j) = f\left(\sum_{k=1}^d x_k W_{kj} + b_j\right)
 $$
 
 
-<p>请停下来审视这个机制的物理局限：
-- 第 $j$ 个神经元是否激活（开门还是关门），<strong>完全且仅仅取决于它自己计算出的标量加权和 $z_j$</strong>！
-- 这是一个<strong>单兵孤立门禁</strong>：不管整个网络在其他维度上发现了多么惊天动地的上下文线索，第 $j$ 号神经元在做决策时也是“两耳不闻窗外事”，只能根据自己脚下的数值硬性切断或放行。</p>
+<p>请停下来审视这个机制的物理局限：</p>
+<ul>
+<li>第 $j$ 个神经元是否激活（开门还是关门），<strong>完全且仅仅取决于它自己计算出的标量加权和 $z_j$</strong>！</li>
+<li>这是一个<strong>单兵孤立门禁</strong>：不管整个网络在其他维度上发现了多么惊天动地的上下文线索，第 $j$ 号神经元在做决策时也是“两耳不闻窗外事”，只能根据自己脚下的数值硬性切断或放行。</li>
+</ul>
 <p>人类自然语言中充斥着错综复杂的<strong>条件逻辑（Conditional Logic）</strong>：</p>
 <blockquote>
 <p><em>“如果上下文谈论的是‘苹果手机’，那么‘发布会’特征应该放大 10 倍，而‘水果营养’特征应该被彻底清零；但如果上下文谈论的是‘果园采摘’，控制规则必须瞬间反转！”</em></p>
@@ -692,10 +747,12 @@ $$
 
 <p>请仔细观察这个乘积：
 展开后，它包含了所有的交叉乘积项 $x_k \cdot x_m$（即 $x$ 的二次方二次项 $\mathcal{O}(x^2)$）！</p>
-<p>在高等代数中，这被称为<strong>双线性运算（Bilinear Operation）</strong>。
-- <strong>核心真相</strong>：乘法本身就是一种极具穿透力的高阶非线性操作！
-- 哪怕 $\mathbf{u}$ 和 $\mathbf{v}$ 本身是纯粹平直的线性投影，一旦将它们<strong>逐元素相乘</strong>，输出空间就立刻脱离了平直超平面，弯曲成了极富弹性的二次高维双曲抛物面！
-- 同时，乘法在连续空间中天然就是连续平滑的“与门（AND Gate）”：只有当候选信息存在（$u_j \ne 0$）<strong>且</strong>门控认为重要（$v_j \ne 0$）时，最终信号才能汹涌而出！</p>
+<p>在高等代数中，这被称为<strong>双线性运算（Bilinear Operation）</strong>。</p>
+<ul>
+<li><strong>核心真相</strong>：乘法本身就是一种极具穿透力的高阶非线性操作！</li>
+<li>哪怕 $\mathbf{u}$ 和 $\mathbf{v}$ 本身是纯粹平直的线性投影，一旦将它们<strong>逐元素相乘</strong>，输出空间就立刻脱离了平直超平面，弯曲成了极富弹性的二次高维双曲抛物面！</li>
+<li>同时，乘法在连续空间中天然就是连续平滑的“与门（AND Gate）”：只有当候选信息存在（$u_j \ne 0$）<strong>且</strong>门控认为重要（$v_j \ne 0$）时，最终信号才能汹涌而出！</li>
+</ul>
 <hr />
 <h4>步骤 3：演化阶梯第 1 阶——门控线性单元 GLU（Dauphin 等人，2017）</h4>
 <p>2017 年，Meta FAIR 的 Yann Dauphin 等人正式将上述双线性门控理念工程化，发表了里程碑论文《使用门控卷积网络的语言建模》，提出了<dfn id="def-glu"><strong>门控线性单元（GLU, Gated Linear Unit）</strong></dfn>：</p>
@@ -706,9 +763,11 @@ $$
 $$
 
 
-<p>让我们拆解这个著名的名字：
-- <strong><code>LU</code> (Linear Unit，线性单元)</strong>：候选内容分支 $\mathbf{x}\mathbf{W}$ <strong>完全不经过任何非线性激活函数</strong>！它是一根纯粹平直的“线性通道”，无拘无束地保留输入的全部几何信息。
-- <strong><code>G</code> (Gated，门控)</strong>：非线性完全来自于门控分支 $\sigma(\mathbf{x}\mathbf{V})$。门控分支通过经典的 Sigmoid 函数 $\sigma(z) = \frac{1}{1 + e^{-z}}$，把每个数值规整压缩到 $(0, 1)$ 区间，充当纯粹的百分比开合度（0% 代表完全关死，100% 代表全通放行）。</p>
+<p>让我们拆解这个著名的名字：</p>
+<ul>
+<li><strong><code>LU</code> (Linear Unit，线性单元)</strong>：候选内容分支 $\mathbf{x}\mathbf{W}$ <strong>完全不经过任何非线性激活函数</strong>！它是一根纯粹平直的“线性通道”，无拘无束地保留输入的全部几何信息。</li>
+<li><strong><code>G</code> (Gated，门控)</strong>：非线性完全来自于门控分支 $\sigma(\mathbf{x}\mathbf{V})$。门控分支通过经典的 Sigmoid 函数 $\sigma(z) = \frac{1}{1 + e^{-z}}$，把每个数值规整压缩到 $(0, 1)$ 区间，充当纯粹的百分比开合度（0% 代表完全关死，100% 代表全通放行）。</li>
+</ul>
 <h5>GLU 撞上的两堵残酷高墙（为什么 Sigmoid 门控不够好？）</h5>
 <p>尽管 GLU 惊艳了自然语言处理领域，但随着模型深度向数十层推进，它遭遇了 Sigmoid 带来的两大内生缺陷：
 1. <strong>“最大只有 1.0”的抑制天花板</strong>：
@@ -769,10 +828,12 @@ $$
 $$
 
 
-<p>让我们再次完整审视这个词的构词法拆解：
-- <strong><code>Swi</code></strong>：门控支路采用了 <strong><code>Swish</code></strong> 激活函数进行连续调音；
-- <strong><code>G</code></strong>：采用了双分支乘法阿达马积构成的 <strong><code>Gated</code>（门控机制）</strong>；
-- <strong><code>LU</code></strong>：候选值支路是一根无激活、无畸变的纯粹 <strong><code>Linear Unit</code>（线性单元）</strong>。</p>
+<p>让我们再次完整审视这个词的构词法拆解：</p>
+<ul>
+<li><strong><code>Swi</code></strong>：门控支路采用了 <strong><code>Swish</code></strong> 激活函数进行连续调音；</li>
+<li><strong><code>G</code></strong>：采用了双分支乘法阿达马积构成的 <strong><code>Gated</code>（门控机制）</strong>；</li>
+<li><strong><code>LU</code></strong>：候选值支路是一根无激活、无畸变的纯粹 <strong><code>Linear Unit</code>（线性单元）</strong>。</li>
+</ul>
 <p>在完整的前馈神经网络（FFN）模块中，输入向量首先经由 $\mathbf{W}_{\text{gate}}$ 和 $\mathbf{W}_{\text{up}}$ 两个矩阵同时升维并相互调制，最后通过下投影矩阵 $\mathbf{W}_{\text{down}}$ 压回主维度：</p>
 
 
@@ -815,10 +876,12 @@ $$
 <h4>步骤 6：反向传播奇迹——双分支自监督的梯度高速公路</h4>
 <p>为什么 SwiGLU 在训练海量千亿 Token 语料时表现得异常稳健，几乎从不发生梯度消失或数值爆炸？</p>
 <p>答案藏在微积分的<strong>乘法求导法则（Product Rule）</strong>中。</p>
-<p>在反向传播过程中，设中间激活分量为 $h_j = u_j \cdot v_j$，其中：
-- $u_j = (\mathbf{x}\mathbf{W}_{\text{up}})_j$ 为候选值；
-- $v_j = \operatorname{Swish}_1(g_j) = \operatorname{Swish}_1((\mathbf{x}\mathbf{W}_{\text{gate}})_j)$ 为门控调节系数；
-- 设从上层回传而来的误差梯度信号为 $\frac{\partial \mathcal{L}}{\partial h_j}$。</p>
+<p>在反向传播过程中，设中间激活分量为 $h_j = u_j \cdot v_j$，其中：</p>
+<ul>
+<li>$u_j = (\mathbf{x}\mathbf{W}_{\text{up}})_j$ 为候选值；</li>
+<li>$v_j = \operatorname{Swish}_1(g_j) = \operatorname{Swish}_1((\mathbf{x}\mathbf{W}_{\text{gate}})_j)$ 为门控调节系数；</li>
+<li>设从上层回传而来的误差梯度信号为 $\frac{\partial \mathcal{L}}{\partial h_j}$。</li>
+</ul>
 <p>根据一元多变量微积分链式法则与乘积求导法则，误差回传向两条支路时的灵敏度分配为：</p>
 
 
@@ -869,16 +932,20 @@ $$
 然而在所有采用 SwiGLU 的现代大模型中，中间维度却离奇地缩减到了大约 $2.67$ 倍（即 $d_{\text{ffn}} \approx \frac{8}{3} d_{\text{model}}$）。</p>
 <p>这背后隐藏着严谨的<strong>参数守恒法则</strong>：</p>
 <h5>1. 传统 2 矩阵 FFN 的参数开销</h5>
-<p>传统的 GPT 风格前馈层仅包含两个矩阵：
-- 升维矩阵 $\mathbf{W}_1 \in \mathbb{R}^{d_{\text{model}} \times (4d_{\text{model}})}$：参数量为 $d_{\text{model}} \times 4d_{\text{model}} = 4 d_{\text{model}}^2$
-- 降维矩阵 $\mathbf{W}_2 \in \mathbb{R}^{(4d_{\text{model}}) \times d_{\text{model}}}$：参数量为 $4d_{\text{model}} \times d_{\text{model}} = 4 d_{\text{model}}^2$
-- <strong>双矩阵总参数量</strong>：$4 d_{\text{model}}^2 + 4 d_{\text{model}}^2 = \mathbf{8 d_{\text{model}}^2}$。</p>
+<p>传统的 GPT 风格前馈层仅包含两个矩阵：</p>
+<ul>
+<li>升维矩阵 $\mathbf{W}_1 \in \mathbb{R}^{d_{\text{model}} \times (4d_{\text{model}})}$：参数量为 $d_{\text{model}} \times 4d_{\text{model}} = 4 d_{\text{model}}^2$</li>
+<li>降维矩阵 $\mathbf{W}_2 \in \mathbb{R}^{(4d_{\text{model}}) \times d_{\text{model}}}$：参数量为 $4d_{\text{model}} \times d_{\text{model}} = 4 d_{\text{model}}^2$</li>
+<li><strong>双矩阵总参数量</strong>：$4 d_{\text{model}}^2 + 4 d_{\text{model}}^2 = \mathbf{8 d_{\text{model}}^2}$。</li>
+</ul>
 <h5>2. SwiGLU 3 矩阵的参数通胀</h5>
-<p>SwiGLU 必须维持三条并行的矩阵流水线：
-- 门控矩阵 $\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$
-- 候选矩阵 $\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$
-- 降维矩阵 $\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$
-- <strong>三矩阵总参数量</strong>：$3 \times (d_{\text{model}} \cdot d_{\text{ffn}})$。</p>
+<p>SwiGLU 必须维持三条并行的矩阵流水线：</p>
+<ul>
+<li>门控矩阵 $\mathbf{W}_{\text{gate}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$</li>
+<li>候选矩阵 $\mathbf{W}_{\text{up}} \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ffn}}}$</li>
+<li>降维矩阵 $\mathbf{W}_{\text{down}} \in \mathbb{R}^{d_{\text{ffn}} \times d_{\text{model}}}$</li>
+<li><strong>三矩阵总参数量</strong>：$3 \times (d_{\text{model}} \cdot d_{\text{ffn}})$。</li>
+</ul>
 <p>如果无脑保留传统的 $d_{\text{ffn}} = 4d_{\text{model}}$，参数量将瞬间飙升至：</p>
 
 
@@ -1110,9 +1177,11 @@ $$
 <p>阀门并未锁死！一个虽微弱但非零的修正信号成功渗透传回，使上游权重在梯度下降中得以微调（$w \leftarrow w - \eta \cdot (-0.045 x)$），为神经元苏醒保留了生命火种。</p>
 <hr />
 <h3>第 C 部分：完整 SwiGLU 模块前向计算全流程</h3>
-<p>让我们手动跑通一次现代大模型中原汁原味的 SwiGLU 前馈层计算：
-- 输入向量：$\mathbf{x} = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix} \in \mathbb{R}^{1 \times 2}$（主维度 $d_{\text{model}} = 2$）。
-- 中间升维维度：$d_{\text{ffn}} = 2$。</p>
+<p>让我们手动跑通一次现代大模型中原汁原味的 SwiGLU 前馈层计算：</p>
+<ul>
+<li>输入向量：$\mathbf{x} = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix} \in \mathbb{R}^{1 \times 2}$（主维度 $d_{\text{model}} = 2$）。</li>
+<li>中间升维维度：$d_{\text{ffn}} = 2$。</li>
+</ul>
 <p>权重矩阵配置如下：</p>
 
 
@@ -1123,12 +1192,8 @@ $$
 
 <fieldset>
 <legend><strong>执行清单：SwiGLU 前向传播分步计算核对</strong></legend>
-
 <p><input type="checkbox" checked disabled> <strong>第 1 步：计算门控分支投影</strong><br>
 将输入特征投影到门控调节空间：</p>
-
-
-
 
 
 $$
@@ -1136,18 +1201,12 @@ $$
 $$
 
 
-
-
-
 <p><input type="checkbox" checked disabled> <strong>第 2 步：使用 $\operatorname{Swish}_1$ 激活门控系数</strong><br>
 对门控分量分别应用连续平滑放行曲线：</p>
 <ul>
-  <li>分量 1：$g_1 = -1.0 \implies \sigma(-1.0) \approx 0.2689 \implies \operatorname{Swish}(-1.0) = -1.0 \times 0.2689 = \mathbf{-0.269}$</li>
-  <li>分量 2：$g_2 = 2.0 \implies \sigma(2.0) \approx 0.8808 \implies \operatorname{Swish}(2.0) = 2.0 \times 0.8808 = \mathbf{1.762}$</li>
+<li>分量 1：$g_1 = -1.0 \implies \sigma(-1.0) \approx 0.2689 \implies \operatorname{Swish}(-1.0) = -1.0 \times 0.2689 = \mathbf{-0.269}$</li>
+<li>分量 2：$g_2 = 2.0 \implies \sigma(2.0) \approx 0.8808 \implies \operatorname{Swish}(2.0) = 2.0 \times 0.8808 = \mathbf{1.762}$</li>
 </ul>
-
-
-
 
 
 $$
@@ -1155,14 +1214,8 @@ $$
 $$
 
 
-
-
-
 <p><input type="checkbox" checked disabled> <strong>第 3 步：计算候选值分支投影（Up-Projection）</strong><br>
 提取准备被筛选的原始特征信息：</p>
-
-
-
 
 
 $$
@@ -1170,14 +1223,8 @@ $$
 $$
 
 
-
-
-
 <p><input type="checkbox" checked disabled> <strong>第 4 步：门控动态调制（逐元素阿达马积 $\odot$）</strong><br>
 用门控系数乘上候选信息，实施动态过滤与放大：</p>
-
-
-
 
 
 $$
@@ -1185,14 +1232,8 @@ $$
 $$
 
 
-
-
-
 <p><input type="checkbox" checked disabled> <strong>第 5 步：降维投影回模型主空间（Down-Projection）</strong><br>
 将调制后的高维特征映射回 $d_{\text{model}}$ 维度：</p>
-
-
-
 
 
 $$
@@ -1200,11 +1241,7 @@ $$
 $$
 
 
-
-
-
 </fieldset>
-
 <p>SwiGLU 前馈模块的最终输出结果为：$\mathbf{y} = \begin{bmatrix} -2.300 & -1.076 \end{bmatrix}$。</p>
 <p>观察其中的智能逻辑：第 1 个特征由于门控值为负值而被大幅收窄压制（仅留下 $-0.269$），而第 2 个特征却获得了大幅度的开放通行权（放行倍率为 $1.762$）。模型自主决定了哪些信息应当放大，哪些应当退火静默！</p>
 <h4>深度解析：最终输出向量 $\mathbf{y}$ 与门控决策的因果绑定</h4>
@@ -1225,9 +1262,11 @@ $$
 $$
 
 
-<p>在我们的数值示例中：
-- <strong>特征模式 1</strong>（$\mathbf{W}_{\text{down}}$ 的第 1 行）：$\mathbf{w}_{\text{down}, 1}^\top = \begin{bmatrix} 1 & 2 \end{bmatrix}$
-- <strong>特征模式 2</strong>（$\mathbf{W}_{\text{down}}$ 的第 2 行）：$\mathbf{w}_{\text{down}, 2}^\top = \begin{bmatrix} 1 & 0 \end{bmatrix}$</p>
+<p>在我们的数值示例中：</p>
+<ul>
+<li><strong>特征模式 1</strong>（$\mathbf{W}_{\text{down}}$ 的第 1 行）：$\mathbf{w}_{\text{down}, 1}^\top = \begin{bmatrix} 1 & 2 \end{bmatrix}$</li>
+<li><strong>特征模式 2</strong>（$\mathbf{W}_{\text{down}}$ 的第 2 行）：$\mathbf{w}_{\text{down}, 2}^\top = \begin{bmatrix} 1 & 0 \end{bmatrix}$</li>
+</ul>
 <p>将调制后的特征值 $h_1 = -0.538$ 与 $h_2 = -1.762$ 代入：</p>
 
 
@@ -1254,7 +1293,7 @@ $$
 
 <fieldset>
 <legend><strong>全景总结黄金法则</strong></legend>
-线性矩阵乘法只能对平直空间进行旋转和缩放；<strong>非线性激活函数是深度神经网络能够折叠高维空间、雕琢复杂决策曲面的唯一源泉</strong>。现代大语言模型采用的 <strong>SwiGLU</strong> 机制，更让被动的空间变换升华为了主动的双线性动态门控，让每一个词元都能随心所欲地驾驭与过滤上下文思想。
+<p>线性矩阵乘法只能对平直空间进行旋转和缩放；<strong>非线性激活函数是深度神经网络能够折叠高维空间、雕琢复杂决策曲面的唯一源泉</strong>。现代大语言模型采用的 <strong>SwiGLU</strong> 机制，更让被动的空间变换升华为了主动的双线性动态门控，让每一个词元都能随心所欲地驾驭与过滤上下文思想。</p>
 </fieldset>
 
 <hr>
@@ -1281,15 +1320,24 @@ $$
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

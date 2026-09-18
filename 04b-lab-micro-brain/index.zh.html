@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -138,7 +138,6 @@
 [阶段 4 (第 17 章)] 300 行纯 Python 终极版：工业级自回归推理引擎（KV Cache 缓存加速与 Top-p 动态采样）
 </pre>
 </fieldset>
-
 <hr />
 <h2 id="step-1">第 1 步：3 岁小孩也能懂的直觉比喻（发条打孔音乐盒）</h2>
 
@@ -377,10 +376,12 @@ print("生成结果:", " ".join(generated))
 <hr />
 <h2 id="step-4">第 4 步：历史渊源与技术演进（Bengio 2003 的破晓时刻）</h2>
 
-<p>在 2003 年之前，人类构建语言模型的唯一方式是<strong>传统统计 N-gram 频率计数</strong>：
-- 如果一个词组在百科全书中从未同时出现过（例如 <samp>"astronaut rides a camel"</samp>），它的统计频次就是 $0$；
-- 统计模型会机械地判定这句话在语法上的概率为 $0$。
-- 如果想要统计 5 个词以上的长连贯性，随着词表 $|V|$ 变大，需要记录的状态组合呈 $|V|^5$ 爆发（对于 10 万词表，状态数高达 $10^{25}$），任何计算机硬盘都无法容纳。这就是著名的<dfn id="def-curse-of-dimensionality"><strong>维数灾难（Curse of Dimensionality）</strong></dfn>。</p>
+<p>在 2003 年之前，人类构建语言模型的唯一方式是<strong>传统统计 N-gram 频率计数</strong>：</p>
+<ul>
+<li>如果一个词组在百科全书中从未同时出现过（例如 <samp>"astronaut rides a camel"</samp>），它的统计频次就是 $0$；</li>
+<li>统计模型会机械地判定这句话在语法上的概率为 $0$。</li>
+<li>如果想要统计 5 个词以上的长连贯性，随着词表 $|V|$ 变大，需要记录的状态组合呈 $|V|^5$ 爆发（对于 10 万词表，状态数高达 $10^{25}$），任何计算机硬盘都无法容纳。这就是著名的<dfn id="def-curse-of-dimensionality"><strong>维数灾难（Curse of Dimensionality）</strong></dfn>。</li>
+</ul>
 <dl>
   <dt><time datetime="2003">2003年</time> &mdash; <strong>Yoshua Bengio 等人</strong>：神经概率语言模型（NPLM）横空出世</dt>
   <dd>
@@ -473,17 +474,18 @@ Generated: cat sat on the rug the rug
 
 <fieldset>
 <legend><strong>阶段 1 核心里程碑精髓</strong></legend>
-深度学习绝非高不可攀的黑盒魔法。仅仅用矩阵乘法、一个单向 ReLU 阀门和链式反向传播，机器就拥有了通过梯度自我进化的生命力。从数学上讲，你已经亲手造出了世界上第一个具备自学习能力的语言预测大脑！
+<p>深度学习绝非高不可攀的黑盒魔法。仅仅用矩阵乘法、一个单向 ReLU 阀门和链式反向传播，机器就拥有了通过梯度自我进化的生命力。从数学上讲，你已经亲手造出了世界上第一个具备自学习能力的语言预测大脑！</p>
 </fieldset>
-
 <h3>但是，这个微型大脑有一个足以致命的硬伤：</h3>
 <p>仔细观察上面的自回归生成结果：
 <samp>"cat sat on the rug the rug"</samp></p>
 <p>为什么它在生成到后面时，陷入了 <samp>"the rug the rug"</samp> 的死循环？
-<strong>因为它患有无法治愈的严重“短时失忆症”！</strong>
-- 当前模型是一个<strong>单词输入模型（马尔可夫模型）</strong>：它每次只能低头看<strong>紧挨着的前 1 个词</strong>。
-- 当它看到 <code>"the"</code> 时，它只知道语料库里 <code>"the"</code> 后面跟着 <code>"rug"</code> 或 <code>"mat"</code>；它根本不记得 3 个词之前的主语究竟是 <code>cat</code> 还是 <code>dog</code>！
-- 面对真实的自然语言长句（比如：<em>“那只昨天在暴雨中浑身湿透、被好心人收留的小猫，今天终于在柔软的垫子上 __”</em>），当前模型在处理最后的动词时，前面的所有主语定语早就被忘得一干二净。</p>
+<strong>因为它患有无法治愈的严重“短时失忆症”！</strong></p>
+<ul>
+<li>当前模型是一个<strong>单词输入模型（马尔可夫模型）</strong>：它每次只能低头看<strong>紧挨着的前 1 个词</strong>。</li>
+<li>当它看到 <code>"the"</code> 时，它只知道语料库里 <code>"the"</code> 后面跟着 <code>"rug"</code> 或 <code>"mat"</code>；它根本不记得 3 个词之前的主语究竟是 <code>cat</code> 还是 <code>dog</code>！</li>
+<li>面对真实的自然语言长句（比如：<em>“那只昨天在暴雨中浑身湿透、被好心人收留的小猫，今天终于在柔软的垫子上 __”</em>），当前模型在处理最后的动词时，前面的所有主语定语早就被忘得一干二净。</li>
+</ul>
 <p><strong>怎样才能打破单词输入的视野枷锁？怎样让模型能在长达几千个词的海洋里，瞬间精准定位并聚焦到最关键的信息？</strong></p>
 <p>带上这个激动人心的挑战，让我们正式推开现代大语言模型最核心的基石大门——<strong>第 05 章：大模型的全景图纸（Transformer 架构宏观巡览）</strong>！</p>
 
@@ -511,15 +513,24 @@ Generated: cat sat on the rug the rug
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

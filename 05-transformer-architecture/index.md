@@ -244,15 +244,15 @@ Suppose our training corpus has only 4 words with the following occurrence frequ
 
 <p><strong>Greedy Iterative Merging:</strong></p>
 <ol>
-  <li><strong>Merge Step 1</strong>: We count all adjacent symbol pairs in the corpus. The pair <code>(e, s)</code> appears in <samp>"newest"</samp> (6) and <samp>"widest"</samp> (3), totaling **9 occurrences** (the highest frequency!). We form Merge Rule 1: <code>e + s &rarr; es</code> and add <code>es</code> to our vocabulary.</li>
-  <li><strong>Merge Step 2</strong>: Re-counting adjacent pairs reveals <code>(es, t)</code> also appears **9 times**. Merge Rule 2: <code>es + t &rarr; est</code>.</li>
-  <li><strong>Merge Step 3</strong>: The pair <code>(est, &lt;/w&gt;)</code> appears **9 times**. Merge Rule 3: <code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>.</li>
+  <li><strong>Merge Step 1</strong>: We count all adjacent symbol pairs in the corpus. The pair <code>(e, s)</code> appears in <samp>"newest"</samp> (6) and <samp>"widest"</samp> (3), totaling <strong>9 occurrences</strong> (the highest frequency!). We form Merge Rule 1: <code>e + s &rarr; es</code> and add <code>es</code> to our vocabulary.</li>
+  <li><strong>Merge Step 2</strong>: Re-counting adjacent pairs reveals <code>(es, t)</code> also appears <strong>9 times</strong>. Merge Rule 2: <code>es + t &rarr; est</code>.</li>
+  <li><strong>Merge Step 3</strong>: The pair <code>(est, &lt;/w&gt;)</code> appears <strong>9 times</strong>. Merge Rule 3: <code>est + &lt;/w&gt; &rarr; est&lt;/w&gt;</code>.</li>
   <li><strong>Merge Step 4</strong>: The pair <code>(l, o)</code> appears $5 + 2 = 7$ times, and <code>(o, w)</code> appears 7 times. We greedily merge: <code>l + o &rarr; lo</code>, followed by <code>lo + w &rarr; low</code>.</li>
 </ol>
 
 <p><strong>The Inference Moment on an Unseen Word:</strong></p>
 <p>
-Now, a user submits a brand-new word that **never appeared anywhere in our training corpus: <samp>"lowest"</samp>**.
+Now, a user submits a brand-new word that <strong>never appeared anywhere in our training corpus: <samp>"lowest"</samp></strong>.
 </p>
 <ol>
   <li>Initial character split: <code>[l, o, w, e, s, t, &lt;/w&gt;]</code></li>

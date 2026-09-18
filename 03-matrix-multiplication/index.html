@@ -82,7 +82,7 @@
     th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
     th { background-color: #eae9e1; text-align: left; }
     caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
-    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
   </style>
 </head>
 <body>
@@ -138,10 +138,12 @@
 <figcaption><strong>Figure 3.1:</strong> Pulling and stretching a rubber sheet transforms squares into tilted parallelograms while keeping lines straight and parallel.</figcaption>
 </figure>
 
-<p>Now, imagine you grab the corners of the rubber sheet and pull:
-- You pull the right side out to make it twice as wide (<strong>stretching</strong>).
-- You twist your hands to tilt the sheet sideways (<strong>rotating and shearing</strong>).
-- You push down from the top to squash it flatter (<strong>squishing</strong>).</p>
+<p>Now, imagine you grab the corners of the rubber sheet and pull:</p>
+<ul>
+<li>You pull the right side out to make it twice as wide (<strong>stretching</strong>).</li>
+<li>You twist your hands to tilt the sheet sideways (<strong>rotating and shearing</strong>).</li>
+<li>You push down from the top to squash it flatter (<strong>squishing</strong>).</li>
+</ul>
 <p>Notice three golden rules of this stretching game:</p>
 <ol>
 <li><strong>The Origin Stays Pinned</strong>: The center dot $(0, 0)$ where the red car sits never moves. It is nailed to the floor.</li>
@@ -154,9 +156,11 @@
 <h2 id="step-2">Step 2: The Bridging Question</h2>
 
 <p>In Chapter 01 and Chapter 02, we learned that words live as stationary arrows (vectors) on a concept map.</p>
-<p>For example, the word <kbd>"bank"</kbd> enters the model with a fixed starting coordinate. But in human language, words do not mean the same thing in every sentence:
-- In <em>"river bank"</em>, the word needs to move toward water, nature, and geography.
-- In <em>"bank deposit"</em>, the word needs to move toward money, finance, and vaults.</p>
+<p>For example, the word <kbd>"bank"</kbd> enters the model with a fixed starting coordinate. But in human language, words do not mean the same thing in every sentence:</p>
+<ul>
+<li>In <em>"river bank"</em>, the word needs to move toward water, nature, and geography.</li>
+<li>In <em>"bank deposit"</em>, the word needs to move toward money, finance, and vaults.</li>
+</ul>
 <p>A static dictionary of embeddings is not yet an AI brain. Words cannot remain frozen in place!</p>
 <p>This brings us to two fundamental questions:
 1. <strong>What is a "Weight" ($\mathbf{W}$), and how is it different from the "Embeddings" ($\mathbf{x}$) we built in Chapter 01?</strong>
@@ -208,11 +212,8 @@
 
 <fieldset>
 <legend><strong>Connecting Back to Chapter 01: You Already Met a Weight Matrix!</strong></legend>
-In Chapter 01, we introduced the <strong>Embedding Matrix</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$. 
-Notice something profound: $\mathbf{E}$ was actually our very first matrix of weights! It stored $|V|$ vectors, translating a discrete word ID (a one-hot vector) into continuous coordinates:
-
-
-
+<p>In Chapter 01, we introduced the <strong>Embedding Matrix</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$. 
+Notice something profound: $\mathbf{E}$ was actually our very first matrix of weights! It stored $|V|$ vectors, translating a discrete word ID (a one-hot vector) into continuous coordinates:</p>
 
 
 $$
@@ -220,14 +221,9 @@ $$
 $$
 
 
-
-
-
-Now, a layer's <strong>Weight Matrix</strong> $\mathbf{W}$ continues that journey: it takes an existing word embedding $\mathbf{x}$ and translates it into an entirely new concept space. 
-
-If the embedding matrix $\mathbf{E}$ is the <strong>dictionary</strong> that gives words their initial definitions, the weight matrix $\mathbf{W}$ is the <strong>thinking lens</strong> that interprets how those words interact.
+<p>Now, a layer's <strong>Weight Matrix</strong> $\mathbf{W}$ continues that journey: it takes an existing word embedding $\mathbf{x}$ and translates it into an entirely new concept space. </p>
+<p>If the embedding matrix $\mathbf{E}$ is the <strong>dictionary</strong> that gives words their initial definitions, the weight matrix $\mathbf{W}$ is the <strong>thinking lens</strong> that interprets how those words interact.</p>
 </fieldset>
-
 <hr />
 <h3>2. The Core Transformation Formula</h3>
 <p>For an input embedding vector $\mathbf{x} \in \mathbb{R}^{k \times 1}$, a weight matrix $\mathbf{W} \in \mathbb{R}^{m \times k}$, and a bias vector $\mathbf{b} \in \mathbb{R}^{m \times 1}$, the transformed output vector $\mathbf{y} \in \mathbb{R}^{m \times 1}$ is:</p>
@@ -287,12 +283,10 @@ $$
 
 <fieldset>
 <legend><strong>Matrix Multiplication Is Just a Grid of Dot Products!</strong></legend>
-Notice the deep connection to Chapter 02:
-Every single cell in the product matrix $\mathbf{C}$ is simply the <strong>dot product</strong> between a horizontal row from the left matrix and a vertical column from the right matrix.
-
-Matrix multiplication is a structured, parallel factory for computing thousands of dot products in one single sweep.
+<p>Notice the deep connection to Chapter 02:
+Every single cell in the product matrix $\mathbf{C}$ is simply the <strong>dot product</strong> between a horizontal row from the left matrix and a vertical column from the right matrix.</p>
+<p>Matrix multiplication is a structured, parallel factory for computing thousands of dot products in one single sweep.</p>
 </fieldset>
-
 <hr />
 <h3>4. The Geometric Secret: Where Do the Basis Vectors Land?</h3>
 <p>Why should someone studying neural language models care about "where basis vectors land"?</p>
@@ -308,9 +302,11 @@ $$
 <p>Viewing matrix multiplication through its <strong>columns</strong> provides the direct mechanical blueprint for how an AI transforms linguistic features.</p>
 <h4>What Is a "Basis Vector" in Terms of Embeddings?</h4>
 <p>Recall from Chapter 01 that every word embedding $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ is composed of coordinates representing semantic traits (such as $x_1 = 2$ for furriness and $x_2 = 1$ for playfulness).</p>
-<p>The standard basis vectors are simply the purest, most extreme embeddings possible in that space:
-- $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ represents an embedding containing <strong>100% pure Feature 1</strong> (e.g., pure <em>"Feline Nature"</em>) and 0% of anything else.
-- $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ represents an embedding containing <strong>100% pure Feature 2</strong> (e.g., pure <em>"Playfulness"</em>) and 0% of anything else.</p>
+<p>The standard basis vectors are simply the purest, most extreme embeddings possible in that space:</p>
+<ul>
+<li>$\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$ represents an embedding containing <strong>100% pure Feature 1</strong> (e.g., pure <em>"Feline Nature"</em>) and 0% of anything else.</li>
+<li>$\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$ represents an embedding containing <strong>100% pure Feature 2</strong> (e.g., pure <em>"Playfulness"</em>) and 0% of anything else.</li>
+</ul>
 <p>Every real word embedding is just a recipe of these pure ingredients: $\mathbf{x} = x_1 \hat{\mathbf{i}} + x_2 \hat{\mathbf{j}}$.</p>
 <h4>The Matrix Columns as a Feature Translation Dictionary</h4>
 <p>Now, watch what happens when our weight matrix lens $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ acts on these pure basis embeddings:</p>
@@ -332,9 +328,11 @@ $$
 <blockquote>
 <p><strong>The columns of a weight matrix are simply the landing coordinates of pure basis features after being transformed!</strong></p>
 </blockquote>
-<p>Each column of $\mathbf{W}$ acts as a <strong>semantic dictionary entry</strong>:
-- <strong>Column 1 ($\mathbf{w}_{:, 1}$)</strong> answers: <em>"If an input word possesses 1 unit of Feature 1 (Feline Nature), what new downstream traits should this layer produce?"</em>
-- <strong>Column 2 ($\mathbf{w}_{:, 2}$)</strong> answers: <em>"If an input word possesses 1 unit of Feature 2 (Playfulness), what new downstream traits should this layer produce?"</em></p>
+<p>Each column of $\mathbf{W}$ acts as a <strong>semantic dictionary entry</strong>:</p>
+<ul>
+<li><strong>Column 1 ($\mathbf{w}_{:, 1}$)</strong> answers: <em>"If an input word possesses 1 unit of Feature 1 (Feline Nature), what new downstream traits should this layer produce?"</em></li>
+<li><strong>Column 2 ($\mathbf{w}_{:, 2}$)</strong> answers: <em>"If an input word possesses 1 unit of Feature 2 (Playfulness), what new downstream traits should this layer produce?"</em></li>
+</ul>
 <h4>Matrix Multiplication as a "Concept Recipe Blender"</h4>
 <p>When a real word embedding $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ (such as $\text{"cat"} = [2, 1]^\top$) enters the neural network layer, the matrix multiplication computes:</p>
 
@@ -350,22 +348,23 @@ $$
 </blockquote>
 <fieldset>
 <legend><strong>Why This Basis-Column Intuition Unlocks Future Chapters</strong></legend>
-This column perspective is the key to understanding how deeper neural architectures work:
+<p>This column perspective is the key to understanding how deeper neural architectures work:</p>
 <ol>
-  <li><strong>Attention Projections ($\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$) in Module 3</strong>: When a word embedding is transformed into a "Query", the columns of $\mathbf{W}_Q$ define the coordinate axes of the search space—translating raw word traits into <em>"What questions is this word actively asking about its surrounding context?"</em></li>
-  <li><strong>Feed-Forward Memory Networks (FFN) in Module 5</strong>: In models like LLaMA and GPT, intermediate layers expand embeddings into thousands of dimensions and project them back down. The columns of these projection matrices act as key-value memory slots storing factual knowledge.</li>
-  <li><strong>Mechanistic Interpretability</strong>: When AI safety researchers peer inside a trained model to find "honesty vectors" or "refusal directions", they are directly analyzing the directions formed by linear combinations of these matrix columns.</li>
+<li><strong>Attention Projections ($\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$) in Module 3</strong>: When a word embedding is transformed into a "Query", the columns of $\mathbf{W}_Q$ define the coordinate axes of the search space—translating raw word traits into <em>"What questions is this word actively asking about its surrounding context?"</em></li>
+<li><strong>Feed-Forward Memory Networks (FFN) in Module 5</strong>: In models like LLaMA and GPT, intermediate layers expand embeddings into thousands of dimensions and project them back down. The columns of these projection matrices act as key-value memory slots storing factual knowledge.</li>
+<li><strong>Mechanistic Interpretability</strong>: When AI safety researchers peer inside a trained model to find "honesty vectors" or "refusal directions", they are directly analyzing the directions formed by linear combinations of these matrix columns.</li>
 </ol>
 </fieldset>
-
 <hr />
 <h3>5. Deep Learning Convention: Row Vectors and Batches</h3>
 <p>In mathematics textbooks, vectors are traditionally written as vertical columns: $\mathbf{y} = \mathbf{W}\mathbf{x}$.</p>
 <p>However, in deep learning software (PyTorch, JAX, Hugging Face), text is processed in <strong>batches of tokens</strong>, where each token is represented as a <strong>horizontal row vector</strong>.</p>
-<p>For a sequence of $T$ tokens, each with dimension $d_{\text{in}}$:
-- The input token matrix is $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{in}}}$ (each row is one token embedding).
-- The weight matrix is $\mathbf{W} \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$.
-- The bias vector is $\mathbf{b} \in \mathbb{R}^{1 \times d_{\text{out}}}$ (broadcasted across all $T$ rows).</p>
+<p>For a sequence of $T$ tokens, each with dimension $d_{\text{in}}$:</p>
+<ul>
+<li>The input token matrix is $\mathbf{X} \in \mathbb{R}^{T \times d_{\text{in}}}$ (each row is one token embedding).</li>
+<li>The weight matrix is $\mathbf{W} \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}$.</li>
+<li>The bias vector is $\mathbf{b} \in \mathbb{R}^{1 \times d_{\text{out}}}$ (broadcasted across all $T$ rows).</li>
+</ul>
 <p>The forward pass is written with the input on the left:</p>
 
 
@@ -538,17 +537,18 @@ $$
 <h2 id="step-5">Step 5: Concrete Toy Example</h2>
 
 <fieldset>
-  <legend><strong>Numerical Execution Pipeline Checklist</strong></legend>
-  <p><input type="checkbox" checked disabled> <strong>Step 5.1:</strong> Verify dimension compatibility: $(2 \times 2) \times (2 \times 1) \longrightarrow (2 \times 1)$</p>
-  <p><input type="checkbox" checked disabled> <strong>Step 5.2:</strong> Compute raw linear matrix-vector projection $\mathbf{W}\mathbf{x} = [5, 3]^\top$ via parallel dot products</p>
-  <p><input type="checkbox" checked disabled> <strong>Step 5.3:</strong> Apply bias translation $\mathbf{b} = [1, -1]^\top \longrightarrow \mathbf{y} = [6, 2]^\top$</p>
-  <p><input type="checkbox" checked disabled> <strong>Step 5.4:</strong> Inspect transformed basis axes $\mathbf{W}\hat{\mathbf{i}} = [2, 0]^\top$ and $\mathbf{W}\hat{\mathbf{j}} = [1, 3]^\top$</p>
+<legend><strong>Numerical Execution Pipeline Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step 5.1:</strong> Verify dimension compatibility: $(2 \times 2) \times (2 \times 1) \longrightarrow (2 \times 1)$</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5.2:</strong> Compute raw linear matrix-vector projection $\mathbf{W}\mathbf{x} = [5, 3]^\top$ via parallel dot products</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5.3:</strong> Apply bias translation $\mathbf{b} = [1, -1]^\top \longrightarrow \mathbf{y} = [6, 2]^\top$</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5.4:</strong> Inspect transformed basis axes $\mathbf{W}\hat{\mathbf{i}} = [2, 0]^\top$ and $\mathbf{W}\hat{\mathbf{j}} = [1, 3]^\top$</p>
 </fieldset>
-
 <p>Let's step through an exact numerical example by hand.</p>
-<p>We have an input word vector for <kbd>"cat"</kbd> in 2-dimensional space:
-- Axis 1: <strong>Furriness</strong> $= 2$
-- Axis 2: <strong>Playfulness</strong> $= 1$</p>
+<p>We have an input word vector for <kbd>"cat"</kbd> in 2-dimensional space:</p>
+<ul>
+<li>Axis 1: <strong>Furriness</strong> $= 2$</li>
+<li>Axis 2: <strong>Playfulness</strong> $= 1$</li>
+</ul>
 
 
 $$
@@ -567,11 +567,13 @@ $$
 <p>Let's compute the output vector $\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}$ step by step.</p>
 <hr />
 <h3>Step 5.1: Verify Dimension Compatibility</h3>
-<p>Before doing any math, always check the shapes:
-- Weight matrix $\mathbf{W}$: shape is $(2 \times 2)$, so $m = 2, k = 2$.
-- Input vector $\mathbf{x}$: shape is $(2 \times 1)$, so $k = 2, n = 1$.
-- Inner dimensions match: $k = 2 = 2$.
-- Output shape will be: $(m \times n) = (2 \times 1)$.</p>
+<p>Before doing any math, always check the shapes:</p>
+<ul>
+<li>Weight matrix $\mathbf{W}$: shape is $(2 \times 2)$, so $m = 2, k = 2$.</li>
+<li>Input vector $\mathbf{x}$: shape is $(2 \times 1)$, so $k = 2, n = 1$.</li>
+<li>Inner dimensions match: $k = 2 = 2$.</li>
+<li>Output shape will be: $(m \times n) = (2 \times 1)$.</li>
+</ul>
 <p>Dimensions are 100% compatible.</p>
 <hr />
 <h3>Step 5.2: Multiply Matrix $\mathbf{W}$ by Vector $\mathbf{x}$</h3>
@@ -685,14 +687,11 @@ $$
 <hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
 
-<fieldset><legend><strong>Core Takeaway</strong></legend>
-
-A **weight matrix** is a programmable rubber sheet that stretches, tilts, and projects semantic vectors across multi-dimensional space, while the **bias vector** slides the coordinate frame to the optimal origin.
-
-Matrix multiplication is the computational engine of LLMs because it combines smooth mathematical differentiability with extreme hardware efficiency on GPU tensor cores.
-
-But here is a profound dilemma: **What happens if you stack two, three, or one hundred stretching sheets on top of each other?** As we will discover in Chapter 04, pure matrix multiplications collapse into a single flat stretch! To build deep intelligence, we need **Activation Functions: The One-Way Gate**.
-
+<fieldset>
+<legend><strong>Core Takeaway</strong></legend>
+<p>A <strong>weight matrix</strong> is a programmable rubber sheet that stretches, tilts, and projects semantic vectors across multi-dimensional space, while the <strong>bias vector</strong> slides the coordinate frame to the optimal origin.</p>
+<p>Matrix multiplication is the computational engine of LLMs because it combines smooth mathematical differentiability with extreme hardware efficiency on GPU tensor cores.</p>
+<p>But here is a profound dilemma: <strong>What happens if you stack two, three, or one hundred stretching sheets on top of each other?</strong> As we will discover in Chapter 04, pure matrix multiplications collapse into a single flat stretch! To build deep intelligence, we need <strong>Activation Functions: The One-Way Gate</strong>.</p>
 </fieldset>
 
 <hr>
@@ -719,15 +718,24 @@ But here is a profound dilemma: **What happens if you stack two, three, or one h
       window.location.replace('index.html');
     }
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {
-      renderMathInElement(document.body, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\(', right: '\)', display: false },
+            { left: '\[', right: '\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
     }
   </script>
 </body>

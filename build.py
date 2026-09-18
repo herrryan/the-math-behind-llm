@@ -134,7 +134,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     th, td {{ border: 1px solid #dcdcd4; padding: 4px 8px; }}
     th {{ background-color: #eae9e1; text-align: left; }}
     caption {{ caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }}
-    .katex-display {{ overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; }}
+    .katex-display {{ overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }}
   </style>
 </head>
 <body>
@@ -166,15 +166,24 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       window.location.replace('index.html');
     }}
 
-    // KaTeX equation rendering pass
-    if (typeof renderMathInElement !== 'undefined') {{
-      renderMathInElement(document.body, {{
-        delimiters: [
-          {{ left: '$$', right: '$$', display: true }},
-          {{ left: '$', right: '$', display: false }}
-        ],
-        throwOnError: false
-      }});
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {{
+      if (typeof renderMathInElement !== 'undefined') {{
+        renderMathInElement(document.body, {{
+          delimiters: [
+            {{ left: '$$', right: '$$', display: true }},
+            {{ left: '$', right: '$', display: false }},
+            {{ left: '\\(', right: '\\)', display: false }},
+            {{ left: '\\[', right: '\\]', display: true }}
+          ],
+          throwOnError: false
+        }});
+      }}
+    }}
+    if (document.readyState === 'loading') {{
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    }} else {{
+      renderAllMath();
     }}
   </script>
 </body>
@@ -207,7 +216,7 @@ def convert_callouts(text, lang='en'):
                     block_lines.append(l)
                 i += 1
             inner_text = '\n'.join(block_lines).strip()
-            out.append(f'<fieldset><legend><strong>{title}</strong></legend>\n\n{inner_text}\n\n</fieldset>')
+            out.append(f'<fieldset markdown="1"><legend><strong>{title}</strong></legend>\n\n{inner_text}\n\n</fieldset>')
         else:
             out.append(line)
             i += 1
@@ -313,8 +322,11 @@ def render_markdown_to_html(md_text, lang='en', is_chapter=False):
     if is_chapter:
         md_text = strip_manual_navs(md_text)
 
-    # 1. Convert GitHub-style callouts to fieldsets
+    # 1. Convert GitHub-style callouts to fieldsets (with markdown="1" for nested parsing)
     text = convert_callouts(md_text, lang)
+
+    # Ensure all manual fieldsets also enable nested markdown parsing
+    text = re.sub(r'<fieldset(?![^>]*markdown=)', '<fieldset markdown="1"', text)
 
     # 2. Protect code blocks from math parsing
     code_store = {}
@@ -326,36 +338,66 @@ def render_markdown_to_html(md_text, lang='en', is_chapter=False):
     text = re.sub(r'```[\s\S]*?```', save_code, text)
     text = re.sub(r'`[^`\n]+`', save_code, text)
 
-    # 3. Protect display math $$ ... $$ (both single-line and multi-line)
+    # Helper: sanitize LaTeX to avoid browser HTML entity/tag collisions (e.g. w_{<t} -> w_{\lt t})
+    def sanitize_math(latex_str):
+        return re.sub(r'<([a-zA-Z0-9])', r'\\lt \1', latex_str)
+
+    # 3. Protect display math $$ ... $$ and \[ ... \]
     math_store = {}
-    def save_display(match):
+    def save_display_dollar(match):
         key = f"XXMATHBLOCK{len(math_store)}XX"
-        content = match.group(1).strip()
-        # Restore as clean, isolated display math
+        content = sanitize_math(match.group(1).strip())
         math_store[key] = f"\n\n$$\n{content}\n$$\n\n"
         return f"\n\n{key}\n\n"
 
-    text = re.sub(r'\$\$([\s\S]*?)\$\$', save_display, text)
+    def save_display_bracket(match):
+        key = f"XXMATHBLOCK{len(math_store)}XX"
+        content = sanitize_math(match.group(1).strip())
+        math_store[key] = f"\n\n\\[\n{content}\n\\]\n\n"
+        return f"\n\n{key}\n\n"
 
-    # 4. Protect inline math $ ... $
-    def save_inline(match):
+    text = re.sub(r'\$\$([\s\S]*?)\$\$', save_display_dollar, text)
+    text = re.sub(r'\\\[([\s\S]*?)\\\]', save_display_bracket, text)
+
+    # 4. Protect inline math $ ... $ and \( ... \)
+    def save_inline_dollar(match):
         key = f"XXMATHINLINE{len(math_store)}XX"
-        math_store[key] = match.group(0)
+        content = sanitize_math(match.group(0))
+        math_store[key] = content
         return key
 
-    text = re.sub(r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', save_inline, text)
+    def save_inline_paren(match):
+        key = f"XXMATHINLINE{len(math_store)}XX"
+        content = sanitize_math(match.group(0))
+        math_store[key] = content
+        return key
 
-    # 5. Restore code blocks before markdown parsing
+    text = re.sub(r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', save_inline_dollar, text)
+    text = re.sub(r'\\\((.*?)\\\)', save_inline_paren, text)
+
+    # 5. Ensure lists preceded by regular text have a blank line for proper Markdown parsing
+    lines = text.split('\n')
+    spaced_lines = []
+    for idx, line in enumerate(lines):
+        if idx > 0 and re.match(r'^\s*[-*]\s+', line):
+            prev = lines[idx-1].strip()
+            if prev and not re.match(r'^\s*[-*]\s+', prev) and not prev.startswith(('#', '<')):
+                spaced_lines.append('')
+        spaced_lines.append(line)
+    text = '\n'.join(spaced_lines)
+
+    # 6. Restore code blocks before markdown parsing
     for k, v in code_store.items():
         text = text.replace(k, v)
 
-    # 6. Parse Markdown to HTML
+    # 7. Parse Markdown to HTML
     html = markdown.markdown(text, extensions=[
         'tables',
         'fenced_code',
         'def_list',
         'attr_list',
-        'sane_lists'
+        'sane_lists',
+        'md_in_html'
     ])
 
     # 7. Restore protected math blocks
@@ -623,6 +665,19 @@ def build_site():
             if m:
                 print(f"  [ERROR] Unintended indented code block containing escaped HTML tags in {fpath}: {m}")
                 leak_violations += 1
+
+            # Check for un-restored placeholder leaks
+            placeholders = re.findall(r'XX(?:MATHBLOCK|MATHINLINE|CODEBLOCK)\d+XX', content)
+            if placeholders:
+                print(f"  [ERROR] Unrestored compilation placeholder leak in {fpath}: {placeholders}")
+                leak_violations += 1
+
+            # Check for math tag collision (e.g. unescaped < followed by letter inside math)
+            for im in re.finditer(r'(?<!\$)\$(?!\$)(.*?)(?<!\$)\$(?!\$)', content):
+                math_inner = im.group(1)
+                if re.search(r'<[a-zA-Z0-9]', math_inner):
+                    print(f"  [ERROR] Unescaped HTML tag collision in math formula in {fpath}: ${math_inner}$")
+                    leak_violations += 1
 
     # Verify site link & anchor integrity
     html_files = [f for f in content_files if f.endswith('.html')]
