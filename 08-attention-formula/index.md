@@ -7,9 +7,9 @@
 > [!INTUITION] The Megaphone Shouting Match & The Master Volume Knob
 > Imagine a large classroom with 64 children sitting in a circle. Each child holds a megaphone.
 >
-> When one child asks a question, every other child shouts their answer through their megaphone. But there is a catch: each megaphone is powered by **64 separate battery cells** ($d_k = 64$).
+> When one child asks a question, every other child shouts their answer through their megaphone. But there is a catch: each megaphone is powered by **64 separate battery cells**.
 >
-> When 64 battery cells combine their electrical energy, the sound doesn't just add up a little—it multiplies into an ear-splitting roar! If Child 2 is just slightly more excited than Child 3, their 64 batteries amplify that tiny difference into a deafening sonic boom ($120\text{ dB}$). Meanwhile, Child 1's helpful answer is completely drowned out into absolute silence ($0\text{ dB}$).
+> When 64 battery cells combine their electrical energy, the sound doesn't just add up a little—it multiplies into an ear-splitting roar! If Child 2 is just slightly more excited than Child 3, their 64 batteries amplify that tiny difference into a deafening sonic boom. Meanwhile, Child 1's helpful answer is completely drowned out into absolute silence.
 >
 > What happens to the teacher's ears?
 > 
@@ -17,23 +17,23 @@
 >
 > The wise audio engineer solves this with a **Master Volume Knob**:
 >
-> Before the sound signals reach the voting table, the engineer passes all audio cables through a dampener that divides the total electrical power by the square root of the battery count ($\sqrt{64} = 8$):
+> Before the sound signals reach the voting table, the engineer passes all audio cables through a dampener that divides the total electrical power by the square root of the battery count (dividing the volume by 8, since 8 × 8 = 64):
 >
-> 1. **Dampen the Blasts**: The deafening $120\text{ dB}$ sonic boom is turned down to a healthy, energetic speaking volume.
+> 1. **Dampen the Blasts**: The deafening sonic boom is turned down to a healthy, energetic speaking volume.
 > 2. **Protect the Ears**: The teacher's eardrums never pop. They can hear Child 2's enthusiasm clearly, while still catching Child 1's quiet advice.
 > 3. **Keep the Teacher Sensitive**: Because the sound stays in the comfortable hearing range, any small improvement from any child is instantly heard and praised!
 >
-> In an LLM, dividing by $\sqrt{d_k}$ is that exact Master Volume Knob. It stops the math from exploding, prevents the AI brain from going deaf, and keeps its learning sensors razor-sharp!
+> In an LLM, dividing by the square root of the battery count is that exact **Master Volume Knob**. It stops the signal from exploding, prevents the listener from going deaf, and keeps attention sensors razor-sharp!
 
 <figure>
 <pre>
-Without Volume Knob (Raw Dot Products Scale with Dimension d_k):
-[Battery Power d_k = 64] ──► [Scores: +24, -8, +3] ──► [Softmax: 99.9999%, 0.0000%, 0.0001%] ──► Gradients = 0 (Brain Deaf!)
+Without Volume Knob (Raw Power Multiplies Across 64 Battery Cells):
+[64 Battery Cells] ──► [Roar: +24, -8, +3] ──► [Ears Overloaded: 99.9999%, 0.0000%, 0.0001%] ──► Ears Ringing (Brain Deaf!)
 
-With Volume Knob (Dividing by √d_k = 8):
-[Battery Power d_k = 64] ──► [Scores: +3.0, -1.0, +0.38] ──► [Softmax: 88.2%, 1.6%, 10.2%] ──► Gradients Active (Brain Learns!)
+With Volume Knob (Dividing Power by √64 = 8):
+[64 Battery Cells] ──► [Volume: +3.0, -1.0, +0.38] ──► [Attentive Hearing: 88.2%, 1.6%, 10.2%] ──► Ears Sensitive (Brain Learns!)
 </pre>
-<figcaption><strong>Figure 8.1:</strong> The Master Volume Knob prevents dot product energy from saturating Softmax into a gradient-free coma.</figcaption>
+<figcaption><strong>Figure 8.1:</strong> The Master Volume Knob prevents signal energy from saturating the listener into an unteachable coma.</figcaption>
 </figure>
 
 ---
@@ -51,7 +51,7 @@ With Volume Knob (Dividing by √d_k = 8):
 >
 > But when we assemble these pieces into a complete, production-grade neural network, a perilous mathematical trap appears:
 >
-> In real models, embedding dimensions are not tiny numbers like $2$; they are $d_k = 64$, $128$, or more. The dot product sums over $d_k$ separate multiplications:
+> In real models, embedding dimensions are not tiny numbers like $2$; they are typically $d_k = 64$, $d_k = 128$, or even higher. The dot product sums over $d_k$ separate multiplications:
 >
 > $$
 > \mathbf{q} \cdot \mathbf{k} = \sum_{i=1}^{d_k} q_i k_i = q_1 k_1 + q_2 k_2 + \dots + q_{d_k} k_{d_k}
@@ -232,25 +232,25 @@ The spread (standard deviation) of the raw dot product grows directly as $\sqrt{
   </thead>
   <tbody>
     <tr>
-      <td align="center"><strong>$d_k = 4$</strong></td>
+      <td align="center">$d_k = 4$</td>
       <td align="center">$4$</td>
       <td align="center">$2.0$</td>
       <td>$[-6.0, +6.0]$ &mdash; Moderate spread; Softmax remains somewhat responsive.</td>
     </tr>
     <tr>
-      <td align="center"><strong>$d_k = 16$</strong></td>
+      <td align="center">$d_k = 16$</td>
       <td align="center">$16$</td>
       <td align="center">$4.0$</td>
       <td>$[-12.0, +12.0]$ &mdash; Significant widening; large exponents start appearing.</td>
     </tr>
     <tr>
-      <td align="center"><strong>$d_k = 64$</strong></td>
+      <td align="center">$d_k = 64$</td>
       <td align="center">$64$</td>
       <td align="center">$8.0$</td>
       <td>$[-24.0, +24.0]$ &mdash; <mark>Extreme saturation!</mark> Exponents reach $e^{24} \approx 2.6 \times 10^{10}$.</td>
     </tr>
     <tr>
-      <td align="center"><strong>$d_k = 128$</strong></td>
+      <td align="center">$d_k = 128$</td>
       <td align="center">$128$</td>
       <td align="center">$11.31$</td>
       <td>$[-33.9, +33.9]$ &mdash; Catastrophic saturation! One-hot hardmax collapse.</td>
