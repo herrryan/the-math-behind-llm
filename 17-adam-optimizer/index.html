@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 17: The Smart Walker (Momentum & The AdamW Optimizer) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../16-gradients-and-backpropagation/index.html">&larr; Chapter 16: Walking Down the Mountain (Gradients & Backpropagation)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 17: The Smart Walker (Momentum &amp; The AdamW Optimizer)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Ping-Pong Ball vs. The Bowling Ball)</h2>
+<fieldset>
+<legend><strong>The Bouncing Ball and the Smart Roller Skates</strong></legend>
+<p>Imagine rolling two different balls down a steep, narrow mountain gorge with rocky, uneven side walls:</p>
+<ol>
+<li><strong>The Lightweight Ping-Pong Ball (Vanilla SGD)</strong>:</li>
+</ol>
+<ul>
+<li>Because it has almost zero mass, every pebble and ridge sends it bouncing violently from left to right.</li>
+<li>It spends 99% of its energy pinging uselessly across the canyon walls, and barely makes any forward progress down the valley floor.</li>
+<li>If you push it too hard (high learning rate), it ricochets out of control and flies off the mountain!</li>
+</ul>
+<ol start="2">
+<li><strong>The Heavy Bowling Ball (Momentum)</strong>:</li>
+</ol>
+<ul>
+<li>Now release a heavy, solid bowling ball down that exact same canyon.</li>
+<li>The left-right bumps push against it, but because the ball has accumulated <strong>forward momentum</strong>, the lateral bounces cancel each other out!</li>
+<li>It plows smoothly and relentlessly straight down the center of the valley floor, accelerating through flat spots and coasting through tiny ripples.</li>
+</ul>
+<ol start="3">
+<li><strong>The Smart Skates with Custom Brakes (Adaptive Learning Rates)</strong>:</li>
+</ol>
+<ul>
+<li>Now imagine you have 70 billion hikers walking down this mountain together.</li>
+<li>Some hikers are sliding down a wet ice cliff &mdash; they need <strong>heavy friction brakes</strong> so they don't plunge to their deaths!</li>
+<li>Other hikers are trudging through thick, flat mud &mdash; they need <strong>rocket-powered roller skates</strong> so they don't get stuck forever!</li>
+<li>The smart optimizer monitors each hiker individually: if a hiker faces huge, wild gradients, it shrinks their step size; if a hiker faces tiny, subtle gradients, it boosts their step size.</li>
+</ul>
+<p>In Large Language Models, this ultimate mountain guide is the <strong>AdamW Optimizer (<dfn id="def-adamw">Adaptive Moment Estimation with Decoupled Weight Decay</dfn>)</strong>.</p>
+<p>It combines the momentum of the heavy bowling ball with personalized adaptive brakes for every single parameter in the model!</p>
+</fieldset>
+<figure>
+<pre>
+Vanilla SGD vs. AdamW in an Ill-Conditioned Ravine:
+
+Vanilla SGD (Violent cross-canyon oscillations):
+  \       /\       /\       /
+   \     /  \     /  \     /     (Wastes thousands of steps bouncing
+    \   /    \   /    \   /       across steep canyon walls!)
+     ▼ /      ▼ /      ▼ /
+
+AdamW (Momentum cancels chatter + Adaptive scaling accelerates descent):
+  ═════════════════════════════► (Smooth, direct, rapid progress
+                                  straight down the valley floor!)
+</pre>
+<figcaption><strong>Figure 17.1:</strong> Vanilla SGD oscillates chaotically between steep canyon walls; AdamW dampens lateral chatter with momentum while normalizing step sizes.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<fieldset>
+<legend><strong>Why Does Plain Gradient Descent Fail in Deep Networks?</strong></legend>
+<p>In Chapter 16, we saw the classic Gradient Descent update rule:</p>
+
+
+$$
+\boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \mathbf{g}_t
+$$
+
+
+<p>While mathematically elegant, applying this formula directly to train a 70-billion-parameter Transformer is catastrophic:</p>
+<ol>
+<li><strong>The Ravine Problem (Ill-Conditioned Curvature)</strong>: The loss landscape of an LLM resembles a narrow, steep ravine. The slope across the canyon walls is thousands of times steeper than the gentle incline along the canyon floor. A single scalar learning rate $\eta$ either causes explosive divergence across the walls or crawls at an imperceptible snail's pace along the floor.</li>
+<li><strong>Sparse vs. Dense Gradients</strong>: Rare tokens (like technical terminology or rare names) receive gradient updates once every million steps, while frequent tokens (like <code>"the"</code> or <code>","</code>) receive updates on every batch. Plain SGD starves the rare parameters while overshooting the frequent ones.</li>
+</ol>
+<p><em>"How do we mathematically track the rolling speed (first moment) and the vibrational energy (second moment) of all 70 billion parameters, while correcting for initial startup drag and preventing weight explosion?"</em></p>
+</fieldset>
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. The AdamW Algorithm (Kingma &amp; Ba, 2014; Loshchilov &amp; Hutter, 2017)</h3>
+<p>At each optimization step $t$, given the parameter vector $\boldsymbol{\theta}_{t-1}$ and the mini-batch gradient $\mathbf{g}_t = \nabla_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta}_{t-1})$:</p>
+<h4>Step A: First Moment Estimate (Moving Average of Gradients &mdash; Momentum)</h4>
+
+
+$$
+\mathbf{m}_t = \beta_1 \mathbf{m}_{t-1} + (1 - \beta_1) \mathbf{g}_t
+$$
+
+
+<ul>
+<li>$\mathbf{m}_t \in \mathbb{R}^P$ tracks the directional momentum.</li>
+<li>$\beta_1 \in [0, 1)$ is the first-moment decay factor (standard default: $\beta_1 = 0.9$).</li>
+</ul>
+<h4>Step B: Second Moment Estimate (Moving Average of Squared Gradients &mdash; Energy)</h4>
+
+
+$$
+\mathbf{v}_t = \beta_2 \mathbf{v}_{t-1} + (1 - \beta_2) \mathbf{g}_t^2
+$$
+
+
+<ul>
+<li>$\mathbf{v}_t \in \mathbb{R}^P$ tracks the uncentered variance (gradient magnitude). $\mathbf{g}_t^2 = \mathbf{g}_t \odot \mathbf{g}_t$ is computed element-wise.</li>
+<li>$\beta_2 \in [0, 1)$ is the second-moment decay factor (standard default: $\beta_2 = 0.95$ for LLMs, or $0.999$ in classic vision).</li>
+</ul>
+<h4>Step C: Bias Corrections (Correcting for Zero Initialization)</h4>
+<p>Because $\mathbf{m}_0 = \mathbf{0}$ and $\mathbf{v}_0 = \mathbf{0}$, early moving averages are heavily biased toward zero. We rescale them by dividing by $(1 - \beta^t)$:</p>
+
+
+$$
+\hat{\mathbf{m}}_t = \frac{\mathbf{m}_t}{1 - \beta_1^t}, \quad \hat{\mathbf{v}}_t = \frac{\mathbf{v}_t}{1 - \beta_2^t}
+$$
+
+
+<details>
+<summary><strong>Proof: Why Does Dividing by $1 - \beta^t$ Eliminate Startup Drag?</strong></summary>
+
+Unroll the recursive equation for $\mathbf{m}_t$ with $\mathbf{m}_0 = \mathbf{0}$:
+
+
+
+
+
+$$
+\begin{aligned}
+\mathbf{m}_t &= (1 - \beta_1)\mathbf{g}_t + \beta_1 \mathbf{m}_{t-1} \\
+&= (1 - \beta_1)\sum_{i=1}^t \beta_1^{t-i} \mathbf{g}_i
+\end{aligned}
+$$
+
+
+
+
+
+Take the mathematical expectation $\mathbb{E}[\mathbf{m}_t]$, assuming the underlying true gradient has expected mean $\mathbb{E}[\mathbf{g}_i] \approx \mathbb{E}[\mathbf{g}]$:
+
+
+
+
+
+$$
+\mathbb{E}[\mathbf{m}_t] = \mathbb{E}\left[(1 - \beta_1)\sum_{i=1}^t \beta_1^{t-i} \mathbf{g}_i\right] = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1) \sum_{i=1}^t \beta_1^{t-i}
+$$
+
+
+
+
+
+The finite geometric series sum is:
+
+
+
+
+
+$$
+\sum_{i=1}^t \beta_1^{t-i} = \frac{1 - \beta_1^t}{1 - \beta_1}
+$$
+
+
+
+
+
+Substitute this back:
+
+
+
+
+
+$$
+\mathbb{E}[\mathbf{m}_t] = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1) \cdot \frac{1 - \beta_1^t}{1 - \beta_1} = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1^t)
+$$
+
+
+
+
+
+At step $t = 1$ with $\beta_1 = 0.9$, $\mathbf{m}_1$ is only $10\%$ of the true gradient!
+Dividing by $(1 - \beta_1^t) = (1 - 0.9^1) = 0.10$ exactly scales it back to $100\%$, ensuring unbiased gradient estimates from step 1!
+</details>
+
+<h4>Step D: The Decoupled Weight Decay Parameter Update (AdamW)</h4>
+
+
+$$
+\boldsymbol{\theta}_t = \boldsymbol{\theta}_{t-1} - \underbrace{\eta \lambda \boldsymbol{\theta}_{t-1}}_{\text{Decoupled Weight Decay}} - \underbrace{\frac{\eta}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \odot \hat{\mathbf{m}}_t}_{\text{Adaptive Momentum Step}}
+$$
+
+
+<p>where:</p>
+<ul>
+<li>$\eta > 0$ is the scheduled learning rate.</li>
+<li>$\lambda \ge 0$ is the decoupled weight decay coefficient (typically $0.1$ in LLMs).</li>
+<li>$\epsilon > 0$ is a small numerical stability constant (e.g., $10^{-8}$ or $10^{-6}$) preventing division by zero.</li>
+</ul>
+<hr />
+<h3>2. Why AdamW Instead of Original Adam?</h3>
+<p>In original Adam (2014), weight decay was implemented as $L_2$ regularization added directly to the gradient: $\mathbf{g}_t \leftarrow \mathbf{g}_t + \lambda \boldsymbol{\theta}_{t-1}$.</p>
+<p>Loshchilov &amp; Hutter (2017) discovered a fatal flaw:</p>
+<ul>
+<li>When $\lambda \boldsymbol{\theta}$ is mixed into $\mathbf{g}_t$, it enters $\mathbf{v}_t$ in the denominator!</li>
+<li>Weights with huge, frequent gradients get divided by a large $\sqrt{\mathbf{v}_t}$, meaning <strong>their weight decay is suppressed</strong>.</li>
+<li>Weights with small, rare gradients get divided by a tiny $\sqrt{\mathbf{v}_t}$, meaning <strong>their weight decay is violently amplified</strong>!</li>
+</ul>
+<p><strong>AdamW fixes this</strong> by decoupling weight decay completely from the adaptive gradient division, shrinking every weight proportionally by $(1 - \eta \lambda)$ before taking the optimizer step.</p>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From? (From AdaGrad to AdamW)</h2>
+<dl>
+  <dt><time datetime="2011">2011</time> &mdash; <strong>John Duchi, Elad Hazan, & Yoram Singer</strong> (<abbr title="Adaptive Gradient Algorithm">AdaGrad</abbr>)</dt>
+  <dd>Introduced parameter-specific learning rates scaled inversely by the square root of historical gradient sums $\sum g_\tau^2$. However, because the denominator grew monotonically, the learning rate decayed to zero and training froze prematurely.</dd>
+
+  <dt><time datetime="2012">2012</time> &mdash; <strong>Geoffrey Hinton, Nitish Srivastava, & Kevin Swersky</strong> (<abbr title="Root Mean Square Propagation">RMSProp</abbr>)</dt>
+  <dd>Replaced the monotonic sum with an Exponential Moving Average ($1 - \beta_2$), allowing the optimizer to adapt dynamically to recent landscape geometry without premature freezing.</dd>
+
+  <dt><time datetime="2014">2014</time> &mdash; <strong>Diederik Kingma & Jimmy Ba</strong> (<abbr title="Adaptive Moment Estimation">Adam</abbr>)</dt>
+  <dd>Combined RMSProp's adaptive denominator with classical Polyak momentum ($m_t$) and invented the exact $(1 - \beta^t)$ bias correction formulas.</dd>
+
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Ilya Loshchilov & Frank Hutter</strong> (<abbr title="Adam with Decoupled Weight Decay">AdamW</abbr>)</dt>
+  <dd>Demonstrated that $L_2$ regularization was broken in Adam, introduced decoupled weight decay, and restored the generalization performance of adaptive gradient methods across all modern Transformer LLMs.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example (Step-by-Step Hand Arithmetic)</h2>
+<p>Let us compute two full optimization steps of AdamW by hand on a single scalar weight $\theta$.</p>
+<h3>1. Miniature Hyperparameters</h3>
+<ul>
+<li>Initial parameter value: $\theta_0 = 1.0000$</li>
+<li>Learning rate: $\eta = 0.10$</li>
+<li>First moment decay: $\beta_1 = 0.90$</li>
+<li>Second moment decay: $\beta_2 = 0.99$</li>
+<li>Epsilon: $\epsilon = 10^{-8} \approx 0$</li>
+<li>Weight decay: $\lambda = 0.05$</li>
+<li>Initial moments: $m_0 = 0, v_0 = 0$</li>
+</ul>
+<hr />
+<h3>2. Optimization Step $t = 1$ (High Gradient $g_1 = 2.0$)</h3>
+<fieldset>
+<legend><strong>Execution Checklist (Step 1)</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Update raw moving averages $m_1$ and $v_1$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Apply bias correction factors $(1 - \beta^1)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Calculate adaptive ratio $\hat{m}_1 / \sqrt{\hat{v}_1}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Apply decoupled weight decay and compute $\theta_1$.</p>
+</fieldset>
+<h4>Step A: Raw Moments</h4>
+<ul>
+<li>$m_1 = \beta_1 m_0 + (1 - \beta_1) g_1 = (0.90 \times 0) + (0.10 \times 2.0) = \mathbf{0.20}$</li>
+<li>$v_1 = \beta_2 v_0 + (1 - \beta_2) g_1^2 = (0.99 \times 0) + (0.01 \times 2.0^2) = 0.01 \times 4.0 = \mathbf{0.04}$</li>
+</ul>
+<h4>Step B: Bias Correction</h4>
+<ul>
+<li>$\hat{m}_1 = \frac{m_1}{1 - \beta_1^1} = \frac{0.20}{1 - 0.90} = \frac{0.20}{0.10} = \mathbf{2.0000}$</li>
+<li>$\hat{v}_1 = \frac{v_1}{1 - \beta_2^1} = \frac{0.04}{1 - 0.99} = \frac{0.04}{0.01} = \mathbf{4.0000}$</li>
+</ul>
+<p><mark>Look at the bias correction in action: it boosted $m_1$ from 0.20 back to 2.00, and $v_1$ from 0.04 back to 4.00!</mark></p>
+<h4>Step C: Adaptive Step Direction</h4>
+
+
+$$
+u_1 = \frac{\hat{m}_1}{\sqrt{\hat{v}_1} + \epsilon} = \frac{2.0000}{\sqrt{4.0000}} = \frac{2.0000}{2.0000} = \mathbf{1.0000}
+$$
+
+
+<h4>Step D: Parameter Update with Weight Decay</h4>
+
+
+$$
+\begin{aligned}
+\theta_1 &= \theta_0 - \eta \lambda \theta_0 - \eta u_1 \\
+&= 1.0000 - (0.10 \times 0.05 \times 1.0000) - (0.10 \times 1.0000) \\
+&= 1.0000 - 0.0050 - 0.1000 = \mathbf{0.8950}
+\end{aligned}
+$$
+
+
+<hr />
+<h3>3. Optimization Step $t = 2$ (Gradient Drops to $g_2 = 0.5$)</h3>
+<p>Now, at step $t = 2$, suppose the model moved closer to the minimum and the gradient drops sharply to $g_2 = 0.50$.</p>
+<h4>Step A: Raw Moments</h4>
+<ul>
+<li>$m_2 = \beta_1 m_1 + (1 - \beta_1) g_2 = (0.90 \times 0.20) + (0.10 \times 0.50) = 0.18 + 0.05 = \mathbf{0.2300}$</li>
+<li>$v_2 = \beta_2 v_1 + (1 - \beta_2) g_2^2 = (0.99 \times 0.04) + (0.01 \times 0.50^2) = 0.0396 + 0.0025 = \mathbf{0.0421}$</li>
+</ul>
+<h4>Step B: Bias Correction ($t = 2$)</h4>
+<ul>
+<li>$1 - \beta_1^2 = 1 - 0.90^2 = 1 - 0.81 = 0.19$</li>
+<li>$\hat{m}_2 = \frac{0.2300}{0.19} \approx \mathbf{1.2105}$</li>
+<li>$1 - \beta_2^2 = 1 - 0.99^2 = 1 - 0.9801 = 0.0199$</li>
+<li>$\hat{v}_2 = \frac{0.0421}{0.0199} \approx \mathbf{2.1156}$</li>
+</ul>
+<h4>Step C: Adaptive Step Direction</h4>
+
+
+$$
+u_2 = \frac{\hat{m}_2}{\sqrt{\hat{v}_2} + \epsilon} = \frac{1.2105}{\sqrt{2.1156}} \approx \frac{1.2105}{1.4545} \approx \mathbf{0.8322}
+$$
+
+
+<p>Notice that even though the gradient plunged by $75\%$ (from $2.0$ down to $0.5$), the actual update step $u_2 = 0.8322$ remained steady and confident due to accumulated momentum!</p>
+<h4>Step D: Parameter Update with Weight Decay</h4>
+
+
+$$
+\begin{aligned}
+\theta_2 &= \theta_1 - \eta \lambda \theta_1 - \eta u_2 \\
+&= 0.8950 - (0.10 \times 0.05 \times 0.8950) - (0.10 \times 0.8322) \\
+&= 0.8950 - 0.00448 - 0.08322 = \mathbf{0.8073}
+\end{aligned}
+$$
+
+
+<p>The parameter smoothly advanced from $1.0000 \to 0.8950 \to 0.8073$.</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>The Punchline of the AdamW Optimizer</strong></legend>
+<p><strong>AdamW is the master navigator of deep neural networks: Momentum keeps the compass steady through chaotic noise, while the second moment dynamically adjusts step sizes for each individual parameter.</strong></p>
+<p>By decoupling weight decay from adaptive gradient scaling, AdamW ensures clean weight regularization across all 70 billion parameters, serving as the undisputed engine behind modern LLM pre-training.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../16-gradients-and-backpropagation/index.html">&larr; Chapter 16: Walking Down the Mountain (Gradients & Backpropagation)</a> &bull; <a href="../index.html">Course Overview</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
