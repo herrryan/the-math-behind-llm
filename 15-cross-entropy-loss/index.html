@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 15: How Wrong Was I? (Cross-Entropy Loss & Perplexity) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../14-feed-forward-networks/index.html">&larr; Chapter 14: The Thinking Chamber (Feed-Forward Networks)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 15: How Wrong Was I? (Cross-Entropy Loss &amp; Perplexity)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Surprise Meter &amp; The Penalty Jar)</h2>
+<fieldset>
+<legend><strong>The Mystery Gift Box and the Penalty Jar</strong></legend>
+<p>Imagine you are playing a guessing game with your kindergarten teacher. Behind her back, she is hiding a mystery animal toy in a brightly wrapped box.</p>
+<p>Before opening the box, she asks you to place bets using 100 golden marbles:</p>
+<ol>
+<li><strong>Case A (Overconfident &amp; Utterly Wrong)</strong>:</li>
+</ol>
+<ul>
+<li>You put 99 golden marbles on the <code>"Puppy"</code> plate, and only 1 tiny marble on the <code>"Kitten"</code> plate.</li>
+<li>The teacher opens the box... it's a fluffy little <samp>"Kitten"!</samp></li>
+<li>Because you were so wildly overconfident and completely unprepared, the game rules say you must pay a <strong>giant penalty</strong> of marbles into the penalty jar! Your surprise meter shoots through the roof!</li>
+</ul>
+<ol start="2">
+<li><strong>Case B (Humble &amp; Unsure)</strong>:</li>
+</ol>
+<ul>
+<li>You aren't sure, so you put 50 marbles on <code>"Puppy"</code> and 50 marbles on <code>"Kitten"</code>.</li>
+<li>The teacher opens the box... it's a <code>"Kitten"</code>.</li>
+<li>You were somewhat prepared, so you only pay a <strong>modest penalty</strong>.</li>
+</ul>
+<ol start="3">
+<li><strong>Case C (Confident &amp; Completely Right)</strong>:</li>
+</ol>
+<ul>
+<li>You put all 99 golden marbles on <code>"Kitten"</code>.</li>
+<li>The teacher opens the box... it's a <code>"Kitten"</code>.</li>
+<li>Zero surprise! You pay <strong>almost zero marbles</strong> into the penalty jar!</li>
+</ul>
+<p>In Large Language Models, this penalty jar is called <strong>Cross-Entropy Loss (<dfn id="def-ce-loss">$\mathcal{L}_{\text{CE}}$</dfn>)</strong>.</p>
+<p>Every time the model predicts the next word, it assigns probabilities (golden marbles) to all 128,000 words in its dictionary. The actual next word in the real book is then revealed.
+If the model assigned high probability to the real word, the loss is tiny. But if the model gave the real word almost zero probability, the loss is astronomically high!</p>
+<p>The accompanying metric, <strong>Perplexity (<dfn id="def-ppl">$\operatorname{PPL}$</dfn>)</strong>, is simply the <strong>Surprise Meter</strong>: it tells you how many sides of a fair die the model is hesitating between!</p>
+</fieldset>
+<figure>
+<pre>
+Predicted Probability on the True Word w* vs. Cross-Entropy Loss:
+
+Probability P(w*):  0.99 ──► Loss: 0.010 nats (Zero surprise, tiny penalty)
+Probability P(w*):  0.50 ──► Loss: 0.693 nats (Mild surprise, medium penalty)
+Probability P(w*):  0.10 ──► Loss: 2.303 nats (High surprise, heavy penalty)
+Probability P(w*):  0.01 ──► Loss: 4.605 nats (Huge shock, extreme penalty!)
+Probability P(w*):  0.00 ──► Loss: +Infinity  (Fatal error, catastrophic!)
+</pre>
+<figcaption><strong>Figure 15.1:</strong> Negative log-likelihood acts as an exponential shock absorber, severely penalizing overconfident incorrect predictions.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<fieldset>
+<legend><strong>How Do We Convert "Surprise" into a Differentiable Error Signal?</strong></legend>
+<p>In Chapter 00 and Chapter 07, we saw that the Transformer projects its final hidden vector $\mathbf{x}_L \in \mathbb{R}^{d_{\text{model}}}$ through an unembedding matrix $\mathbf{W}_U$ to produce raw score logits $\mathbf{z} \in \mathbb{R}^{|V|}$, which Softmax converts into a probability distribution:</p>
+
+
+$$
+\hat{y}_i = P(w_{t+1} = i \mid w_{\le t}) = \frac{e^{z_i}}{\sum_{j=1}^{|V|} e^{z_j}}
+$$
+
+
+<p>The training corpus provides the true next word $w^* \in \{1, \dots, |V|\}$, which can be represented as a <strong>one-hot target vector</strong> $\mathbf{y} \in \{0, 1\}^{|V|}$ where $y_{w^*} = 1$ and $y_{i \ne w^*} = 0$.</p>
+<p>We cannot simply use Mean Squared Error ($\sum (y_i - \hat{y}_i)^2$), because when a neural network is wildly wrong, the derivative of Softmax saturates to zero, creating flat gradients that prevent the model from learning!</p>
+<p><em>"What mathematical objective cleanly penalizes probability mistakes, connects directly to Claude Shannon's Information Theory, and yields an astonishingly simple gradient to guide backpropagation?"</em></p>
+</fieldset>
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. Cross-Entropy Loss Formula</h3>
+<p>The <dfn id="def-ce-math">Cross-Entropy Loss</dfn> between the true discrete distribution $\mathbf{y}$ and the predicted distribution $\hat{\mathbf{y}}$ is:</p>
+
+
+$$
+\mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}}) = -\sum_{i=1}^{|V|} y_i \log(\hat{y}_i)
+$$
+
+
+<p>Because the target distribution is one-hot ($y_{w^*} = 1$ for the ground truth token $w^*$, and $y_i = 0$ for all other tokens $i \ne w^*$), the massive sum over 128,000 vocabulary words collapses down to <strong>a single scalar term</strong>:</p>
+
+
+$$
+\mathcal{L}_{\text{CE}} = -\log(\hat{y}_{w^*})
+$$
+
+
+<p>where:</p>
+<ul>
+<li>$w^*$ is the index of the true ground-truth token.</li>
+<li>$\hat{y}_{w^*} = P(w^* \mid \dots) \in (0, 1)$ is the model's assigned probability to that true token.</li>
+<li>$\log$ is the natural logarithm (base $e$). The resulting units are called <strong>nats</strong> (or <strong>bits</strong> if using $\log_2$).</li>
+</ul>
+<hr />
+<h3>2. The Miracle Gradient: $\frac{\partial \mathcal{L}}{\partial z_i} = \hat{y}_i - y_i$</h3>
+<p>Why is Cross-Entropy paired universally with Softmax? Because of a breathtaking mathematical cancellation!</p>
+<p>When we take the partial derivative of the Cross-Entropy loss $\mathcal{L}_{\text{CE}}$ with respect to the pre-softmax logit $z_i$:</p>
+
+
+$$
+\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} = \hat{y}_i - y_i
+$$
+
+
+<p>In vector notation:</p>
+
+
+$$
+\nabla_{\mathbf{z}} \mathcal{L}_{\text{CE}} = \hat{\mathbf{y}} - \mathbf{y}
+$$
+
+
+<details>
+<summary><strong>Proof: Why Does the Softmax-CE Derivative Cancel Out So Cleanly?</strong></summary>
+
+Recall from Chapter 07 that the derivative of Softmax is:
+
+
+
+
+
+$$
+\frac{\partial \hat{y}_k}{\partial z_i} = \begin{cases}
+\hat{y}_i(1 - \hat{y}_i) & \text{if } k = i \\
+-\hat{y}_k \hat{y}_i & \text{if } k \ne i
+\end{cases}
+$$
+
+
+
+
+
+Now apply the multivariate Chain Rule to $\mathcal{L}_{\text{CE}} = -\sum_{k} y_k \log \hat{y}_k$:
+
+
+
+
+
+$$
+\begin{aligned}
+\frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} &= -\sum_{k=1}^{|V|} \frac{y_k}{\hat{y}_k} \frac{\partial \hat{y}_k}{\partial z_i} \\
+&= -\frac{y_i}{\hat{y}_i} \cdot \hat{y}_i(1 - \hat{y}_i) - \sum_{k \ne i} \frac{y_k}{\hat{y}_k} \cdot (-\hat{y}_k \hat{y}_i) \\
+&= -y_i(1 - \hat{y}_i) + \sum_{k \ne i} y_k \hat{y}_i \\
+&= -y_i + y_i \hat{y}_i + \hat{y}_i \sum_{k \ne i} y_k \\
+&= -y_i + \hat{y}_i \underbrace{\left(y_i + \sum_{k \ne i} y_k\right)}_{\sum_{k=1}^{|V|} y_k = 1} \\
+&= \hat{y}_i - y_i
+\end{aligned}
+$$
+
+
+
+
+
+The non-linear sigmoid-like saturation completely vanishes! The gradient is literally **the predicted probability minus the true probability**.
+
+- If the true token had $y_{w^*} = 1$ and the model gave $\hat{y}_{w^*} = 0.20$, the gradient is $0.20 - 1.0 = -0.80$ (push logit $z_{w^*}$ UP strongly!).
+- If an incorrect token had $y_j = 0$ and the model gave $\hat{y}_j = 0.35$, the gradient is $0.35 - 0 = +0.35$ (push logit $z_j$ DOWN!).
+</details>
+
+<hr />
+<h3>3. Perplexity: The Physical Meaning of Loss</h3>
+<p>In academic papers and LLM benchmarks, model quality is rarely reported in raw cross-entropy nats. Instead, it is reported as <dfn id="def-ppl-math">Perplexity (PPL)</dfn>:</p>
+
+
+$$
+\operatorname{PPL} = \exp\left(\mathcal{L}_{\text{CE}}\right) = e^{-\frac{1}{N}\sum_{t=1}^N \log P(w_t \mid w_{\lt t})}
+$$
+
+
+<p>What does a perplexity number actually mean?</p>
+<ul>
+<li><strong>$\operatorname{PPL} = 1.0$</strong>: Absolute perfection. The model predicts every single word with 100% certainty ($P = 1.0$).</li>
+<li><strong>$\operatorname{PPL} = 10.0$</strong>: On average, at every step in the sentence, the model is as uncertain as rolling a <strong>10-sided fair die</strong>!</li>
+<li><strong>$\operatorname{PPL} = |V| \approx 128,000$</strong>: Total chaos. The model is guessing uniformly at random among all dictionary words.</li>
+</ul>
+<p>A model with lower perplexity is literally less "perplexed" (less surprised) by natural human text.</p>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From? (Claude Shannon &amp; KL Divergence)</h2>
+<p>Where does the $-\sum y_i \log \hat{y}_i$ formula come from?</p>
+<figure>
+<pre>
+1948: Claude Shannon (Bell Labs) ──► Information Entropy:
+                                     H(P) = - sum_i p_i * log_2(p_i)
+                                     (The minimum bits needed to encode a message)
+      │
+      ▼
+1951: Solomon Kullback & ─────────► Relative Entropy (KL Divergence):
+      Richard Leibler               D_KL(P || Q) = sum_i P(i) * log(P(i) / Q(i))
+                                    (The information wasted by using Q instead of P)
+      │
+      ▼
+Modern Machine Learning ──────────► Cross-Entropy Decomposition:
+                                    H(P, Q) = H(P) + D_KL(P || Q)
+                                    Since human language P is fixed,
+                                    minimizing Cross-Entropy minimizes KL divergence!
+</pre>
+<figcaption><strong>Figure 15.2:</strong> From Shannon's telecommunication theory to the universal training loss of LLMs.</figcaption>
+</figure>
+
+<p>In Information Theory:
+1. $H(P) = -\sum P(x) \log P(x)$ is the <strong>intrinsic entropy</strong> of the English language. This is a constant fixed by human literature.
+2. $D_{\text{KL}}(P \parallel Q) = \sum P(x) \log \frac{P(x)}{Q(x)} \ge 0$ measures the <strong>information divergence</strong> (waste) when using the model's approximation $Q$ to model real text $P$.
+3. Cross-entropy is their exact sum:</p>
+
+
+$$
+H(P, Q) = \underbrace{H(P)}_{\text{Constant}} + \underbrace{D_{\text{KL}}(P \parallel Q)}_{\ge 0}
+$$
+
+
+<p>Because $H(P)$ cannot be changed by model training, <strong>minimizing Cross-Entropy Loss is mathematically identical to driving the KL Divergence between the AI and human reality to zero!</strong></p>
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example (Step-by-Step Hand Arithmetic)</h2>
+<p>Let us compute the exact Cross-Entropy Loss, logit gradients, and Perplexity for a miniature 3-word language model.</p>
+<h3>1. Miniature Vocabulary &amp; Logits</h3>
+<p>Let the vocabulary contain $|V| = 3$ words:</p>
+<ul>
+<li>Index 1: <code>"apple"</code></li>
+<li>Index 2: <code>"banana"</code></li>
+<li>Index 3: <code>"cat"</code></li>
+</ul>
+<p>Suppose the training sentence says: <em>"The pet is a ..."</em> and the true ground-truth next word is <strong><code>"cat"</code></strong> (Index 3).</p>
+<p>The one-hot ground-truth target vector is:</p>
+
+
+$$
+\mathbf{y} = \begin{bmatrix} 0.0 & 0.0 & 1.0 \end{bmatrix}
+$$
+
+
+<p>Suppose the model outputs the following raw unnormalized logits from its final layer:</p>
+
+
+$$
+\mathbf{z} = \begin{bmatrix} z_1 \\ z_2 \\ z_3 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 1.0 \\ 0.1 \end{bmatrix}
+$$
+
+
+<hr />
+<h3>2. Forward Pass: Compute Softmax Probabilities</h3>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Exponentiate logits $e^{z_i}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Sum exponentials and normalize to $\hat{\mathbf{y}}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Calculate Cross-Entropy Loss $\mathcal{L}_{\text{CE}} = -\log(\hat{y}_3)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Compute Perplexity $\operatorname{PPL} = \exp(\mathcal{L}_{\text{CE}})$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step E:</strong> Calculate error gradient vector $\nabla_{\mathbf{z}}\mathcal{L} = \hat{\mathbf{y}} - \mathbf{y}$.</p>
+</fieldset>
+<h4>Step A: Exponentiate Logits</h4>
+<ul>
+<li>$e^{z_1} = e^{2.0} \approx 7.3891$</li>
+<li>$e^{z_2} = e^{1.0} \approx 2.7183$</li>
+<li>$e^{z_3} = e^{0.1} \approx 1.1052$</li>
+</ul>
+<p>Sum of exponentials:</p>
+
+
+$$
+\sum_{j=1}^3 e^{z_j} = 7.3891 + 2.7183 + 1.1052 = 11.2126
+$$
+
+
+<h4>Step B: Softmax Normalization</h4>
+<ul>
+<li>$\hat{y}_1 = P(\text{"apple"}) = \frac{7.3891}{11.2126} \approx 0.6590$</li>
+<li>$\hat{y}_2 = P(\text{"banana"}) = \frac{2.7183}{11.2126} \approx 0.2424$</li>
+<li>$\hat{y}_3 = P(\text{"cat"}) = \frac{1.1052}{11.2126} \approx 0.0986$</li>
+</ul>
+
+
+$$
+\hat{\mathbf{y}} = \begin{bmatrix} 0.6590 & 0.2424 & 0.0986 \end{bmatrix}
+$$
+
+
+<p>The model mistakenly placed 65.9% probability on <code>"apple"</code> and only 9.86% on the true word <code>"cat"</code>.</p>
+<hr />
+<h3>3. Loss &amp; Perplexity Calculation</h3>
+<h4>Step C: Cross-Entropy Loss</h4>
+<p>Because $y_3 = 1$ and $y_1 = y_2 = 0$:</p>
+
+
+$$
+\mathcal{L}_{\text{CE}} = -\log(\hat{y}_3) = -\ln(0.0986) \approx 2.3167 \text{ nats}
+$$
+
+
+<h4>Step D: Perplexity</h4>
+
+
+$$
+\operatorname{PPL} = e^{\mathcal{L}_{\text{CE}}} = e^{2.3167} \approx 10.14
+$$
+
+
+<p><mark>Interpretation: Even though the vocabulary only has 3 words, the model was so confident in the wrong answers that its surprise level is equivalent to picking randomly among 10 options!</mark></p>
+<hr />
+<h3>4. Backward Pass: Exact Logit Gradients</h3>
+<p>Now calculate the gradient vector $\frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \hat{\mathbf{y}} - \mathbf{y}$:</p>
+<ul>
+<li>$\frac{\partial \mathcal{L}}{\partial z_1} = \hat{y}_1 - y_1 = 0.6590 - 0.0 = \mathbf{+0.6590}$</li>
+<li>$\frac{\partial \mathcal{L}}{\partial z_2} = \hat{y}_2 - y_2 = 0.2424 - 0.0 = \mathbf{+0.2424}$</li>
+<li>$\frac{\partial \mathcal{L}}{\partial z_3} = \hat{y}_3 - y_3 = 0.0986 - 1.0 = \mathbf{-0.9014}$</li>
+</ul>
+
+
+$$
+\nabla_{\mathbf{z}} \mathcal{L}_{\text{CE}} = \begin{bmatrix} +0.6590 \\ +0.2424 \\ -0.9014 \end{bmatrix}
+$$
+
+
+<p>Notice how intuitive this gradient vector is:
+1. $z_1$ (for <code>"apple"</code>) gets a positive gradient $+0.6590$, telling gradient descent: <em>"Decrease this logit!"</em>
+2. $z_2$ (for <code>"banana"</code>) gets a positive gradient $+0.2424$, telling gradient descent: <em>"Decrease this logit!"</em>
+3. $z_3$ (for <code>"cat"</code>) gets a strong negative gradient $-0.9014$, telling gradient descent: <em>"Increase this logit immediately!"</em></p>
+<p>And notice that their sum is:
+$+0.6590 + 0.2424 - 0.9014 = 0.0000$. The gradient naturally conserves total logit probability mass!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>The Punchline of Cross-Entropy Loss</strong></legend>
+<p><strong>Cross-Entropy Loss acts as an unforgiving surprise meter that penalizes overconfident wrong predictions with exponential severity.</strong></p>
+<p>When combined with Softmax, the complex derivatives cancel out into the simplest gradient in all of mathematics: <strong>$\hat{\mathbf{y}} - \mathbf{y}$ (predicted probability minus reality)</strong>, effortlessly steering billions of parameters toward truth.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../14-feed-forward-networks/index.html">&larr; Chapter 14: The Thinking Chamber (Feed-Forward Networks)</a> &bull; <a href="../index.html">Course Overview</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
