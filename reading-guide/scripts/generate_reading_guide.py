@@ -2,465 +2,855 @@ import os
 
 docs = {}
 
-# 1. index.md
-docs["index.md"] = r"""# 大模型文献全景阅读指南：淘汰与精读路线图
+# ==============================================================================
+# 0. index.md
+# ==============================================================================
+docs["index.md"] = r"""# 大模型必读文献与演进全景指南：像老师一样读懂每一篇经典
 
-> 面向大语言模型（LLM）研究者与工程师的文献筛选指南：厘清技术演进脉络，剔除已被时代淘汰的过时范式，将有限精力集中在真正跨越周期与引领前沿的传世经典上。本文库所有收录论文均提供直接的官方 **PDF 链接** 与 **arXiv 页面**。
-
----
-
-## 为什么需要一份“文献减负指南”？
-
-进入 2023 年以来，大语言模型领域的论文呈现井喷态势，arXiv 上平均每天涌现几十篇乃至上百篇论文。
-在如此庞大的信息洪流中，初学者和工程师面临的最大困境往往不是“找不到资料”，而是：
-**陷入信息茧房，把极其宝贵的时间和认知带宽，浪费在已经被工业界和前沿学术界彻底淘汰的“旧范式”与“伪创新”上！**
-
-例如：
-- 还在死磕 **Word2Vec** 和 **GloVe** 的数学推导，却不知道它们早已被深层动态上下文向量替代；
-- 还在细读 **BERT、RoBERTa、T5** 的预训练微调细节，却不知道生成式大模型早已全线归拢到纯 **Decoder-only 因果自回归架构**；
-- 还在钻研 **Performer、Reformer、Linformer** 等线性/稀疏注意力近似技巧，却不知道硬件感知精确计算的 **FlashAttention** 早已将它们全部扫进历史垃圾堆；
-- 还在被 **InstructGPT 复杂的三阶段 PPO 四模型体系** 折磨得痛苦不堪，却不知道 **DPO** 和 **GRPO** 已经让对齐与强化学习变得极其优雅高效。
-
-**大模型的演进不是简单的知识累加，而是一场残酷的“范式优胜劣汰战争”。**
-凡是不符合现代硬件体系（如 GPU 高带宽显存 HBM 与片上缓存 SRAM 的层级差异）、不符合大规模扩展定律（Scaling Law）、不符合自回归通用推理特性的设计，无论昔日发表在多顶级的会议上，都会在短短一两年内被彻底废弃。
+> 专为大模型研究者与工程师打造的体系化论文研读指南：打破论文孤岛，将有关联的研究串珠成链。以耐心透彻的教师视角，由浅入深、逐层递进地拆解每一个突破背后的物理直觉、数学公式与历史必然性。
 
 ---
 
-## 文献四象限评估法则
+## 为什么绝大多数人“读论文效率极低”？
 
-在阅读任何一篇大模型论文之前，请先用以下“四象限法则”进行研判：
+如果你直接去搜“大模型必读论文清单”，通常会搜出动辄上百篇的论文列表。初学者在面对这些浩如烟海的文献时，最容易遭遇三大困境：
+
+1. **孤立阅读，只见树木不见森林**：
+   - 今天看一篇 FlashAttention，明天看一篇 LoRA，后天看一篇 DeepSeek-R1；
+   - 每一篇论文都在用最复杂的专业术语证明自己“业内第一”，读者却不知道它究竟在整个大模型大厦中处于哪个具体位置，更不知道它解决了前人的什么致命缺陷。
+
+2. **迷信权威，抱着已被淘汰的方法苦读**：
+   - 花费几个星期去硬啃 Word2Vec、LSTM、BERT 的源码与公式推导，甚至去钻研线性注意力（Performer）的核函数证明；
+   - 殊不知这些方案在现代 Decoder-only 架构与现代 GPU 硬件上早已被淘汰，付出了巨大的认知精力却学了“失效的知识”。
+
+3. **缺乏推导桥梁，卡死在生硬的公式里**：
+   - 许多论文为了行文精简，直接跳过直觉推导甩出复杂方程（例如 RoPE 的复数内积、DPO 的闭式偏好解、FlashAttention 的在线 Softmax 统计量更新）；
+   - 没有人像老师一样告诉你：**研究员们最初是怎么想到这个形式的？如果用更朴素的公式会出什么乱子？**
+
+---
+
+## 核心研读心法：四步递进学习梯（The Paper Ladder）
+
+在本指南中，每一篇被选入的核心论文都严格按照以下**教师讲课四步法**逐层解构：
 
 ```
-                    ┌─────────────────────────┬─────────────────────────┐
-                    │      第二象限: 前沿探索  │      第一象限: 必读基石  │
-                    │                         │                         │
-                    │  - DeepSeek-V3 / R1     │  - Attention Is All...  │
-  前瞻性 / 引领度   │  - 纯强化学习推理 (o1)   │  - Scaling Laws (Chinch)│
-        ▲           │  - MLA / 细粒度 MoE     │  - FlashAttention 1/2/3 │
-        │           │  - 隐式对齐 DPO / GRPO  │  - LLaMA 系列技术报告   │
-        │           ├─────────────────────────┼─────────────────────────┤
-        │           │      第四象限: 坚决绕行  │      第三象限: 历史背景  │
-        │           │                         │                         │
-        │           │  - 线性注意力近似技巧   │  - Word2Vec / GloVe     │
-        │           │  - 掩码语言模型 (BERT)  │  - RNN / LSTM / GRU     │
-        │           │  - 传统 Encoder-Decoder │  - Transformer 原始编码器│
-        │           │  - 早期手工 Prompt 模板 │  - 四模型复杂 PPO 细节  │
-        │           └─────────────────────────┴─────────────────────────┘
-        └─────────────────────────────────────────────────────────────────►
-                               通用度 / 工业生命力
+[ 第一步：背景故事与前人痛点 ]
+  用大白话和生活实物比喻，讲清前人遇到了什么不可逾越的致命物理瓶颈。
+            │
+            ▼
+[ 第二步：由浅入深的直觉搭建 ]
+  不跳步、不突兀引入术语，一步步搭建出论文的解决方案雏形。
+            │
+            ▼
+[ 第三步：核心数学公式与代码玄机 ]
+  把关键方程式彻底掰开，逐个符号、下标、维度解释为什么写成这样。
+            │
+            ▼
+[ 第四步：承前启后与时代启示 ]
+  讲清这篇论文如何启发了下一代工作，以及在今天主流开源模型（LLaMA/Qwen/DeepSeek）中的落地现状。
 ```
 
-- **第一象限（必读基石，必须精读）**：跨越技术周期的硬核基石，现代所有主流大模型的共同祖先。
-- **第二象限（前沿前瞻，重点攻克）**：过去 1~2 年内取得颠覆性突破的新架构、新后训练范式，决定了未来的发展方向。
-- **第三象限（历史背景，通读即可）**：里程碑式的过渡技术，知道其思想演进逻辑即可，严禁在公式和过时代码细节上耗费数周时间。
-- **第四象限（已被淘汰，坚决跳过）**：已被硬件发展、架构收敛证伪或彻底取代的死胡同技术，直接从书单中划掉。
-
 ---
 
-## 路线图导航目录（含全套官方 PDF 直达链接）
+## 七大专题演进主线导览
 
-- **[01. 必读基石篇](01-foundations-must-read.md)**：7 篇奠定当代 LLM 体系的传世经典，构筑坚不可摧的底层地基。
-- **[02. 淘汰与过时篇](02-obsolete-and-superseded.md)**：7 大已被彻底淘汰的技术方向全面复盘，卸下无效认知包袱。
-- **[03. 架构演进实录](03-architecture-evolution.md)**：注意力、位置编码、归一化、激活函数与 MoE 的逐代优胜劣汰史。
-- **[04. 训练与对齐洗牌](04-training-and-alignment.md)**：预训练数据清洗、SFT 质量革命，以及从 PPO 到 DPO、GRPO 的强化学习剧变。
-- **[05. 前沿推理新纪元](05-reasoning-and-frontier.md)**：测试时计算扩展（Test-time Compute）、思维链反思与 DeepSeek-R1 纯强化学习。
-- **[06. 系统工程与推理解码](06-system-and-inference.md)**：围剿硅基内存墙（PagedAttention、投机采样、分布式切分与量化落地）。
-"""
+为确保概念由浅入深层层递进，本指南将大模型技术脉络划分为**七大有机连贯的专题主线**：
 
-# 2. 01-foundations-must-read.md
-docs["01-foundations-must-read.md"] = r"""# 01. 必读基石篇：奠定当代 LLM 体系的传世经典
-
-本篇精选的 7 篇论文，是现代大语言模型演进史上真正的里程碑。无论技术如何演化，现代主流大模型（LLaMA、Mistral、Qwen、DeepSeek 等）的骨架全部基于这些论文所确立的底层法则。每篇论文均附带官方 **PDF 直达链接** 与 **arXiv 页面**。
-
----
-
-## 论文 1：现代 AI 的创世纪
-
-- **论文标题**：*Attention Is All You Need*
-- **文献链接**：[[arXiv:1706.03762](https://arxiv.org/abs/1706.03762)] · [[PDF 官方直达](https://arxiv.org/pdf/1706.03762.pdf)]
-- **作者团队**：Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, Illia Polosukhin (Google Brain / Research)
-- **发表年份**：2017 年
-- **精读推荐指数**：五星（全篇必须逐字精读）
-- **为什么它不可替代**：
-  它首次彻底废弃了串行循环（RNN/LSTM）与卷积（CNN），提出了基于自注意力（Self-Attention）与多头注意力（MHA）的纯并行架构。
-- **重点精读段落**：
-  - Section 3.2: Attention（Scaled Dot-Product Attention 与 Multi-Head Attention 的物理定义与维度推导）；
-  - Section 3.3: Position-wise Feed-Forward Networks（前馈网络的维度膨胀与收缩设计）；
-  - Section 3.5: Positional Encoding（早期正余弦绝对位置编码的设计逻辑，用于对比后续的 RoPE）。
-- **当今现状**：虽然原始论文采用的是 Encoder-Decoder 架构，且采用了现在已被淘汰的 Post-LN 与正余弦位置编码，但其核心的 QKV 机制与残差连接骨架至今未动摇。
-
----
-
-## 论文 2：预训练的物理定律——缩放定律
-
-- **论文标题 A**：*Scaling Laws for Neural Language Models* (Kaplan et al., OpenAI, 2020)
-  - 文献链接：[[arXiv:2001.08361](https://arxiv.org/abs/2001.08361)] · [[PDF 官方直达](https://arxiv.org/pdf/2001.08361.pdf)]
-- **论文标题 B**：*Training Compute-Optimal Large Language Models (Chinchilla)* (Hoffmann et al., DeepMind, 2022)
-  - 文献链接：[[arXiv:2203.15556](https://arxiv.org/abs/2203.15556)] · [[PDF 官方直达](https://arxiv.org/pdf/2203.15556.pdf)]
-- **精读推荐指数**：五星（工程立项与预算评估的圣经）
-- **核心贡献与认知颠覆**：
-  - **Kaplan 2020 (OpenAI)**：首次定量揭示了模型性能（交叉熵 Loss）与计算量 $C$、参数量 $N$、数据量 $D$ 之间呈现严格的幂律（Power-law）关系，证明了无脑堆算力和参数能持续带来智能收益；
-  - **Chinchilla 2022 (DeepMind)**：修正了 OpenAI 的参数/数据配比错误，指出此前的大模型（如 175B 的 GPT-3）严重“参数过大、数据喂养不足”（Undertrained），证明最佳配比应该是**参数量与训练 Token 数量以 1:1 的等比例同时扩张**（约为 1 个参数配 20 个 Token，而现代开源甚至推向 1:200）。
-- **必须掌握的核心结论**：
-  不要盲目做大参数，把充分的高质量 Token 灌入体量合理的模型中，是在固定算力预算下榨取最大性能的核心法则。
-
----
-
-## 论文 3：通用智能与涌现能力的起点
-
-- **论文标题**：*Language Models are Few-Shot Learners* (GPT-3)
-- **文献链接**：[[arXiv:2005.14165](https://arxiv.org/abs/2005.14165)] · [[PDF 官方直达](https://arxiv.org/pdf/2005.14165.pdf)]
-- **作者团队**：Tom B. Brown et al. (OpenAI)
-- **发表年份**：2020 年
-- **精读推荐指数**：四星半（理解大模型思维模式必读）
-- **核心贡献**：
-  - 正式证明了纯 Decoder-only 自回归大模型在参数扩展到 175B 时，无需针对下游任务更新任何参数梯度，仅仅依靠上下文提示词（In-Context Learning），就能展现出惊人的零样本（Zero-shot）与少样本（Few-shot）泛化能力；
-  - 终结了传统自然语言处理中“预训练 + 针对具体任务微调（Task-specific Fine-tuning）”的分裂范式，将 NLP 统一为“提示词对话”单一大道。
-
----
-
-## 论文 4：硬件感知注意力的工业革命
-
-- **论文标题 A**：*FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness* (Dao et al., 2022)
-  - 文献链接：[[arXiv:2205.14135](https://arxiv.org/abs/2205.14135)] · [[PDF 官方直达](https://arxiv.org/pdf/2205.14135.pdf)]
-- **论文标题 B**：*FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning* (Dao, 2023)
-  - 文献链接：[[arXiv:2307.08691](https://arxiv.org/abs/2307.08691)] · [[PDF 官方直达](https://arxiv.org/pdf/2307.08691.pdf)]
-- **精读推荐指数**：五星（做系统与工程的必读杰作）
-- **核心贡献**：
-  - 彻底改变了深度学习算法设计理念：**算法设计不能只看浮点计算次数（FLOPs），更要看芯片内存传输开销（Memory IO）**；
-  - 揭示了标准注意力之所以慢且吃显存，是因为频繁在 GPU 高带宽显存（HBM）与片上高速缓存（SRAM）之间读写那个巨大的 $N \times N$ 注意力矩阵；
-  - 提出了基于分块平铺（Tiling）与在线 Softmax（Online Softmax）算法，将计算完全锁在片上 SRAM 中，不仅实现精确注意力零精度损失，更将训练速度提升数倍、长文本显存开销从平方级骤降至线性。
-
----
-
-## 论文 5：现代开源大模型的工程基石
-
-- **论文标题 A**：*Llama: Open and Efficient Foundation Language Models* (Llama 1, Touvron et al., 2023)
-  - 文献链接：[[arXiv:2302.13971](https://arxiv.org/abs/2302.13971)] · [[PDF 官方直达](https://arxiv.org/pdf/2302.13971.pdf)]
-- **论文标题 B**：*Llama 2: Open Foundation and Fine-Tuned Chat Models* (Llama 2, Touvron et al., 2023)
-  - 文献链接：[[arXiv:2307.09288](https://arxiv.org/abs/2307.09288)] · [[PDF 官方直达](https://arxiv.org/pdf/2307.09288.pdf)]
-- **论文标题 C**：*The Llama 3 Herd of Models* (Meta, 2024)
-  - 文献链接：[[arXiv:2407.21783](https://arxiv.org/abs/2407.21783)] · [[PDF 官方直达](https://arxiv.org/pdf/2407.21783.pdf)]
-- **精读推荐指数**：五星（现代大模型落地的标准答案）
-- **核心贡献**：
-  - 确立了现代大模型架构的“黄金四件套”事实标准：**Pre-RMSNorm + SwiGLU + RoPE (旋转位置编码) + GQA (分组查询注意力)**；
-  - Llama 3 更是公开了 15T+ 海量数据预训练与高质量后训练（合成数据配比、长文本退火、偏好对齐迭代）的全部工业细节，是当今所有大模型训练实践的教科书。
-
----
-
-## 论文 6：后训练偏好对齐的极简革命
-
-- **论文标题**：*Direct Preference Optimization: Your Language Model is Secretly a Reward Model* (DPO)
-- **文献链接**：[[arXiv:2305.18290](https://arxiv.org/abs/2305.18290)] · [[PDF 官方直达](https://arxiv.org/pdf/2305.18290.pdf)]
-- **作者团队**：Rafael Rafailov et al. (Stanford University)
-- **发表年份**：2023 年
-- **精读推荐指数**：四星半
-- **核心贡献**：
-  - 颠覆了传统 RLHF 中需要同时维持语言模型、奖励模型（Reward Model）、价值网络（Critic）的脆弱复杂四模型管线；
-  - 从数学上巧妙证明：语言模型本身的隐式概率，在代数上完全等价于奖励模型。直接通过人类偏好对比数据（胜出回复 vs 落败回复）计算交叉熵二分类损失，即可实现稳定的偏好对齐。
-
----
-
-## 论文 7：中国开源震撼世界的双子星
-
-- **论文标题 A**：*DeepSeek-V3 Technical Report* (DeepSeek-AI, 2024)
-  - 文献链接：[[arXiv:2412.19437](https://arxiv.org/abs/2412.19437)] · [[PDF 官方直达](https://arxiv.org/pdf/2412.19437.pdf)]
-- **论文标题 B**：*DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning* (DeepSeek-AI, 2025)
-  - 文献链接：[[arXiv:2501.12948](https://arxiv.org/abs/2501.12948)] · [[PDF 官方直达](https://arxiv.org/pdf/2501.12948.pdf)]
-- **精读推荐指数**：五星（现代最极致的性价比与推理革命）
-- **核心贡献**：
-  - **V3 架构创新**：提出了 **MLA（多头潜在注意力）**，在推理时将 KV 缓存压缩至原始 MHA 的几分之一；采用细粒度混合专家（DeepSeekMoE，256 专家 + 1 共享专家）与多 Token 预测（MTP），实现了前所未有的显存与计算极致效率；
-  - **R1 范式革命**：提出通过极简规则奖励函数（格式 + 答案正确性）配合 **GRPO（群组相对策略优化）**，无需冷启动人工标注数据，直接在纯强化学习环境中激发模型的长思维链推理、自我纠错与顿悟能力。
-"""
-
-# 3. 02-obsolete-and-superseded.md
-docs["02-obsolete-and-superseded.md"] = r"""# 02. 淘汰与过时篇：哪些昔日明星方法已经被彻底取代？
-
-大模型领域的快速发展，不仅体现在新技术的诞生，更体现在对旧技术的“无情淘汰”。
-本章系统盘点已被现代大语言模型**彻底淘汰或不再建议深入研读**的 7 大方向，每篇经典均附带论文出处与 **PDF 链接**，帮助你明辨历史脉络、果断断舍离。
-
----
-
-## 淘汰榜单概览速查表
-
-| 技术领域 | 曾经的明星代表论文（附 PDF 直达） | 当前已被什么彻底取代？ | 淘汰原因与状态判定 |
+| 专题主线 | 包含核心文献 | 核心解决问题 | 直达链接 |
 | :--- | :--- | :--- | :--- |
-| **词表示** | [*Word2Vec* (Mikolov 2013)](https://arxiv.org/pdf/1301.3781.pdf), [*GloVe* (Pennington 2014)](https://aclanthology.org/D14-1162.pdf) | 动态上下文词嵌入（Transformer Embedding） | **已彻底淘汰**。无法解决一词多义，语义固定静态，现代模型已完全不用。 |
-| **序列骨架** | [*LSTM* (Hochreiter 1997)](https://www.bioinf.jku.at/publications/older/2604.pdf), [*GRU* (Cho 2014)](https://arxiv.org/pdf/1406.1078.pdf) | Transformer 因果自注意力机制 | **通用领域已淘汰**。无法利用 GPU 并行，梯度消失，长程记忆衰减严重。 |
-| **预训练目标** | [*BERT* (Devlin 2018)](https://arxiv.org/pdf/1810.04805.pdf), [*RoBERTa* (Liu 2019)](https://arxiv.org/pdf/1907.11692.pdf) | 纯 Decoder-only 自回归自监督接龙 (Next-Word Prediction) | **生成时代已淘汰**。双向编码器无法高效生成文本，已被因果大模型统领。 |
-| **模型拓扑** | [*T5* (Raffel 2019)](https://arxiv.org/pdf/1910.10683.pdf), [*BART* (Lewis 2019)](https://arxiv.org/pdf/1910.13461.pdf) | 纯自回归 Decoder-only 架构 (GPT, LLaMA) | **主干已淘汰**。双塔结构增加推理复杂度与 KV 缓存冗余，参数效率不及 Decoder。 |
-| **注意力加速** | [*Performer* (2020)](https://arxiv.org/pdf/2009.14794.pdf), [*Linformer* (2020)](https://arxiv.org/pdf/2006.04768.pdf), [*Reformer* (2020)](https://arxiv.org/pdf/2001.04451.pdf) | 硬件感知精确计算 ([*FlashAttention*](https://arxiv.org/pdf/2205.14135.pdf)) | **已被彻底证伪**。低秩逼近不仅破坏语义精度，而且在现代 GPU 上并不快。 |
-| **位置编码** | Sinusoidal 正余弦绝对编码, 可学习绝对位置编码 | 旋转位置编码 ([*RoPE*](https://arxiv.org/pdf/2104.09864.pdf)) 与 YaRN | **绝对编码已过时**。无法自然外推长文本，相对位置感知力低下。 |
-| **训练与对齐** | Post-LN (后置归一化), [*InstructGPT 复杂四模型 PPO* (2022)](https://arxiv.org/pdf/2203.02155.pdf) | Pre-RMSNorm, [*DPO*](https://arxiv.org/pdf/2305.18290.pdf) / [*GRPO*](https://arxiv.org/pdf/2402.03300.pdf) | **工程落地已淘汰**。Post-LN 极易梯度爆炸；传统 PPO 显存庞大、极难调参。 |
+| **第一主线：架构创世纪** | Transformer (2017), GPT-3 (2020) | 为什么抛弃循环网络？QKV 与自回归生成如何诞生？ | [进入第一主线](01-track-architecture-foundations.md) |
+| **第二主线：现代架构四件套** | RMSNorm, SwiGLU, RoPE, GQA, LLaMA | 原始 Transformer 有哪些硬伤？当代工业黄金标配如何演化？ | [进入第二主线](02-track-modern-architecture-recipes.md) |
+| **第三主线：缩放定律与算力** | Scaling Laws (Kaplan), Chinchilla | 预算与算力如何分配？为什么模型不是越大越好？ | [进入第三主线](03-track-scaling-laws-and-compute.md) |
+| **第四主线：后训练与对齐** | InstructGPT (RLHF), DPO, LoRA, QLoRA | 怎样让野性模型听懂人话？如何告别脆弱复杂的 PPO 四模型？ | [进入第四主线](04-track-post-training-and-alignment.md) |
+| **第五主线：系统工程与显存** | FlashAttention 1&2, PagedAttention, 投机采样 | 为什么算力足够却卡在显存带宽？如何实现极速推理解码？ | [进入第五主线](05-track-system-hardware-and-inference.md) |
+| **第六主线：思维链与前沿推理** | CoT, DeepSeek-V3, DeepSeek-R1 (GRPO) | 怎样让模型学会慢思考？纯强化学习如何激发出“顿悟时刻”？ | [进入第六主线](06-track-reasoning-and-deepseek-frontier.md) |
+| **第七主线：淘汰技术实录** | Word2Vec, LSTM, BERT, Performer, Post-LN | 为什么昔日明星被扫入历史尘埃？读懂被淘汰的原因才能少走弯路。 | [进入第七主线](07-track-obsolete-methods-and-lessons.md) |
 
 ---
 
-## 深度剖析：为什么它们会被淘汰？
+## 研读准备建议
 
-### 1. 静态词向量：Word2Vec 与 GloVe
-- **代表论文**：
-  - *Efficient Estimation of Word Representations in Vector Space* (Mikolov et al., 2013) [[arXiv:1301.3781](https://arxiv.org/abs/1301.3781)] · [[PDF](https://arxiv.org/pdf/1301.3781.pdf)]
-  - *GloVe: Global Vectors for Word Representation* (Pennington et al., 2014) [[PDF](https://aclanthology.org/D14-1162.pdf)]
-- **当时的作用**：2013 年首次用低维连续向量表达词语，实现了著名的向量代数奇迹（“国王” - “男人” + “女人” = “王后”）。
-- **淘汰原因**：
-  静态词向量给每个词分配了全局唯一的固定向量。面对多义词“苹果”（水果 vs 手机科技公司），静态向量只能被迫取两者的平均折中，表达能力严重受限。
-- **当前替代方案**：
-  现代 LLM 的词向量仅仅是第 0 层的初始锚点，一进入后续 80 层的注意力机制，词向量会根据周围的所有单词动态演变为完全契合当前语境的**深层上下文动态表征**。
-- **学习建议**：理解“向量空间距离”的哲学概念即可，完全不需要花时间死磕 Skip-Gram、CBOW 或负采样的繁琐数学推导。
-
----
-
-### 2. 序列传话筒：RNN、LSTM 与 GRU
-- **代表论文**：
-  - *Long Short-Term Memory* (Hochreiter & Schmidhuber, 1997) [[PDF](https://www.bioinf.jku.at/publications/older/2604.pdf)]
-  - *Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation (GRU)* (Cho et al., 2014) [[arXiv:1406.1078](https://arxiv.org/abs/1406.1078)] · [[PDF](https://arxiv.org/pdf/1406.1078.pdf)]
-- **淘汰原因**：
-  1. **串行计算致命缺陷**：计算第 100 个词必须等前 99 个词算完，导致上千张现代 GPU 的并行矩阵乘法硬件（Tensor Core）大部分时间处于空闲等待状态；
-  2. **长程遗忘与信息压缩瓶颈**：随着距离拉长，早期的上下文信息被反复有损压缩，即使有门控机制（LSTM），在超过几百个字后依然不可避免地发生语义失真。
-- **学习建议**：知道“传话筒存在记忆丢失与排队等待”作为对比背景即可，无需推导遗忘门、输入门、候选隐状态公式。
-
----
-
-### 3. 掩码双向语言模型：BERT 与 RoBERTa
-- **代表论文**：
-  - *BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding* (Devlin et al., 2018) [[arXiv:1810.04805](https://arxiv.org/abs/1810.04805)] · [[PDF](https://arxiv.org/pdf/1810.04805.pdf)]
-  - *RoBERTa: A Robustly Optimized BERT Pretraining Approach* (Liu et al., 2019) [[arXiv:1907.11692](https://arxiv.org/abs/1907.11692)] · [[PDF](https://arxiv.org/pdf/1907.11692.pdf)]
-- **淘汰原因**：
-  1. **无法做高效的自然文本生成**：BERT 天生依赖双向全知视角，无法像自回归模型那样一个词接一个词地流式吐字；
-  2. **大一统时代的降维打击**：学术界曾经认为“判别任务用 BERT，生成任务用 GPT”，但随着自回归模型 Scaling 到百亿千亿参数，其少样本与思维链推理能力在判别任务上也彻底碾压了 BERT。
-- **学习建议**：BERT 是现代双向编码器的绝唱。除非你从事极其特异的纯文本分类轻量级边缘部署，否则不要在大模型主干学习中花费超过 1 个小时。
-
----
-
-### 4. 早期线性与稀疏注意力：Performer、Linformer、Reformer
-- **代表论文**：
-  - *Rethinking Attention with Performers* (Choromanski et al., 2020) [[arXiv:2009.14794](https://arxiv.org/abs/2009.14794)] · [[PDF](https://arxiv.org/pdf/2009.14794.pdf)]
-  - *Linformer: Self-Attention with Linear Complexity* (Wang et al., 2020) [[arXiv:2006.04768](https://arxiv.org/abs/2006.04768)] · [[PDF](https://arxiv.org/pdf/2006.04768.pdf)]
-  - *Reformer: The Efficient Transformer* (Kitaev et al., 2020) [[arXiv:2001.04451](https://arxiv.org/abs/2001.04451)] · [[PDF](https://arxiv.org/pdf/2001.04451.pdf)]
-- **为什么这是一条“纸上谈兵的死胡同”？**
-  1. **破坏模型精度**：低秩逼近和近似截断大幅破坏了大模型在长程依赖、代码括号匹配、数学检索等需要精细定位任务上的表现；
-  2. **违反 GPU 物理真实硬件法则**：现代 GPU 的核心瓶颈不是浮点算力（FLOPs），而是**显存访问带宽（Memory Bandwidth）**。那些看似数学上只要 $O(N)$ 计算量的复杂核算法，由于引入了大量不规整的非连续内存读写与中间张量，在真实显卡上跑起来往往比朴素的矩阵乘法还要慢得多！
-- **终结者**：**FlashAttention** [[PDF](https://arxiv.org/pdf/2205.14135.pdf)]。FlashAttention 证明了一件事：**根本不需要做任何有损数学近似，直接通过硬件层级的内存分块（Tiling）算法，就能让标准精确注意力在显卡上跑出数倍的极速，并将显存压缩到极致！**
-- **学习建议**：彻底跳过所有线性近似注意力论文，直接精读 FlashAttention。
+在开始研读前，建议准备好以下心态：
+- **不要害怕公式**：每一个数学公式本质上都是一句可以用物理直觉解释的“大白话”；
+- **动手在纸上画图**：拿起笔，跟着指南画一画向量的投影、矩阵的旋转和切块的缓存；
+- **结合代码对照**：建议随时联动本项目根目录的数学基础章节与 `engineering/` 代码实现。
 """
 
-# 4. 03-architecture-evolution.md
-docs["03-architecture-evolution.md"] = r"""# 03. 架构演进实录：现代主流大模型组件进化路线图
+# ==============================================================================
+# 1. 01-track-architecture-foundations.md
+# ==============================================================================
+docs["01-track-architecture-foundations.md"] = r"""# 第一主线：从循环到自注意力——Transformer 与自回归架构的创世纪
 
-现代大语言模型（如 LLaMA-3、Mistral、Qwen-2.5、DeepSeek-V3）虽然依然自称属于 Transformer 家族，但其内部的每一个关键零件，都已经历了多轮翻天覆地的优胜劣汰迭代。
-本章为你梳理各核心组件的工业进化脉络，并附带所有突破性论文的官方 **PDF 链接**。
-
----
-
-## 现代大模型标准架构演进总览
-
-```
-  组件类别       原始 Transformer (2017)             现代工业标准 (2024-2025)
- ───────────────────────────────────────────────────────────────────────────
-  注意力机制 ──► Vanilla MHA (多头注意力)     ──► GQA (Llama 3) / MLA (DeepSeek-V3)
-  位置编码   ──► Sinusoidal (绝对正余弦)      ──► RoPE (旋转位置编码) + YaRN
-  层归一化   ──► Post-LN (后置 LayerNorm)     ──► Pre-RMSNorm (前置均方根归一化)
-  前馈激活   ──► ReLU (单通道线性阈值)        ──► SwiGLU (门控双通道自适应)
-  计算拓扑   ──► Dense (全参数密集激活)       ──► Fine-Grained MoE (细粒度混合专家)
- ───────────────────────────────────────────────────────────────────────────
-```
+> 本篇将串联精读两篇奠定人类大语言模型基石的传世名篇：
+> 1. *Attention Is All You Need* (Vaswani et al., Google Brain, 2017)
+> 2. *Language Models are Few-Shot Learners* (Brown et al., OpenAI, 2020 - GPT-3)
+>
+> 学习目标：深刻理解人类为什么彻底抛弃了循环神经网络（RNN），自注意力机制的三大矩阵 $Q, K, V$ 是如何凭空诞生的，以及自回归大模型是如何依靠提示词涌现出通用智能的。
 
 ---
 
-## 1. 注意力机制演化：从 MHA 到 GQA，再到 MLA
+## 论文 1：现代 AI 的创世纪——Attention Is All You Need
 
-注意力机制的演化史，本质上是**“围剿推理阶段 KV Cache（键值缓存）显存占用”**的壮烈史诗。
-
-### 第一代：原生多头注意力（Vanilla MHA）
-- **代表出处**：*Attention Is All You Need* (Vaswani et al., 2017) [[arXiv:1706.03762](https://arxiv.org/abs/1706.03762)] · [[PDF](https://arxiv.org/pdf/1706.03762.pdf)]
-- **痛点**：在多用户高并发推理时，每个 token 生成都要缓存所有层的 Key 和 Value。对于 70B 模型，仅仅存 KV Cache 就能在短时间内把 80GB 的 A100 显存彻底吃爆！
-
-### 第二代：多查询注意力（MQA）与分组查询注意力（GQA）
-- **MQA 论文**：*Fast Transformer Decoding: One Write-Head is All You Need* (Shazeer, 2019) [[arXiv:1911.02150](https://arxiv.org/abs/1911.02150)] · [[PDF](https://arxiv.org/pdf/1911.02150.pdf)]
-  所有注意力头共享同一套 Key 和 Value，KV 缓存暴降为原来的 $1/H$，但模型精度受到轻微损伤。
-- **GQA 论文**：*GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints* (Ainslie et al., 2023) [[arXiv:2305.13245](https://arxiv.org/abs/2305.13245)] · [[PDF](https://arxiv.org/pdf/2305.13245.pdf)]
-  折中智慧（Llama-2/3 标配）：将注意力头分为 8 个小组，每组内部共享一套 Key 和 Value。在几乎零精度损失的前提下，将 KV Cache 显存占用压低了 8 倍！
-
-### 第三代：多头潜在注意力（MLA，DeepSeek 终极杀手锏）
-- **代表论文**：*DeepSeek-V2 Technical Report* (2024) [[arXiv:2405.04434](https://arxiv.org/abs/2405.04434)] · [[PDF](https://arxiv.org/pdf/2405.04434.pdf)]
-- **物理机制**：不再简单粗暴地按头分组，而是使用**低秩矩阵投影压缩**：
-  在把 Key 和 Value 存入显存之前，先将其压缩为一个极其短小的“潜在向量（Latent Vector）”；
-  在真正计算点积时，利用矩阵结合律，直接在压缩空间内完成变换与旋转！
-- **战果**：将推理显存占用压缩到了原始 MHA 的 **不到六分之一**，为百万长文本高并发吞吐奠定了坚实基础。
+- **文献链接**：[[arXiv:1706.03762](https://arxiv.org/abs/1706.03762)] · [[PDF 官方直达](https://arxiv.org/pdf/1706.03762.pdf)]
+- **作者团队**：Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, Illia Polosukhin (Google Brain / Research, 2017)
+- **地位**：现代深度学习的第一里程碑，所有现代 LLM 的架构源头。
 
 ---
 
-## 2. 位置编码演化：从绝对刻度到相对旋转罗盘
+### 第一步：背景故事与前人痛点——为什么循环神经网络（RNN）走向了死胡同？
 
-- **RoPE 代表论文**：*RoFormer: Enhanced Transformer with Rotary Position Embedding* (Su et al., 2021) [[arXiv:2104.09864](https://arxiv.org/abs/2104.09864)] · [[PDF](https://arxiv.org/pdf/2104.09864.pdf)]
-- **YaRN 长文本外推论文**：*YaRN: Efficient Context Window Extension of Large Language Models* (Peng et al., 2023) [[arXiv:2309.00071](https://arxiv.org/abs/2309.00071)] · [[PDF](https://arxiv.org/pdf/2309.00071.pdf)]
-- **为什么 RoPE 一统天下**：
-  1. 形式优雅，完全通过二维复数旋转夹角差刻画相对距离；
-  2. 随着距离增加，旋转引起的相对衰减自然符合自然语言近密远疏的规律；
-  3. 配合 YaRN 外推算法，能以极小的训练代价将上下文窗口从 4K 轻松外推至 128K 乃至 1M。
+在 2017 年之前，处理自然语言序列（如机器翻译）的绝对统治者是 **RNN（循环神经网络）** 及其变体 **LSTM（长短期记忆网络）**。
 
----
+想象一下老师在操场上玩一个**“传话筒游戏”**：
+- 40 个小学生排成一长队，第 1 个孩子听到了一个故事，转头悄悄传给第 2 个孩子，第 2 个传给第 3 个……直到传给第 40 个孩子。
+- **痛点 A：长程遗忘与信息瓶颈**。当队伍传到第 40 个孩子时，最初的信息早已面目全非。虽然 LSTM 引入了“记忆门”，但这就像给孩子发了个记事本，记事本的容量始终有限，句子越长，开头的信息越被稀释得荡然无存。
+- **痛点 B：无法并行，死死卡住硬件**。第 $t$ 个孩子的计算必须等待第 $t-1$ 个孩子算完才能开始！这在计算机里叫**时序依赖（Sequential Dependency）**。哪怕你有 10,000 块顶级 GPU，面对 RNN 也只能一块接一块地排队干等，硬件利用率极低。
 
-## 3. 归一化与激活函数：从 Post-LN/ReLU 到 Pre-RMSNorm/SwiGLU
-
-- **RMSNorm 代表论文**：*Root Mean Square Layer Normalization* (Zhang & Sennrich, 2019) [[arXiv:1910.07467](https://arxiv.org/abs/1910.07467)] · [[PDF](https://arxiv.org/pdf/1910.07467.pdf)]
-  发现传统 LayerNorm 中耗费大量计算的“减去均值中心化”对稳定性毫无贡献，仅保留均方根缩放，计算吞吐大幅提升。
-- **SwiGLU 代表论文**：*GLU Variants Improve Transformer* (Noam Shazeer, Google, 2020) [[arXiv:2002.05202](https://arxiv.org/abs/2002.05202)] · [[PDF](https://arxiv.org/pdf/2002.05202.pdf)]
-  用 Swish 激活构筑双通道自适应门控，成为现代百亿千亿大模型的标准前馈层。
+**Google 团队的大胆设想**：
+能不能彻底打破“排队传递”的枷锁，让全班 40 个孩子围坐在圆桌前，**每个人同时抬头看向所有人**？这便是**自注意力机制（Self-Attention）**。
 
 ---
 
-## 4. 拓扑结构演化：从稠密走向细粒度混合专家（MoE）
+### 第二步：由浅入深的直觉搭建——图书馆查阅系统（$Q, K, V$ 的本质）
 
-- **早期粗粒度 MoE**：*Switch Transformers: Scaling to Trillion Parameter Models* (Fedus et al., 2021) [[arXiv:2101.03961](https://arxiv.org/abs/2101.03961)] · [[PDF](https://arxiv.org/pdf/2101.03961.pdf)]
-- **现代细粒度 MoE 标杆**：*DeepSeekMoE: Towards Ultimate Expertise in Mixture-of-Experts Language Models* (Dai et al., 2024) [[arXiv:2401.06066](https://arxiv.org/abs/2401.06066)] · [[PDF](https://arxiv.org/pdf/2401.06066.pdf)]
-  将专家切得更细（如 256 专家激活 8 个），并专门设置固定共享专家兜底常识，配合无辅助损失自适应路由，激活 37B 算力却达到 671B 稠密模型的智力！
+为了让每个词能主动从其他词那里寻找信息，研究人员设计了三个向量：**Query（查询）、Key（键）、Value（值）**。
+
+想象你走进了一座大型国家图书馆：
+1. **Query（借书条/查询意图）**：你手里拿着一张纸条，写着：“我想找关于‘黑洞吞噬恒星’的书”；
+2. **Key（图书分类标签/索引）**：图书馆里每本书的书脊上都贴着标签（如“天体物理”、“古典诗词”、“量子力学”）；
+3. **Value（书本内部的具体内容）**：书页里面密密麻麻记录的知识。
+
+你借书的过程分为三步：
+- **匹配**：拿着你的 Query，去和每本书的 Key 进行比对，算出一个相关度打分（Dot-Product 相似度）；
+- **归一化**：把所有分数通过 Softmax 转换成百分比概率（比如天体物理相关度 90%，古典诗词 0.1%）；
+- **聚合**：根据这个百分比，把各本书的 Value（内容）加权融合在一起，装进你的大脑。
+
+---
+
+### 第三步：核心数学公式与算法玄机拆解
+
+论文中给出了震撼学术界的注意力公式：
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
+$$
+
+我们把它拆开细看：
+
+#### 1. 为什么是矩阵点积 $Q K^\top$？
+假设输入序列长度为 $N$，向量维度为 $d_k$。$Q \in \mathbb{R}^{N \times d_k}$，$K \in \mathbb{R}^{N \times d_k}$。
+$Q K^\top$ 计算的是序列中每一个词与其他所有词之间的两两内积，其结果是一个 $N \times N$ 的庞大打分方阵。第 $i$ 行第 $j$ 列的数字，代表第 $i$ 个词对第 $j$ 个词的关注程度。
+
+#### 2. 为什么要除以 $\sqrt{d_k}$（核心高频面试题）？
+这是很多初学者看不懂的地方。为什么不直接算 $\text{softmax}(Q K^\top)$？
+**第一原理数学推导**：
+假设 $q$ 和 $k$ 的每个分量都是独立同分布的随机变量，均值为 $0$，方差为 $1$。
+那么它们的内积是 $d_k$ 项乘积的和：
+$$
+q \cdot k = \sum_{i=1}^{d_k} q_i k_i
+$$
+每一项 $q_i k_i$ 的均值为 $0$，方差为 $1$。
+根据概率论，两个独立随机变量之和的方差等于方差之和。因此，$d_k$ 项相加后，**总内积的方差变成了 $d_k$，标准差变成了 $\sqrt{d_k}$！**
+
+如果向量维度 $d_k = 64$ 或 $128$：
+- 内积结果会散布在从 $-30$ 到 $+30$ 的巨大范围内；
+- 当把极大的数字（如 $30$）喂给 Softmax 函数时，指数函数 $\exp(30)$ 会大到爆炸，导致输出概率分布变成极端唯一的“one-hot”（一个接近 1，其余全为 0）；
+- 更致命的是：**此时 Softmax 处于极度平缓的饱和区，其梯度几乎等于 0！整个网络的反向传播彻底冻结，模型学不动了。**
+- **除以 $\sqrt{d_k}$ 的神来之笔**：把方差强行缩放回 $1$，让点积分数处于 Softmax 最敏感、梯度最充沛的黄金区间！
+
+#### 3. 因果遮蔽（Causal Mask）——下三角矩阵的守护
+在论文的 Decoder 部分，模型不能在预测当前词时“开卷抄袭”后面的词。
+因此在执行 Softmax 之前，会在 $Q K^\top / \sqrt{d_k}$ 矩阵的上三角部分全部填上 $-\infty$：
+$$
+M_{i,j} = \begin{cases} 0, & i \ge j \\ -\infty, & i < j \end{cases}
+$$
+因为 $\exp(-\infty) = 0$，经过 Softmax 之后，未来所有词的注意力权重严格变成 $0$！
+
+---
+
+### 第四步：承前启后与时代启示
+
+- **原始论文的遗憾**：
+  2017 年的 Transformer 是为了机器翻译设计的，因此采用了 **Encoder-Decoder 双塔结构**，并且采用了 **Post-LN（后置层归一化）** 和 **正余弦绝对位置编码**。后来实践证明，Post-LN 极难训练深层模型，正余弦编码也无法很好适应长文本。
+- **留给后人的遗产**：
+  但 QKV 自注意力机制、残差连接跳跃（Residual Bridge）、多头并发设计的种子已经种下。整个 AI 宇宙从此被改写。
+
+---
+
+## 论文 2：通用智能的破晓——GPT-3: Language Models are Few-Shot Learners
+
+- **文献链接**：[[arXiv:2005.14165](https://arxiv.org/abs/2005.14165)] · [[PDF 官方直达](https://arxiv.org/pdf/2005.14165.pdf)]
+- **作者团队**：Tom B. Brown, Benjamin Mann, Nick Ryder et al. (OpenAI, 2020)
+- **地位**：终结了传统 NLP“针对特定任务微调”的旧范式，开启了大模型提示词工程与上下文学习的通用 AI 时代。
+
+---
+
+### 第一步：背景故事与前人痛点——BERT 的死胡同与碎片化繁琐
+
+在 2018-2019 年间，Google 的 **BERT** 红极一时。BERT 的主流用法是：
+1. 先在大规模无标签文本上进行双向掩码预训练（填空题）；
+2. 遇到情感分类任务，加个分类头微调（Fine-tune）一份模型权重；
+3. 遇到命名实体识别，加个序列标注头微调第二份权重；
+4. 遇到阅读理解，再微调第三份权重……
+
+**这种范式的痛苦**：
+每一个任务都要收集带标签数据，都要重新反向传播跑一遍梯度，都要在服务器上部署一个独立的新模型权重。这距离人类**“举一反三、触类旁通”**的通用智能相去甚远。
+
+---
+
+### 第二步：由浅入深的直觉搭建——什么是“上下文学习”（In-Context Learning）？
+
+想象一下你教一个 3 岁小孩辨别动物：
+你不需要给小孩的大脑动手术改写神经元连接（更新参数），你只需要指着绘本跟他说：
+- “你看，这是猫，叫喵喵；这是狗，叫汪汪；那这只长胡子的是什么？”
+小孩脱口而出：“这是猫！”
+
+小孩是在那一瞬间重新长了脑子吗？没有。他的大脑权重完好无损，他是在他的**工作记忆（当前注意力上下文）**里完成了模式识别！
+OpenAI 的 GPT-3 首次证明：**一个足够巨大的 Decoder-only 自回归模型，天然具备这种上下文学习能力！**
+
+---
+
+### 第三步：核心技术机制与认知颠覆
+
+1. **结构极简化：只留 Decoder，一路预测下一个词**
+   OpenAI 彻底抛弃了 BERT 的双向 Encoder 机制，仅保留最朴素的单向自回归 Transformer。输入一句话，模型永远只做一件事：**根据前面所有词，预测下一个词的概率分布**。
+
+2. **三类提示词交互范式正式确立**：
+   - **Zero-shot（零样本）**：只给任务描述直接提问。
+     - 提示词：`将英语翻译成中文：Cheese => `
+   - **One-shot（单样本）**：给一个示例，再提问。
+     - 提示词：`海獭 => sea otter; 奶酪 => `
+   - **Few-shot（少样本）**：给 3-5 个示例建立上下文引导。
+
+3. **模型参数爆炸与涌现现象（Emergence）**：
+   - 当模型参数从 GPT-2 的 1.5B 跃迁到 GPT-3 的 175B 时，少样本学习的准确率曲线突然出现了断崖式的陡峭上升——那些小模型怎么学都学不会的逻辑推理、翻译、常识问答，在大模型上突然“顿悟”了！
+
+---
+
+### 第四步：承前启后——为什么它是必读的哲学转折点？
+
+GPT-3 彻底将整个人工智能领域拉上了**“参数尺度扩张（Scale）”**的列车。
+但随之而来引发了两个极其严峻的工程灵魂拷问：
+1. 盲目堆参数真的划算吗？参数和数据之间到底有没有精确的物理定律？（这引出了下一专题的 **Scaling Laws**）；
+2. 原始 Transformer 架构在支撑 100B+ 规模时频繁崩溃，底层算子如何革新？（这引出了下一专题的 **现代架构四件套**）。
 """
 
-# 5. 04-training-and-alignment.md
-docs["04-training-and-alignment.md"] = r"""# 04. 训练与对齐洗牌：预训练数据清洗、DPO 与 GRPO 的三次大革命
+# ==============================================================================
+# 2. 02-track-modern-architecture-recipes.md
+# ==============================================================================
+docs["02-track-modern-architecture-recipes.md"] = r"""# 第二主线：现代主流架构黄金四件套——从标准 Transformer 到 LLaMA 范式
 
-后训练（Post-training）决定了大模型的价值观与逻辑分寸感。
-在对齐领域，技术的迭代速度甚至超越了底层架构。每篇核心突破均附带官方 **PDF 直达链接**。
-
----
-
-## 1. 预训练数据演进：从垃圾堆狂吞到精准营养学
-
-- **合成数据与教科书假设论文**：*Textbooks Are All You Need* (Phi-1, Gunasekar et al., Microsoft, 2023) [[arXiv:2306.11644](https://arxiv.org/abs/2306.11644)] · [[PDF](https://arxiv.org/pdf/2306.11644.pdf)]
-- **核心认知颠覆**：
-  低质数据不仅带来不了智能，反而会导致模型过早产生幻觉。利用特级教师模型将互联网脏数据重写为逻辑缜密的“教材级教科书”，能用极小数据量击败传统十倍规模的大模型。
-
----
-
-## 2. 监督微调（SFT）的顿悟：LIMA 与“少即是多”假说
-
-- **代表论文**：*LIMA: Less Is More for Alignment* (Zhou et al., Meta, 2023) [[arXiv:2305.11206](https://arxiv.org/abs/2305.11206)] · [[PDF](https://arxiv.org/pdf/2305.11206.pdf)]
-- **科学启示**：
-  Meta 用仅仅 **1,000 条** 顶级指令问答数据微调 65B 模型，效果媲美数万条普通标注。
-  **模型的全部常识在预训练阶段早就学完了！SFT 的唯一使命是规范回答格式和语气，切忌在微调阶段硬灌新事实。**
+> 本篇精读现代开源大模型事实标准的 5 篇核心文献：
+> 1. *RMSNorm: Root Mean Square Layer Normalization* (Zhang & Sennrich, 2019)
+> 2. *GLU Variants Improve Transformer (SwiGLU)* (Shazeer, 2020)
+> 3. *RoFormer: Rotary Position Embedding (RoPE)* (Su et al., 2021)
+> 4. *GQA: Grouped-Query Attention* (Ainslie et al., 2023)
+> 5. *The LLaMA Family Technical Reports* (Meta, 2023-2024)
+>
+> 学习目标：像资深架构师一样看清：2017 年的原始 Transformer 究竟有哪些暗伤？工业界是如何通过这四把手术刀逐一修复，最终拼装出风靡当今开源界的 LLaMA / Qwen 终极架构的。
 
 ---
 
-## 3. 强化学习对齐的三次范式洗牌
+## 现代大模型架构演进对比全览
 
 ```
-【第一代: 复杂笨拙的四模型 PPO 体系】
-  InstructGPT (Ouyang et al., 2022) ──► Actor, Critic, Reward, Reference 四模型常驻
-  [arXiv:2203.02155] · [PDF: https://arxiv.org/pdf/2203.02155.pdf]
-
-                                │
-                                ▼ 范式革命 1: 消除强化学习环境与价值估计
-                                
-【第二代: 闭式隐式对齐 DPO / ORPO】
-  DPO (Rafailov et al., 2023) ──► 无需训练独立奖励模型, 直接用偏好对计算二分类 Loss
-  [arXiv:2305.18290] · [PDF: https://arxiv.org/pdf/2305.18290.pdf]
-  ORPO (Hong et al., 2024)    ──► 无需参考模型, 单阶段完成 SFT + 偏好对齐
-  [arXiv:2403.07691] · [PDF: https://arxiv.org/pdf/2403.07691.pdf]
-
-                                │
-                                ▼ 范式革命 2: 面向推理与严谨领域的去 Critic 纯 RL
-                                
-【第三代: 群组相对策略优化 GRPO (DeepSeek)】
-  DeepSeekMath (Shao et al., 2024) ──► 提出 GRPO, 彻底废弃 Critic 价值网络
-  [arXiv:2402.03300] · [PDF: https://arxiv.org/pdf/2402.03300.pdf]
+[ 2017 年标准 Transformer ]              [ 当代主流开源标准 (LLaMA/Qwen) ]
+1. Post-LN (后置层归一化，训练极易发散)   ==> 1. Pre-RMSNorm (前置无均值归一化，极速且稳健)
+2. 传统 ReLU / GELU 前馈全连接          ==> 2. SwiGLU 双通道门控线性单元 (更强表达力)
+3. 正余弦绝对位置编码 (长文本无法外推)    ==> 3. RoPE 旋转位置编码 (相对距离保持，超强外推)
+4. MHA 多头注意力 (KV Cache 显存暴涨)    ==> 4. GQA 分组查询注意力 (显存立省 75%，吞吐暴增)
 ```
 
-### 为什么 GRPO 正在重塑后训练格局？
-1. **显存开销缩减近半**：彻底砍掉了占用极其巨大的 Critic（价值网络）显存；
-2. **逻辑客观任务上的确定性奖励**：在数学解题和代码编写中，答案对不对是客观的，用编译器和单元测试就能给出 100% 可信的“规则奖励”，彻底告别了人工主观打分裁判（Reward Model）的幻觉欺骗（Reward Hacking）。
+---
+
+## 核心改进 1：Pre-RMSNorm——砍掉多余的算术均值
+
+- **文献链接**：[[arXiv:1910.07467](https://arxiv.org/abs/1910.07467)] · [[PDF 官方直达](https://arxiv.org/pdf/1910.07467.pdf)]
+- **作者团队**：Biao Zhang, Rico Sennrich (2019)
+
+### 老师讲透原理：
+传统的 **LayerNorm** 公式为：
+$$
+y = \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \gamma + \beta
+$$
+其中必须先计算序列的均值 $\mu = \frac{1}{d} \sum x_i$，然后再算方差 $\sigma^2$。
+
+**论文的惊人洞察**：
+神经网络之所以需要归一化，是为了**控制激活值的尺度（Scale）**，防止数值在前向和反向传播中指数级爆炸或衰减。至于“把中心平移到 0”（减均值 $\mu$），对梯度的稳定性几乎没有任何贡献，反而在硬件底层增加了两次数据遍历（一次求和算均值，一次做差）！
+
+**RMSNorm 的极简公式**：
+直接丢弃均值，只除以向量的均方根（Root Mean Square）：
+$$
+\text{RMS}(x) = \sqrt{\frac{1}{d} \sum_{i=1}^d x_i^2 + \epsilon}, \quad y = \frac{x}{\text{RMS}(x)} \odot \gamma
+$$
+- **收益**：不仅数学上更加干净，而且省去了偏置 $\beta$ 和均值计算，在现代 GPU 上算子执行速度提升了 10% 到 50%，现已成为 LLaMA、Mistral、Gemma、Qwen 的绝对标配。
+
+---
+
+## 核心改进 2：SwiGLU——给思考神经加上可控的“水龙头”
+
+- **文献链接**：[[arXiv:2002.05202](https://arxiv.org/abs/2002.05202)] · [[PDF 官方直达](https://arxiv.org/pdf/2002.05202.pdf)]
+- **作者团队**：Noam Shazeer (Google, 2020)
+
+### 老师讲透原理：
+传统 Transformer 的 FFN 层采用粗暴的“单通道”两层映射：
+$$
+\text{FFN}(x) = \text{ReLU}(x W_1 + b_1) W_2 + b_2
+$$
+这就好比水流流过管道，ReLU 只能机械地决定“小于 0 的水截断，大于 0 的放行”。
+
+**门控机制（Gated Linear Units, GLU）的哲学**：
+把 FFN 拆成两个平行的支路：
+1. **内容通道**：由矩阵 $W_{\text{gate}}$ 投影；
+2. **门阀通道**：由矩阵 $W_1$ 投影，并通过 Swish 激活函数生成一个介于 0 到 1 之间的连续旋钮；
+3. **两路点乘（Hadamard Product）**：
+$$
+\text{SwiGLU}(x) = \Big(\text{Swish}(x W_1) \otimes (x W_{\text{gate}})\Big) W_2
+$$
+- **直觉**：内容支路负责提取复杂的概念特征，而门阀支路像一个智能水龙头，精准控制当前特征要以多大比例输出给下一层。大量的实证表明，参数量相当时，SwiGLU 在各项基准测试中均无情碾压传统 ReLU/GELU。
+
+---
+
+## 核心改进 3：RoPE 旋转位置编码——复数平面的神奇时针
+
+- **文献链接**：[[arXiv:2104.09864](https://arxiv.org/abs/2104.09864)] · [[PDF 官方直达](https://arxiv.org/pdf/2104.09864.pdf)]
+- **作者团队**：Jianlin Su (苏剑林), Yu Lu, Shengfeng Pan et al. (2021)
+
+### 老师讲透原理：
+在没有位置编码时，词向量只有语义坐标，模型根本无法区分“狗咬人”与“人咬狗”。
+- **绝对位置编码的硬伤**：直接在第 $m$ 个词向量上加一个固定常数向量 $P_m$。当模型要在 8k 长度推理，但训练时只见过 2k 长度时，$P_{3000}$ 对于模型而言完全是个陌生外星人，模型直接崩溃胡言乱语。
+
+**苏剑林团队的数学神作（RoPE）**：
+我们不需要告诉模型“你绝对站在操场的第 5 米还是第 10 米”，我们只需要保证：**第 $m$ 个词的 Query 和第 $n$ 个词的 Key 做内积时，其结果只取决于它们的相对距离 $(m - n)$！**
+
+**实现方式**：
+把向量中每两个相邻维度 $(x_1, x_2)$ 视为复数平面上的一个点，把位置 $m$ 转化为一个旋转角度 $m\theta$：
+$$
+R_{\Theta, m}^d x = \begin{pmatrix} x_1 \cos(m\theta) - x_2 \sin(m\theta) \\ x_1 \sin(m\theta) + x_2 \cos(m\theta) \end{pmatrix}
+$$
+由于两个复数相乘等于角度相加，做内积时角度自然相减：
+$$
+\langle R_m q, R_n k \rangle = q^\top R_{n-m} k
+$$
+- **惊人优雅**：不用显式增加任何额外参数，只通过正余弦旋转变换，就让模型完美感知到了相对位置差！更赋予了模型强大的**长文本扩展（RoPE 线性外推、YaRN 插值）**能力。
+
+---
+
+## 核心改进 4：GQA（分组查询注意力）——解救暴涨的显存
+
+- **文献链接**：[[arXiv:2305.13245](https://arxiv.org/abs/2305.13245)] · [[PDF 官方直达](https://arxiv.org/pdf/2305.13245.pdf)]
+- **作者团队**：Joshua Ainslie et al. (Google Research, 2023)
+
+### 老师讲透原理：
+在部署大模型服务时，**KV Cache 占用了海量的 GPU 显存**：
+- **MHA（标准多头注意力）**：如果有 32 个 Query 头，就必须配套 32 个 Key 头和 32 个 Value 头。当并发用户多、上下文长时，几十 GB 显存瞬间被吃光；
+- **MQA（多查询注意力）**：走向另一个极端——32 个 Query 头强行共用 1 个 Key 头和 1 个 Value 头。显存立省 96%，但模型的精准注意力严重受损；
+- **GQA（折中智慧）**：划分为 4 或 8 个小组，每组内部的几个 Query 头共享同一对 Key/Value 头。
+- **结论**：以极小的精度损失代价，将 KV Cache 显存开销直接砍下 75% 以上，推理并发吞吐成倍暴涨。
+
+---
+
+## 终极集大成者：The LLaMA Family
+
+- **文献链接**：
+  - LLaMA 1: [[arXiv:2302.13971](https://arxiv.org/abs/2302.13971)]
+  - LLaMA 2: [[arXiv:2307.09288](https://arxiv.org/abs/2307.09288)]
+  - LLaMA 3: [[arXiv:2407.21783](https://arxiv.org/abs/2407.21783)]
+- **作者团队**：Meta AI (2023 - 2024)
+
+Meta 的三篇技术报告并不是提出了多么奇特的新数学算法，而是以极高的工业水准**将上述四大组件彻底固化为全行业标配**，并向全世界证明了：**不要轻易更改这套架构，把精力投入到 15T+ 高质量合成数据清洗、长文本退火训练与高质量 DPO 对齐中，才是现代大模型的通天大道。**
 """
 
-# 6. 05-reasoning-and-frontier.md
-docs["05-reasoning-and-frontier.md"] = r"""# 05. 前沿推理新纪元：测试时计算扩展与纯强化学习反思涌现
+# ==============================================================================
+# 3. 03-track-scaling-laws-and-compute.md
+# ==============================================================================
+docs["03-track-scaling-laws-and-compute.md"] = r"""# 第三主线：预训练物理定律——算力、数据与参数的 Scaling Laws 革命
 
-当业界还在忧虑“互联网人类高质量文本即将耗尽”、“预训练 Scaling Law 是否遭遇天花板”时，OpenAI o1 与 DeepSeek-R1 开辟了全新赛道——**测试时计算扩展（Test-Time Compute Scaling Law）与推理模型新范式**。每篇前沿文献均附带官方 **PDF 直达链接**。
-
----
-
-## 1. 经典必读论文：DeepSeek-R1 的纯强化学习奇迹
-
-- **论文标题**：*DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*
-- **文献链接**：[[arXiv:2501.12948](https://arxiv.org/abs/2501.12948)] · [[PDF 官方直达](https://arxiv.org/pdf/2501.12948.pdf)]
-- **核心里程碑拆解**：
-  - **R1-Zero**：拿最原始的 DeepSeek-V3-Base 基座模型，**完全不喂任何人工写好的问答对或思维链（Zero Cold-start SFT）**；
-  - 仅给两道极简规则判卷：规则 1 格式标签，规则 2 标答/测试用例客观判分；
-  - **顿悟时刻（Aha Moment）**：在没有人类教授的情况下，模型自发学会了在思维链中进行反思重算：“等等，让我重新核算刚才的方程……啊，之前忽略了负号！”，见证了硅基智能对自省机制的独立觉醒。
+> 本篇精读统治现代大语言模型算力投资与训练规划的两大神级论文：
+> 1. *Scaling Laws for Neural Language Models* (Kaplan et al., OpenAI, 2020)
+> 2. *Training Compute-Optimal Large Language Models (Chinchilla)* (Hoffmann et al., DeepMind, 2022)
+>
+> 学习目标：像顶尖实验室的首席科学家一样，学会计算 FLOPs 算力账本，推导参数量 $N$ 与训练数据量 $D$ 的最佳配比，深刻理解为什么“小模型大灌水”成为了当今开源大模型的致胜法宝。
 
 ---
 
-## 2. 测试时计算扩展与过程验证核心论文
+## 训练算力的通用物理账本（必须背下的基石公式）
 
-- **推理扩展代表作 A**：*Large Language Monkeys: Scaling Inference Compute with Verifiers* (Brown et al., 2024)
-  - 文献链接：[[arXiv:2407.21787](https://arxiv.org/abs/2407.21787)] · [[PDF 官方直达](https://arxiv.org/pdf/2407.21787.pdf)]
-  - 阐述了在测试时通过重复采样与验证器（Verifiers）扩展计算量，模型性能如何呈现指数级跃升。
-- **推理思考代表作 B**：*Quiet-STaR: Language Models Can Teach Themselves to Think Before Speaking* (Zelikman et al., 2024)
-  - 文献链接：[[arXiv:2403.09629](https://arxiv.org/abs/2403.09629)] · [[PDF 官方直达](https://arxiv.org/pdf/2403.09629.pdf)]
-  - 探索了大模型在吐出下一个字之前，在静默状态下自发生成多条内部思考路径的机制。
-- **过程奖励模型 PRM 代表作**：*Let's Verify Step by Step* (Lightman et al., OpenAI, 2023)
-  - 文献链接：[[arXiv:2305.20050](https://arxiv.org/abs/2305.20050)] · [[PDF 官方直达](https://arxiv.org/pdf/2305.20050.pdf)]
-  - 提出不仅对最终答案打分，更对解题推理的每一个逻辑步骤进行逐步监督与评分，奠定了严谨数学推理的基础。
+在大模型预训练中，总计算量用浮点运算次数（FLOPs, Floating Point Operations）来衡量。
+对于一个非词嵌入参数量为 $N$、训练数据 Token 数量为 $D$ 的标准自回归 Transformer：
+
+$$
+C \approx 6 N D
+$$
+
+### 老师讲透来源：为什么乘数是 6？
+- **前向传播（Forward Pass）**：每个 Token 的输入需要经过矩阵乘法，一次加法加一次乘法算 2 次浮点运算，因此前向传播消耗约为 $2 N$ FLOPs；
+- **反向传播（Backward Pass）**：反向传播既要计算对输入的梯度，又要计算对权重的梯度，计算量精确等于前向传播的 2 倍，即 $4 N$ FLOPs；
+- **合计**：$2 N + 4 N = 6 N$ FLOPs / Token。
+- 乘以总数据量 $D$，即可精准估算出一次完整训练所消耗的理论算力总量！
+
+---
+
+## 论文 1：大模型领域的开普勒定律——OpenAI Kaplan 2020
+
+- **文献链接**：[[arXiv:2001.08361](https://arxiv.org/abs/2001.08361)] · [[PDF 官方直达](https://arxiv.org/pdf/2001.08361.pdf)]
+- **作者团队**：Jared Kaplan et al. (OpenAI, 2020)
+
+### 核心贡献与公式拆解：
+在 2020 年之前，深度学习被嘲讽为“玄学炼丹”。没有人知道模型做大到底有没有用，还是会很快过拟合。
+Kaplan 团队训练了几百个不同尺寸的模型，首次定量给出了三大幂律（Power-law）法则：
+
+1. **模型损失（Loss $L$）只与三个宏观数字强相关**：
+   - 模型参数量 $N$；
+   - 训练 Token 数 $D$；
+   - 总计算预算 $C$。
+   至于你的 Transformer 到底是设计得更宽还是更深、注意力头数多几个还是少几个，在对数坐标轴下**统统无关紧要**！
+
+2. **幂律公式**：
+$$
+L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N}, \quad L(D) \approx \left(\frac{D_c}{D}\right)^{\alpha_D}
+$$
+在双对数坐标系（Log-Log Plot）下，Loss 与参数量、数据量呈现出完美的笔直斜线。这向全世界资方与工程师宣告：**只要持续堆算力和高质量数据，智能水平就可以被稳定预测并持续增长！**
+
+### Kaplan 论文的历史局限（踩坑点）：
+在这篇论文中，OpenAI 得出了一个错误的推论：
+他们认为，如果算力预算增加，**应该优先把参数量 $N$ 做大（占 73%），而训练数据 $D$ 只需要微调少加一点（占 27%）**。
+这一错误结论直接导致了后来的 GPT-3（175B 参数，但仅仅只喂了 300B Token，严重营养不良！）。
+
+---
+
+## 论文 2：DeepMind 的历史纠错——Chinchilla（2022）
+
+- **文献链接**：[[arXiv:2203.15556](https://arxiv.org/abs/2203.15556)] · [[PDF 官方直达](https://arxiv.org/pdf/2203.15556.pdf)]
+- **作者团队**：Jordan Hoffmann, Sebastian Borgeaud et al. (DeepMind, 2022)
+
+### 老师讲透纠错过程：
+DeepMind 团队敏锐地发现：OpenAI 实验之所以得出“参数比数据更重要”，是因为 OpenAI 在实验中采用了一个固定的学习率余弦调度（Cosine Schedule）步长，导致很多较小的模型在还没完全收敛时就被强行测了 Loss！
+
+DeepMind 重新设计了极其严谨的 400 多个模型跨算力对比实验，构建了参数与数据的双变量凸优化函数：
+$$
+L(N, D) = E + \frac{A}{N^\alpha} + \frac{B}{D^\beta}
+$$
+在给定算力预算 $C = 6 N D$ 的约束下，利用拉格朗日乘数法求极值，得到了震惊业界的**最优扩展定律**：
+$$
+N \propto C^{0.5}, \quad D \propto C^{0.5}
+$$
+- **结论**：**参数量 $N$ 与 数据量 $D$ 应该以 1:1 的完全相等比例同时扩张！**
+- **黄金换算比**：对于一个计算最优的模型，**每一个模型参数，至少需要喂养约 20 个 Token 的数据！**
+
+### Chinchilla 的震撼实践：
+- 当时业内的明星模型 **Gopher**（280B 参数，喂了 300B Token，严重吃不饱）；
+- DeepMind 依据最优定律，直接把参数砍掉四分之三，造出了仅有 **70B 参数的 Chinchilla**，但给它狠狠灌入了 **1.4T Token** 的数据；
+- **战果**：70B 的 Chinchilla 在各项下游跑分上全面爆锤 280B 的 Gopher 和 175B 的 GPT-3！
+
+---
+
+## 当代开源的“超饱和预训练”（Beyond Compute-Optimal）
+
+Chinchilla 探讨的是**“在一次性预训练计算预算固定下的最优配比”**。
+但在现实商业中，人们发现：**模型训练只是一次性的，而推理部署要跑几千万次！**
+- 如果模型做得太大（如 70B），哪怕预训练算力省了，部署到生产环境需要 4 张 80G 显卡，每秒推理极其昂贵；
+- 如果把模型做小（如 8B），哪怕远远超过 1:20 的 Chinchilla 上限，狠狠给它喂入 **15T Token（参数数据比达到了惊人的 1:1875）**，模型不但不会过拟合，能力还在疯狂变强！
+- **现代启示**：以 Llama 3 8B、Qwen2.5-7B 为代表的“小钢炮”，用极致的超饱和数据灌溉，造就了消费级单卡即可畅跑的超强智力体。
 """
 
-# 7. 06-system-and-inference.md
-docs["06-system-and-inference.md"] = r"""# 06. 系统工程与推理解码：冲破硅基内存墙的必读文献
+# ==============================================================================
+# 4. 04-track-post-training-and-alignment.md
+# ==============================================================================
+docs["04-track-post-training-and-alignment.md"] = r"""# 第四主线：后训练与对齐洗牌——从 3 阶段复杂 RLHF 到极简 DPO 与高效微调
 
-在当代大模型的生命周期中，**99% 的计算成本与商业开销发生在推理部署阶段**。
-不懂硬件底层的算法研究员，做出来的模型往往根本无法在服务器上以可控成本跑起来。
-本章为你梳理解决 GPU 显存墙、吞吐墙与延迟墙的核心工程杰作，全部提供官方 **PDF 链接**。
+> 本篇精读让大模型走出象牙塔、拥有人类仆从品格与专业能力的 4 篇里程碑论文：
+> 1. *InstructGPT (Training language models to follow instructions with human feedback)* (Ouyang et al., OpenAI, 2022)
+> 2. *Direct Preference Optimization: Your Language Model is Secretly a Reward Model (DPO)* (Rafailov et al., Stanford, 2023)
+> 3. *LoRA: Low-Rank Adaptation of Large Language Models* (Hu et al., 2021)
+> 4. *QLoRA: Efficient Finetuning of Quantized LLMs* (Dettmers et al., 2023)
+>
+> 学习目标：搞明白为什么预训练出来的模型满嘴胡话？OpenAI 的三阶段 RLHF 为何让工程师夜不能寐？斯坦福如何用极其优美的数学闭式解（DPO）消灭强化学习？以及消费级显卡如何通过低秩矩阵实现四两拨千斤。
 
 ---
 
-## 1. 突破显存碎片的必读工业里程碑：vLLM 与 PagedAttention
+## 为什么预训练大模型不能直接拿来当对话助手？
 
-- **论文标题**：*Efficient Memory Management for Large Language Model Serving with PagedAttention*
+刚刚完成预训练的原始模型（Base Model），其本质只是一个**冷酷的互联网文本续写机**。
+如果你问它：`"请帮我写一封辞职信。"`
+它很可能不会给你写辞职信，而是顺着互联网上的论坛语料继续续写：
+- `"……辞职信写完后，老板勃然大怒，接着发生了以下事情……"`
+因为它认为你在写小说！
+
+为了让模型从“野生续写机”蜕变成“谦逊、诚实、有用（Helpful, Honest, Harmless）的助手”，必须经过**后训练（Post-Training）**。
+
+---
+
+## 论文 1：ChatGPT 背后的真正功臣——InstructGPT (RLHF)
+
+- **文献链接**：[[arXiv:2203.02155](https://arxiv.org/abs/2203.02155)] · [[PDF 官方直达](https://arxiv.org/pdf/2203.02155.pdf)]
+- **作者团队**：Long Ouyang et al. (OpenAI, 2022)
+
+### 老师讲透经典三步走流水线：
+
+```
+[ 第一阶段：SFT (监督微调) ]
+  人类专家撰写几万条问答样例，通过交叉熵损失教模型：“遇到提问，要这样礼貌回答”。
+            │
+            ▼
+[ 第二阶段：训练 Reward Model (奖励裁判模型) ]
+  模型针对同一个问题生成 4-9 个回答，人类对其进行优劣排序 (A > B > C > D)。
+  训练一个独立的评分模型，让胜出回答的得分显著高于落败回答。
+            │
+            ▼
+[ 第三阶段：PPO (近端策略优化强化学习) ]
+  用奖励模型的打分作为反馈信号，通过 PPO 算法指导语言模型自发调整参数，
+  同时引入 KL 散度惩罚，防止模型投机取巧彻底跑偏。
+```
+
+### 为什么工业界对 PPO 叫苦不迭？
+在进行 PPO 训练时，GPU 显存中必须**同时驻留 4 个庞大模型**：
+1. **Actor Model（正在训练的策略模型）**：负责吐词生成回答；
+2. **Critic Model（价值评估模型）**：负责预测当前状态的长期期望得分；
+3. **Reference Model（参考模型，通常是 SFT 权重）**：负责计算 KL 散度，防止 Actor 越轨；
+4. **Reward Model（奖励模型）**：负责给完整的回答打分。
+- **痛点**：显存直接翻 4 倍，且 PPO 对超参数极其敏感，一旦策略梯度估算出现偏差，模型会陷入“奖励黑客（Reward Hacking）”——例如疯狂吐标点符号或迎合裁判，导致回答逻辑彻底崩溃。
+
+---
+
+## 论文 2：后训练的极简革命——DPO (直接偏好优化)
+
+- **文献链接**：[[arXiv:2305.18290](https://arxiv.org/abs/2305.18290)] · [[PDF 官方直达](https://arxiv.org/pdf/2305.18290.pdf)]
+- **作者团队**：Rafael Rafailov, Archit Sharma, Eric Mitchell et al. (Stanford University, 2023)
+
+### 第一步：大白话直觉——消灭中间商
+斯坦福团队提出了一个灵魂拷问：
+**为什么非要在中间训练一个专门打分的奖励模型，再拿强化学习去逼着语言模型迁就它？语言模型自己本身不就是一个天然能算概率的打分器吗？**
+
+### 第二步：数学解析解的神来之笔
+在强化学习最优解中，可以精确推导出真实隐式奖励函数与最优策略概率之间的代数关系：
+$$
+r(x, y) = \beta \log \frac{\pi_\theta(y|x)}{\pi_{\text{ref}}(y|x)} + \beta \log Z(x)
+$$
+将这个奖励表达式直接代入人类偏好的 Bradley-Terry 模型中，神奇的事情发生了：**复杂的归一化项 $Z(x)$ 在做差时被完全抵消了！**
+
+由此诞生了不需要任何独立 Reward 模型、不需要任何强化学习采样循环的 **DPO 损失函数**：
+$$
+\mathcal{L}_{\text{DPO}}(\theta) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right]
+$$
+- $y_w$ 是人类偏好的优质回答（Winner）；
+- $y_l$ 是人类嫌弃的劣质回答（Loser）；
+- **物理含义**：如果当前模型对于好回答的相对概率提升、对坏回答的相对概率下降，损失函数就急剧减小！
+- **时代影响**：把复杂的 RLHF 简化成了一个普通的多 GPU 有监督分类任务，成为今天开源界后训练的首选对齐基准。
+
+---
+
+## 论文 3 & 4：微调的平民救星——LoRA 与 QLoRA
+
+- **文献链接**：
+  - LoRA: [[arXiv:2106.09685](https://arxiv.org/abs/2106.09685)]
+  - QLoRA: [[arXiv:2305.14314](https://arxiv.org/abs/2305.14314)]
+- **作者团队**：Edward Hu et al. (Microsoft, 2021) / Tim Dettmers et al. (UW, 2023)
+
+### 老师讲透低秩分解的几何直觉：
+全量微调一个 70B 模型需要修改 700 亿个参数，连同 Adam 优化器状态需要几百 GB 显存。
+微软团队提出了**内在维度（Intrinsic Dimension）假说**：
+虽然模型的权重矩阵 $W_0 \in \mathbb{R}^{d \times k}$ 处于高维空间，但我们在微调特定下游任务时，所需要的**知识更新量 $\Delta W$ 实际上完全落在了一个极低维度的流形（子空间）上！**
+
+**数学构造**：
+冻结原始权重 $W_0$，将更新量分解为两个极瘦的高窄矩阵：
+$$
+W = W_0 + \Delta W = W_0 + \frac{\alpha}{r} (B \cdot A)
+$$
+- $A \in \mathbb{R}^{r \times k}$，用高斯随机数初始化；
+- $B \in \mathbb{R}^{d \times r}$，初始完全为 0（保证训练刚开始时 $\Delta W = 0$，模型行为与原始基座完全一致）；
+- 秩 $r$ 通常仅仅取 8 或 16。
+- **QLoRA 再次加码**：引入了 **4-bit NormalFloat (NF4)**，把被冻结的基座权重压缩进 4 位整型显存中，使得一张普通的 RTX 3090/4090 显卡就能直接微调 33B 甚至 70B 级别的超级大模型！
+"""
+
+# ==============================================================================
+# 5. 05-track-system-hardware-and-inference.md
+# ==============================================================================
+docs["05-track-system-hardware-and-inference.md"] = r"""# 第五主线：系统工程与硬件加速——显存墙、FlashAttention 与 vLLM
+
+> 本篇精读跨越大模型算法与底层硅基芯片硬件的 3 篇系统工程圣经：
+> 1. *FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness* (Dao et al., Stanford, 2022) & *FlashAttention-2* (2023)
+> 2. *Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM)* (Kwon et al., UC Berkeley, 2023)
+> 3. *Fast Inference from Transformers via Speculative Decoding* (Leviathan et al., Google, 2023 / Chen et al., 2023)
+>
+> 学习目标：跨越“算法”与“系统”的鸿沟，掌握 GPU 的内存层次架构（HBM vs SRAM），搞清为什么矩阵乘法不慢、慢在数据搬运；彻底掌握 FlashAttention 的分块平铺与在线 Softmax 数学换底，以及 vLLM 如何通过操作系统虚拟内存哲学化解显存危机。
+
+---
+
+## 现代 GPU 内部的物理残酷现实
+
+现代 AI 芯片（以 NVIDIA A100/H100 为例）由两个核心世界组成：
+
+```
+┌────────────────────────────────────────────────────────┐
+│  GPU 全局显存 (HBM / High Bandwidth Memory)            │
+│  - 容量大 (80 GB)                                       │
+│  - 速度慢 (约 2.0 TB/s) ── 相对芯片核心而言慢如蜗牛      │
+└───────────────────────────┬────────────────────────────┘
+                            │  极其拥挤的内存总线 (Memory Bus)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│  GPU 片上极速缓存 (SRAM / Streaming Multiprocessor)     │
+│  - 容量极其狭小 (仅约 20 MB ~ 50 MB)                    │
+│  - 速度飞快 (超过 19.0 TB/s) ── 比 HBM 快近 10 倍！      │
+│  - 核心算力单元 (Tensor Cores: 每秒数百 TeraFLOPs)       │
+└────────────────────────────────────────────────────────┘
+```
+
+**两大计算范式分类**：
+- **算力受限（Compute-bound）**：计算密度极高，芯片核心全速运转，内存搬运不是主要瓶颈（例如训练阶段的大批次长文本 Prefill 矩阵乘 GEMM）；
+- **访存受限 / 内存受限（Memory-bound）**：芯片核心绝大多数时间在空转干等，所有时间都浪费在从 HBM 慢吞吞搬运数据到 SRAM 的路上（例如自回归推理 Decode 逐字吐词阶段）。
+
+---
+
+## 论文 1：硬件感知算子革命——FlashAttention
+
+- **文献链接**：
+  - FlashAttention: [[arXiv:2205.14135](https://arxiv.org/abs/2205.14135)] · [[PDF 官方直达](https://arxiv.org/pdf/2205.14135.pdf)]
+  - FlashAttention-2: [[arXiv:2307.08691](https://arxiv.org/abs/2307.08691)] · [[PDF 官方直达](https://arxiv.org/pdf/2307.08691.pdf)]
+- **作者团队**：Tri Dao et al. (Stanford University, 2022 - 2023)
+
+### 传统标准注意力的致命死穴：
+标准注意力算法由三步组成：
+1. 从 HBM 读入 $Q, K$，计算 $S = Q K^\top$，将这个巨大的 $N \times N$ 矩阵**写回慢速的 HBM 显存**；
+2. 再从 HBM 读出 $S$，计算 $P = \text{softmax}(S)$，再把 $P$ **写回 HBM 显存**；
+3. 再从 HBM 读出 $P$ 和 $V$，计算 $O = P V$，把输出 $O$ 写回 HBM。
+- **悲剧**：长文本下 $N \times N$ 显存占用直接平方级爆炸，且 GPU 大量时间都在慢速总线上搬运这个巨大的临时方阵！
+
+### FlashAttention 的两大数学神来之笔：
+
+#### 1. 分块平铺（Tiling）
+把大的输入 $Q, K, V$ 切成适配片上极速缓存 SRAM 大小的小积木块（例如 $128 \times 128$），每次只加载一小块进入 SRAM，在片内把局部计算做完，绝不往 HBM 写入任何中间矩阵！
+
+#### 2. 在线 Softmax（Online Softmax）数学增量更新
+Softmax 必须知道一整行的全局最大值 $m$ 和指数和 $l$ 才能除以分母归一化。切成小块之后，没有看到后面的块，怎么算当前的 Softmax？
+**数学换底缩放公式**：
+假设前一个块的最大值为 $m^{(1)}$，当前新块的最大值为 $m^{(2)}$。
+新的全局最大值是：
+$$
+m^{\text{new}} = \max(m^{(1)}, m^{(2)})
+$$
+利用恒等变换，过去未除分母的中间输出可以通过乘以一个缩放衰减因子：
+$$
+\alpha = \exp(m^{(1)} - m^{\text{new}})
+$$
+实时平滑修正！
+- **成果**：中间结果在 SRAM 内部一次性完成融合累加，**完全没有近似误差，零精度损失，训练速度翻 2-4 倍，显存开销直接从 $O(N^2)$ 压平至 $O(N)$！**
+
+---
+
+## 论文 2：操作系统虚拟内存跨界拯救推理——vLLM (PagedAttention)
+
 - **文献链接**：[[arXiv:2309.06180](https://arxiv.org/abs/2309.06180)] · [[PDF 官方直达](https://arxiv.org/pdf/2309.06180.pdf)]
-- **作者团队**：Woosuk Kwon et al. (UC Berkeley / LMSYS, 2023)
-- **核心贡献**：
-  巧妙借用操作系统**虚拟内存分页管理（Paging）**思想，将 KV Cache 拆分为固定大小的物理块，通过逻辑页表动态映射。几乎实现了零显存碎片浪费，吞吐提升 2~4 倍，成为当今全球主流推理服务引擎的核心地基。
+- **作者团队**：Woosuk Kwon et al. (UC Berkeley, 2023)
+
+### 传统推理系统的显存痛点：
+在部署大模型服务时，为了保证自回归生成的 KV 向量不丢失，传统系统必须预先分配一段连续的显存空间（KV Cache）。
+- **悲剧**：因为不知道用户最终会聊多长，系统只能按照最大长度（如 2048）去预先申请。
+- **现实数据**：真实生产环境中，**高达 60% 至 80% 的 KV Cache 显存全是空闲未用的内存碎片！** 显存早早报警，导致一台服务器只能同时并发处理三五个用户。
+
+### vLLM 的跨界破局：
+伯克利团队直接把现代**操作系统的虚拟内存分页机制（Paging）**搬到了大模型显存管理中：
+1. **打碎连续性要求**：把连续的逻辑 KV Token 打散存入固定大小的不连续物理块（Physical Blocks，例如每块装 16 个 Token）；
+2. **块映射表（Block Table）**：在底层维护一张逻辑块号到物理块号的路由映射表；
+3. **按需索取**：每生成 16 个新词，才向显存申请一个微型物理块；请求结束瞬间回收。
+- **成果**：将显存浪费率从近 80% 压低到 **4% 以下**，单机并发承载能力直接暴增数倍，成为了当今全球工业级大模型推理部署的霸主框架。
 
 ---
 
-## 2. 打破逐字解码延迟的奇思妙想：投机采样（Speculative Decoding）
+## 论文 3：打破自回归枷锁——投机采样 (Speculative Decoding)
 
-- **论文标题**：*Fast Inference from Transformers via Speculative Decoding*
-- **文献链接**：[[arXiv:2211.17192](https://arxiv.org/abs/2211.17192)] · [[PDF 官方直达](https://arxiv.org/pdf/2211.17192.pdf)]
-- **作者团队**：Yaniv Leviathan et al. (Google Research, 2023)
-- **运行机制**：
-  1. 小模型快速起草 5 个候选词；
-  2. 大模型利用强大的并行矩阵计算，在单次前向传播中同时对 5 个候选词进行概率校验；
-  3. 基于拒绝采样数学证明，在保证输出分布 100% 毫无变形的前提下，直接带来 2~3 倍的生成端到端加速！
+- **文献链接**：
+  - Leviathan et al. (Google, 2022): [[arXiv:2211.17192](https://arxiv.org/abs/2211.17192)]
+  - Chen et al. (DeepMind, 2023): [[arXiv:2302.01318](https://arxiv.org/abs/2302.01318)]
 
----
-
-## 3. 分布式并行经典体系（千卡训练的交通枢纽）
-
-- **张量与流水线并行**：*Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism* (Shoeybi et al., NVIDIA, 2019)
-  - 文献链接：[[arXiv:1909.08053](https://arxiv.org/abs/1909.08053)] · [[PDF 官方直达](https://arxiv.org/pdf/1909.08053.pdf)]
-- **状态分片数据并行**：*ZeRO: Memory Optimizations Toward Training Trillion Parameter Models* (Rajbhandari et al., Microsoft, 2020)
-  - 文献链接：[[arXiv:1910.02054](https://arxiv.org/abs/1910.02054)] · [[PDF 官方直达](https://arxiv.org/pdf/1910.02054.pdf)]
-  - 透彻掌握 ZeRO-1/2/3 显存节省机制（对应 PyTorch FSDP）。
-- **百万长序列并行**：*RingAttention with Block Pipelining for Up to Millions of Tokens* (Liu et al., UC Berkeley, 2023)
-  - 文献链接：[[arXiv:2310.01889](https://arxiv.org/abs/2310.01889)] · [[PDF 官方直达](https://arxiv.org/pdf/2310.01889.pdf)]
-
----
-
-## 4. 极致部署量化路线：从 FP16 到 FP8 / INT4
-
-- **SmoothQuant (W8A8)**：*SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models* (Xiao et al., 2023)
-  - 文献链接：[[arXiv:2211.10438](https://arxiv.org/abs/2211.10438)] · [[PDF 官方直达](https://arxiv.org/pdf/2211.10438.pdf)]
-- **AWQ (4-bit 激活感知量化)**：*AWQ: Activation-aware Weight Quantization for LLM Compression and Acceleration* (Lin et al., 2023)
-  - 文献链接：[[arXiv:2306.00978](https://arxiv.org/abs/2306.00978)] · [[PDF 官方直达](https://arxiv.org/pdf/2306.00978.pdf)]
+### 老师讲透原理：
+大模型自回归解码最慢的地方在于：**为了吐出 1 个词，必须让 70B 的大模型把全部网络层跑一遍（极度 Memory-bound）。**
+投机采样提出了**“草包探路，大将核验”**策略：
+1. 安排一个极小的轻量“草稿模型”（如 0.5B），以极高速度一口气猜出后面的 4 个词：$\hat{x}_1, \hat{x}_2, \hat{x}_3, \hat{x}_4$；
+2. 把这 4 个候选词打包一次性送入 70B 的大模型；
+3. 70B 大模型只需要进行**一次前向并行计算（Prefill 模式，硬件算力利用率极高）**，通过巧妙的拒绝采样概率准则，验证草稿模型的猜测；
+- **数学保证**：被接受的词序列，其联合概率分布与直接从 70B 大模型逐字采样的分布**严格在数学上完全一致**！
+- **收益**：大模型生成质量毫无折损的前提下，推理速度直接提速 2 到 3 倍！
 """
 
-# Write all markdown files
-base_dir = "reading-guide/docs"
-os.makedirs(base_dir, exist_ok=True)
-for rel_path, content in docs.items():
-    full_path = os.path.join(base_dir, rel_path)
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    with open(full_path, "w", encoding="utf-8") as f:
-        f.write(content.strip() + "\n")
-    print(f"Generated: {full_path} ({len(content)} bytes)")
+# ==============================================================================
+# 6. 06-track-reasoning-and-deepseek-frontier.md
+# ==============================================================================
+docs["06-track-reasoning-and-deepseek-frontier.md"] = r"""# 第六主线：思维链与前沿推理新纪元——从 CoT 到 DeepSeek-R1 纯强化学习
 
-print("All 7 reading guide documents with direct PDF links generated successfully.")
+> 本篇精读点燃人类迈向 System 2 慢思考与大模型推理新纪元的 3 篇里程碑文献：
+> 1. *Chain-of-Thought Prompting Elicits Reasoning in Large Language Models* (Wei et al., Google, 2022)
+> 2. *DeepSeek-V3 Technical Report* (DeepSeek-AI, 2024)
+> 3. *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning* (DeepSeek-AI, 2025)
+>
+> 学习目标：深刻理解快思考（直觉吐词）与慢思考（显式逻辑推理）的本质区别；掌握思维链（CoT）如何从空间换时间；吃透 DeepSeek-V3 的两大极致能效架构（MLA 与 DeepSeekMoE）；以及 DeepSeek-R1 如何不依赖一行人类标注、纯靠强化学习自发涌现出反思、验算与顿悟。
+
+---
+
+## 为什么大模型需要“慢思考”（System 2）？
+
+传统的自回归模型在生成下一个词时，固定只经过 $L$ 层 Transformer 块的恒定时间计算。
+如果你问它一个极其复杂的数论题或者长逻辑题，直接让它给出答案（"答案是 42"），就好比逼着一个数学家在 0.1 秒内脱口而出答案——这属于人类心理学上的**快思考（System 1 直觉反应）**，极易产生荒谬的幻觉。
+
+人类在面对难题时，会拿出一张草稿纸，一步一步推导、演算、发现错误、回溯重来。**思维链（Chain of Thought）就是大模型的草稿纸。**
+
+---
+
+## 论文 1：草稿纸的魔力——Chain-of-Thought (CoT)
+
+- **文献链接**：[[arXiv:2201.11903](https://arxiv.org/abs/2201.11903)] · [[PDF 官方直达](https://arxiv.org/pdf/2201.11903.pdf)]
+- **作者团队**：Jason Wei, Xuezhi Wang, Dale Schuurmans et al. (Google Research, 2022)
+
+### 核心直觉与计算本质：
+在提示词里加上一句经典的**“Let's think step by step”（让我们一步步思考）**，为什么能够产生化腐朽为神奇的威力？
+
+**第一原理算力解释**：
+Transformer 每生成一个中间推理 Token，就会多经历一次深层注意力的全局信息重组。
+把原本必须在单步隐藏层内部瞬间压缩完成的庞大逻辑运算，**外包并铺展到了自回归的时序上下文空间（Token Dimension）中**！
+- 思考过程越长，模型消耗的推理解码算力越大；
+- 算力投入与逻辑深度成正比，这就是当代 **Inference-time Compute Scaling（推理解码期算力扩展定律）** 的理论发端。
+
+---
+
+## 论文 2：极致能效架构的巅峰——DeepSeek-V3
+
+- **文献链接**：[[arXiv:2412.19437](https://arxiv.org/abs/2412.19437)] · [[PDF 官方直达](https://arxiv.org/pdf/2412.19437.pdf)]
+- **作者团队**：DeepSeek-AI (2024)
+
+DeepSeek-V3 以仅 600 万美元的惊人低成本训练出了媲美顶级闭源旗舰的 671B 超级模型，其核心秘密藏在两大架构创新中：
+
+### 1. 多头潜在注意力（MLA, Multi-Head Latent Attention）
+- **传统困境**：多头注意力的 KV Cache 极其吃显存；
+- **DeepSeek 解法**：在把 Key 和 Value 存入缓存前，先通过一个低秩下投影矩阵把它们压缩成一个极小的潜在向量（Latent Vector $c_t^{KV}$）；在计算注意力时再实时解压缩！
+- **战果**：将推理解码时的 KV Cache 显存暴砍 **93%**，彻底打破了推理显存墙。
+
+### 2. 细粒度混合专家系统（DeepSeekMoE）
+- 共有 256 个极小的专门专家网络，每个 Token 动态激活 8 个专家，外加 1 个常驻公共专家（Shared Expert）；
+- 总参数高达 671B，但每个 Token 处理时仅仅激活 37B，实现了超高参数容量与极致推理速度的完美结合。
+
+---
+
+## 论文 3：纯强化学习与顿悟的诞生——DeepSeek-R1
+
+- **文献链接**：[[arXiv:2501.12948](https://arxiv.org/abs/2501.12948)] · [[PDF 官方直达](https://arxiv.org/pdf/2501.12948.pdf)]
+- **作者团队**：DeepSeek-AI (2025)
+
+### 第一步：颠覆性的“纯 RL 冷启动”（DeepSeek-R1-Zero）
+长期以来，业界普遍认为：要让模型学会复杂推理，必须先花重金雇佣顶尖学者写几万条带有 `<think>` 标签的精美思维链数据进行冷启动微调（SFT）。
+**DeepSeek 团队做出了极其激进的尝试**：
+直接在基础预训练模型（Base Model）上，**不输入一行人类撰写的思考过程样例**，仅依靠基于规则的准确性奖励（如数学题最终答案是否正确、LeetCode 代码是否能跑通编译），让模型在广阔的自搜索空间里进行野蛮强化学习！
+
+### 第二步：组相对策略优化（GRPO）消灭价值网络
+为了支撑超长思考序列的强化学习，DeepSeek 摒弃了传统的 PPO 算法，提出了 **GRPO（Group Relative Policy Optimization）**：
+- 针对同一个数学问题，让模型生成一组（如 8 个）候选回答；
+- 计算这组回答的平均奖励和标准差，把当前回答的得分减去组内平均分，作为优势函数（Advantage）：
+$$
+A_i = \frac{r_i - \text{mean}(r_1, \dots, r_G)}{\text{std}(r_1, \dots, r_G)}
+$$
+- **神级简化**：彻底丢弃了那个与主模型等大的 Critic 价值网络模型，大幅节省了显存，使得几万字长思维链训练成为可能！
+
+### 第三步：震撼世界的“顿悟时刻”（The Aha Moment）
+随着强化学习步数的增加，没有任何人类教导的模型内部发生了惊人的进化：
+- 模型的思考链条从几百字自发暴涨到上万字；
+- 模型自发涌现出了自我反思与验算行为：在生成到一半时，模型突然写出：`"Wait, let me rethink this approach... Wait, I made a mistake in step 2!"`；
+- 它学会了推翻自己前面的错误假设，重新开辟路径演算，最终得出正确答案！
+这证明了：**复杂的逻辑推理能力并不需要人类手把手灌输，纯粹通过正向反馈驱动的大规模自我博弈与强化学习，机器能够自发探索出通往终极逻辑的思维路径。**
+"""
+
+# ==============================================================================
+# 7. 07-track-obsolete-methods-and-lessons.md
+# ==============================================================================
+docs["07-track-obsolete-methods-and-lessons.md"] = r"""# 第七主线：技术淘汰实录与反思——为什么昔日明星被扫入历史尘埃？
+
+> 本篇系统盘点大模型发展史上曾经红极一时、如今已被彻底淘汰或边缘化的 6 大经典技术：
+> 1. Word2Vec / GloVe（静态词嵌入）
+> 2. RNN / LSTM / GRU（循环神经网络）
+> 3. BERT / RoBERTa（双向掩码语言模型）
+> 4. 早期核函数线性注意力（Performer / Linformer）
+> 5. 原始 Post-LN 架构
+> 6. 经典 PPO 复杂四模型对齐管线
+>
+> 学习目标：以史为鉴。明白一种方法“为什么会死”，比单纯知道它“怎么工作”要深刻得多。通过梳理淘汰背后的核心物理矛盾，帮你彻底绕过陈旧资料与过时架构的认知陷阱。
+
+---
+
+## 淘汰案例 1：Word2Vec 与 GloVe（静态词嵌入）
+
+- **辉煌年代**：2013 - 2017 年（Mikolov et al., Google）
+- **核心思想**：利用滑动窗口共现概率，将每个词映射到一个固定的 $d$ 维向量空间（如 300 维）。
+- **被淘汰的致命硬伤**：**一词多义的死局**。
+  - 在静态词表中，单词 `"Apple"` 对应着唯一的一串固定浮点数；
+  - 无论它出现在“我吃了一个苹果”还是“苹果公司发布了 iPhone”中，它的坐标完全一样！
+- **现代替代者**：**动态上下文嵌入（Contextual Embeddings via Transformer）**。
+  - 在现代大模型中，输入层虽然查表得到初始向量，但每经过一层自注意力，当前词就会吸收周围所有词的信息不断改变自己的坐标。在第 32 层时，“吃苹果”和“苹果公司”中的苹果向量早已处于两个完全不同的星系。
+
+---
+
+## 淘汰案例 2：RNN、LSTM 与 GRU（时序循环网络）
+
+- **辉煌年代**：1997 - 2017 年（Hochreiter & Schmidhuber）
+- **核心思想**：维护一个不断更新的隐藏状态向量 $h_t = f(h_{t-1}, x_t)$，逐词吞吐序列。
+- **被淘汰的致命硬伤**：
+  1. **无法并发计算**：时间步 $t$ 必须死等时间步 $t-1$ 算完，硬件利用率极低；
+  2. **信息压缩瓶颈**：长文本信息被强行压缩进一个固定尺寸的状态向量中，距离越远，梯度越弥散。
+- **现代替代者**：**Transformer 因果自注意力机制**。
+  - 矩阵计算全并发，任何两个词之间距离永远是 $O(1)$ 的直接交互。
+
+---
+
+## 淘汰案例 3：BERT 与双向掩码语言模型（MLM）
+
+- **辉煌年代**：2018 - 2021 年（Devlin et al., Google）
+- **核心思想**：在输入句子中随机抠掉 15% 的词（变成 `[MASK]`），让模型利用左右两侧的双向上下文来做完形填空。
+- **被淘汰的致命硬伤**：
+  1. **无法自然自回归生成**：BERT 天生是为了“理解”而设计的，如果让它写文章，它需要不断填 `[MASK]`，过程极其别扭且不自然；
+  2. **预训练与下游推理的撕裂**：推理时现实文本中根本没有 `[MASK]` 标记，存在天然的分布偏移；
+  3. **无法做大规模 In-Context Learning**：双向注意力限制了它无法像单向模型那样顺滑地接收提示词并自由吐字。
+- **现代替代者**：**纯 Decoder-only 自回归因果语言模型（GPT / LLaMA 范式）**。
+  - 事实证明，自回归生成不仅能做生成，其在大规模预训练后涌现出的语义理解能力，全面超越了专攻理解的 BERT。
+
+---
+
+## 淘汰案例 4：早期的核函数线性注意力（Performer / Linformer）
+
+- **辉煌年代**：2020 - 2022 年
+- **核心思想**：标准注意力是 $O(N^2)$ 的复杂度。通过核函数近似变换（Kernel Trick）或者低秩投影，试图将复杂度压低到理论上的线性 $O(N)$。
+- **被淘汰的致命硬伤**：
+  1. **细粒度语言建模能力断崖式下跌**：近似核函数严重破坏了自然语言在极近距离和特定词汇上的精准尖锐注意力，模型变得非常“钝”，基准跑分显著低于标准 Softmax；
+  2. **硬件实际并不买单**：在 GPU 底层，这些数学上看似优雅的近似操作带来了极其破碎的显存访问。最终在实际延迟上，被**不改变任何数学逻辑、零精度损失的 FlashAttention** 降维打击。
+
+---
+
+## 淘汰案例 5：原始 Transformer 的 Post-LN 结构
+
+- **辉煌年代**：2017 - 2019 年
+- **核心思想**：在自注意力和前馈层做完残差相加之后，再挂上 LayerNorm：$x_{l+1} = \text{LayerNorm}(x_l + \text{SubLayer}(x_l))$。
+- **被淘汰的致命硬伤**：
+  - 随着层数加深，反向传播的梯度经过一层又一层的归一化缩放，靠近输入层的梯度指数级萎缩；
+  - 训练极易发散，必须配置非常漫长而小心翼翼的 Warmup 策略，层数稍微做深模型就直接报 `NaN` 崩溃。
+- **现代替代者**：**Pre-LN 与 Pre-RMSNorm**。
+  - 在进入子层之前先做归一化，主干残差通道保持畅通无阻，深层梯度如坐高速公路直达输入层，万亿参数训练稳如泰山。
+
+---
+
+## 淘汰案例 6：经典的 PPO 复杂四模型对齐管线
+
+- **辉煌年代**：2022 - 2023 年（InstructGPT / ChatGPT 早期）
+- **核心思想**：同时在显存中维护 Actor、Critic、Reference、Reward 四个庞大网络，利用策略梯度进行强化学习更新。
+- **被淘汰的致命硬伤**：
+  - 显存消耗极其恐怖；超参数（学习率、Clip 范围、GAE 参数）多达十几个，极其容易发生模式坍塌（Collapse）或奖励黑客。
+- **现代替代者**：**DPO（直接偏好优化）与 GRPO（组相对策略优化）**。
+  - 有监督场景用 DPO：闭式解直接一步到位；
+  - 纯强化学习推理场景用 GRPO：组内归一化直接砍掉 Critic 模型，轻装上阵。
+"""
+
+# ==============================================================================
+# Write all files
+# ==============================================================================
+for filename, content in docs.items():
+    filepath = os.path.join("reading-guide/docs", filename)
+    with open(filepath, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"Generated: {filepath} ({len(content.encode('utf-8'))} bytes)")
+
+print("\nAll 8 expanded reading guide documents generated successfully.")

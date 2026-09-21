@@ -54,10 +54,11 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
-  - 全景导读: index.md
-  - 必读基石篇: 01-foundations-must-read.md
-  - 淘汰与过时篇: 02-obsolete-and-superseded.md
-  - 架构演进实录: 03-architecture-evolution.md
-  - 训练与对齐洗牌: 04-training-and-alignment.md
-  - 前沿推理新纪元: 05-reasoning-and-frontier.md
-  - 系统工程与推理解码: 06-system-and-inference.md
+  - 全景导读与研读心法: index.md
+  - 第一主线：架构创世纪 (Transformer与自回归): 01-track-architecture-foundations.md
+  - 第二主线：现代架构四件套 (LLaMA范式): 02-track-modern-architecture-recipes.md
+  - 第三主线：缩放定律与算力 (Scaling Laws): 03-track-scaling-laws-and-compute.md
+  - 第四主线：后训练与对齐洗牌 (RLHF与DPO): 04-track-post-training-and-alignment.md
+  - 第五主线：系统工程与显存加速 (FlashAttn与vLLM): 05-track-system-hardware-and-inference.md
+  - 第六主线：思维链与前沿推理 (CoT与DeepSeek-R1): 06-track-reasoning-and-deepseek-frontier.md
+  - 第七主线：淘汰与过时技术实录: 07-track-obsolete-methods-and-lessons.md
