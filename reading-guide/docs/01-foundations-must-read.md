@@ -1,12 +1,13 @@
 # 01. 必读基石篇：奠定当代 LLM 体系的传世经典
 
-本篇精选的 7 篇论文，是现代大语言模型演进史上真正的里程碑。无论技术如何演化，现代主流大模型（LLaMA、Mistral、Qwen、DeepSeek 等）的骨架全部基于这些论文所确立的底层法则。
+本篇精选的 7 篇论文，是现代大语言模型演进史上真正的里程碑。无论技术如何演化，现代主流大模型（LLaMA、Mistral、Qwen、DeepSeek 等）的骨架全部基于这些论文所确立的底层法则。每篇论文均附带官方 **PDF 直达链接** 与 **arXiv 页面**。
 
 ---
 
 ## 论文 1：现代 AI 的创世纪
 
 - **论文标题**：*Attention Is All You Need*
+- **文献链接**：[[arXiv:1706.03762](https://arxiv.org/abs/1706.03762)] · [[PDF 官方直达](https://arxiv.org/pdf/1706.03762.pdf)]
 - **作者团队**：Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, Illia Polosukhin (Google Brain / Research)
 - **发表年份**：2017 年
 - **精读推荐指数**：五星（全篇必须逐字精读）
@@ -22,7 +23,10 @@
 
 ## 论文 2：预训练的物理定律——缩放定律
 
-- **论文标题**：*Scaling Laws for Neural Language Models* (Kaplan et al., 2020) 与 *Training Compute-Optimal Large Language Models (Chinchilla)* (Hoffmann et al., DeepMind, 2022)
+- **论文标题 A**：*Scaling Laws for Neural Language Models* (Kaplan et al., OpenAI, 2020)
+  - 文献链接：[[arXiv:2001.08361](https://arxiv.org/abs/2001.08361)] · [[PDF 官方直达](https://arxiv.org/pdf/2001.08361.pdf)]
+- **论文标题 B**：*Training Compute-Optimal Large Language Models (Chinchilla)* (Hoffmann et al., DeepMind, 2022)
+  - 文献链接：[[arXiv:2203.15556](https://arxiv.org/abs/2203.15556)] · [[PDF 官方直达](https://arxiv.org/pdf/2203.15556.pdf)]
 - **精读推荐指数**：五星（工程立项与预算评估的圣经）
 - **核心贡献与认知颠覆**：
   - **Kaplan 2020 (OpenAI)**：首次定量揭示了模型性能（交叉熵 Loss）与计算量 $C$、参数量 $N$、数据量 $D$ 之间呈现严格的幂律（Power-law）关系，证明了无脑堆算力和参数能持续带来智能收益；
@@ -35,6 +39,7 @@
 ## 论文 3：通用智能与涌现能力的起点
 
 - **论文标题**：*Language Models are Few-Shot Learners* (GPT-3)
+- **文献链接**：[[arXiv:2005.14165](https://arxiv.org/abs/2005.14165)] · [[PDF 官方直达](https://arxiv.org/pdf/2005.14165.pdf)]
 - **作者团队**：Tom B. Brown et al. (OpenAI)
 - **发表年份**：2020 年
 - **精读推荐指数**：四星半（理解大模型思维模式必读）
@@ -46,7 +51,10 @@
 
 ## 论文 4：硬件感知注意力的工业革命
 
-- **论文标题**：*FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness* (Dao et al., 2022) 与 *FlashAttention-2* (2023)
+- **论文标题 A**：*FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness* (Dao et al., 2022)
+  - 文献链接：[[arXiv:2205.14135](https://arxiv.org/abs/2205.14135)] · [[PDF 官方直达](https://arxiv.org/pdf/2205.14135.pdf)]
+- **论文标题 B**：*FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning* (Dao, 2023)
+  - 文献链接：[[arXiv:2307.08691](https://arxiv.org/abs/2307.08691)] · [[PDF 官方直达](https://arxiv.org/pdf/2307.08691.pdf)]
 - **精读推荐指数**：五星（做系统与工程的必读杰作）
 - **核心贡献**：
   - 彻底改变了深度学习算法设计理念：**算法设计不能只看浮点计算次数（FLOPs），更要看芯片内存传输开销（Memory IO）**；
@@ -57,7 +65,12 @@
 
 ## 论文 5：现代开源大模型的工程基石
 
-- **论文标题**：*Llama: Open and Efficient Foundation Language Models* (Llama 1 / 2) 与 *The Llama 3 Herd of Models* (Meta, 2023-2024)
+- **论文标题 A**：*Llama: Open and Efficient Foundation Language Models* (Llama 1, Touvron et al., 2023)
+  - 文献链接：[[arXiv:2302.13971](https://arxiv.org/abs/2302.13971)] · [[PDF 官方直达](https://arxiv.org/pdf/2302.13971.pdf)]
+- **论文标题 B**：*Llama 2: Open Foundation and Fine-Tuned Chat Models* (Llama 2, Touvron et al., 2023)
+  - 文献链接：[[arXiv:2307.09288](https://arxiv.org/abs/2307.09288)] · [[PDF 官方直达](https://arxiv.org/pdf/2307.09288.pdf)]
+- **论文标题 C**：*The Llama 3 Herd of Models* (Meta, 2024)
+  - 文献链接：[[arXiv:2407.21783](https://arxiv.org/abs/2407.21783)] · [[PDF 官方直达](https://arxiv.org/pdf/2407.21783.pdf)]
 - **精读推荐指数**：五星（现代大模型落地的标准答案）
 - **核心贡献**：
   - 确立了现代大模型架构的“黄金四件套”事实标准：**Pre-RMSNorm + SwiGLU + RoPE (旋转位置编码) + GQA (分组查询注意力)**；
@@ -68,6 +81,7 @@
 ## 论文 6：后训练偏好对齐的极简革命
 
 - **论文标题**：*Direct Preference Optimization: Your Language Model is Secretly a Reward Model* (DPO)
+- **文献链接**：[[arXiv:2305.18290](https://arxiv.org/abs/2305.18290)] · [[PDF 官方直达](https://arxiv.org/pdf/2305.18290.pdf)]
 - **作者团队**：Rafael Rafailov et al. (Stanford University)
 - **发表年份**：2023 年
 - **精读推荐指数**：四星半
@@ -79,9 +93,10 @@
 
 ## 论文 7：中国开源震撼世界的双子星
 
-- **论文标题**：*DeepSeek-V3 Technical Report* 与 *DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning*
-- **作者团队**：DeepSeek-AI
-- **发表年份**：2024 - 2025 年
+- **论文标题 A**：*DeepSeek-V3 Technical Report* (DeepSeek-AI, 2024)
+  - 文献链接：[[arXiv:2412.19437](https://arxiv.org/abs/2412.19437)] · [[PDF 官方直达](https://arxiv.org/pdf/2412.19437.pdf)]
+- **论文标题 B**：*DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning* (DeepSeek-AI, 2025)
+  - 文献链接：[[arXiv:2501.12948](https://arxiv.org/abs/2501.12948)] · [[PDF 官方直达](https://arxiv.org/pdf/2501.12948.pdf)]
 - **精读推荐指数**：五星（现代最极致的性价比与推理革命）
 - **核心贡献**：
   - **V3 架构创新**：提出了 **MLA（多头潜在注意力）**，在推理时将 KV 缓存压缩至原始 MHA 的几分之一；采用细粒度混合专家（DeepSeekMoE，256 专家 + 1 共享专家）与多 Token 预测（MTP），实现了前所未有的显存与计算极致效率；
