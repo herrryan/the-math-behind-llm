@@ -1,0 +1,83 @@
+site_name: 大模型底层核心概念（零数学通识课）
+site_description: 彻底剥离高深数学公式，用纯粹直觉、生活隐喻与实体模型讲透大语言模型全栈核心概念
+site_author: Antigravity Education Team
+site_url: https://github.com/herrryan/the-math-behind-llm
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: 切换至深色模式
+    - scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: 切换至浅色模式
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.mark
+  - tables
+  - attr_list
+  - md_in_html
+  - def_list
+
+nav:
+  - 课程首页: index.md
+  - 概念大纲: curriculum.md
+  - 模块 0 - 基石与认知起点:
+      - 概念 00 - 下一个词接龙游戏: module-0/00-next-word-prediction.md
+      - 概念 01 - 乐高文字积木: module-0/01-tokens-and-vocabulary.md
+      - 概念 02 - 词语的思维经纬度: module-0/02-vectors-and-word-maps.md
+      - 概念 03 - 谁和谁更亲近: module-0/03-similarity-and-direction.md
+  - 模块 1 - 空间魔术与思维开关:
+      - 概念 04 - 变换视角的魔法相机: module-1/04-spatial-transformations.md
+      - 概念 05 - 纸张不能只折平线: module-1/05-activation-functions.md
+      - 概念 06 - 双通道自适应水龙头: module-1/06-gating-mechanisms.md
+  - 模块 2 - 灵魂引擎自注意力:
+      - 概念 07 - 全员围坐的圆桌会议: module-2/07-transformer-round-table.md
+      - 概念 08 - 图书馆三剑客 QKV: module-2/08-query-key-value.md
+      - 概念 09 - 投票站与防烫水温计: module-2/09-attention-scoring-and-temperature.md
+      - 概念 10 - 绝不偷看未来的答卷: module-2/10-causal-masking.md
+  - 模块 3 - 座次秩序与多维视角:
+      - 概念 11 - 教室座次表与旋转罗盘: module-3/11-position-and-rope.md
+      - 概念 12 - 戴上不同颜色的棱镜: module-3/12-multi-head-attention.md
+  - 模块 4 - 大脑骨架与深层思考:
+      - 概念 13 - 高空应急滑梯残差连接: module-4/13-residual-connections.md
+      - 概念 14 - 情绪稳定器层归一化: module-4/14-normalization-rmsnorm.md
+      - 概念 15 - 走出会议室的私密沉思: module-4/15-feed-forward-networks.md
+  - 模块 5 - 学习反思与心智进化:
+      - 概念 16 - 盲盒惊吓计与惩罚存钱罐: module-5/16-loss-and-perplexity.md
+      - 概念 17 - 浓雾摸索下山与责任追溯: module-5/17-backpropagation.md
+      - 概念 18 - 兼顾眼下与历史的探险家: module-5/18-adamw-optimizer.md
+  - 模块 6 - 创造力与采样控制:
+      - 概念 19 - 创造力的冷热恒温器: module-6/19-sampling-and-temperature.md
+  - 模块 7 - 心智对齐与人类规训:
+      - 概念 20 - 从野生天才到得力助手: module-7/20-alignment-rlhf-dpo.md
+  - 模块 8 - 终章通盘大复盘:
+      - 概念 21 - 一个 Token 的奇幻漂流记: module-8/21-token-journey-symphony.md
