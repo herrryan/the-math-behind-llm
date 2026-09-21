@@ -151,6 +151,49 @@ A model with lower perplexity is literally less "perplexed" (less surprised) by 
 
 ---
 
+### 4. Deep Dive: Is Cross-Entropy THE Loss Function of LLMs? (The Three-Stage Loss Landscape)
+
+A natural question arises: "Given that modern LLMs perform diverse tasks like coding, mathematical proofs, translation, and dialogue, is Cross-Entropy the only loss function used across an LLM's life?"
+
+The answer: **In Pre-training and Supervised Fine-Tuning (SFT)—which consume over 99% of all training compute—YES! Cross-Entropy (Negative Log-Likelihood) is the absolute, reigning loss function.**
+
+However, across the full lifecycle of an LLM, the loss function evolves through three distinct stages:
+
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│           The Three-Stage Loss Function Landscape of Modern LLMs       │
+└────────────────────────────────────────────────────────────────────────┘
+  Stage 1: Pre-training (Unsupervised Web-Scale)  ──► Compute: ~99%
+  Goal: Ingest internet-scale text to learn grammar, facts, and world models.
+  Core Loss: [Autoregressive Cross-Entropy Loss / NLL]
+             L_CE = - (1/N) * sum_t log P(w_t | w_prev)
+  ────────────────────────────────────────────────────────────────────────
+  Stage 2: Supervised Fine-Tuning (SFT)  ──► Compute: ~0.8%
+  Goal: Learn conversational format ("Human: ... ──► Assistant: ...").
+  Core Loss: [Masked Cross-Entropy Loss]
+             Loss is calculated only on Assistant tokens; User tokens are masked.
+  ────────────────────────────────────────────────────────────────────────
+  Stage 3: Alignment & Reasoning (RLHF / DPO / GRPO)  ──► Compute: ~0.2%
+  Goal: Value alignment, safety, and multi-step reasoning capabilities.
+  Core Loss: [Preference Contrastive & Policy Gradient Losses]
+             - DPO Loss: Widens probability gap between preferred & rejected responses (Chapter 19)
+             - RL Loss: Reward-driven policy gradients based on outcome correctness (PPO / GRPO)
+</pre>
+<figcaption><strong>Figure 15.2:</strong> The evolution of LLM loss functions from raw text ingestion to human preference alignment and deep reasoning.</figcaption>
+</figure>
+
+Additionally, in modern Mixture-of-Experts (MoE) architectures, a **Load Balancing Auxiliary Loss** is added to prevent all tokens from routing to the same popular experts.
+
+#### Why is Pre-training Exclusively Bound to Cross-Entropy? Three Inevitabilities
+1. **The Task is Discrete Multiclass Classification**: LLMs predict discrete tokens from a vocabulary of $|V| \approx 32,000 \sim 128,000$. Words have no geometric Euclidean distance (a cat is not "1.5 times a dog"), making regression losses like MSE physically meaningless.
+2. **Equivalence to Maximum Likelihood Estimation (MLE)**: Maximizing the joint probability of text sequences $\prod P(w_t \mid w_{\lt t})$ under log-transformation is mathematically identical to minimizing negative log-likelihood (Cross-Entropy).
+3. **Zero Gradient Saturation**: As proven in Section 2, Softmax + Cross-Entropy cancels out into the pure, linear error signal $\hat{\mathbf{y}} - \mathbf{y}$, whereas MSE would cause fatal gradient vanishing when the model makes severe errors.
+
+Therefore, **Cross-Entropy loss remains the foundational bedrock of LLM intelligence**—its crisp mathematical penalties firmly ground hundreds of billions of parameters to the true distribution of human language.
+
+---
+
 ## Step 4: Where Did It Come From? (Claude Shannon & KL Divergence)
 
 Where does the $-\sum y_i \log \hat{y}_i$ formula come from?
@@ -164,15 +207,15 @@ Where does the $-\sum y_i \log \hat{y}_i$ formula come from?
       ▼
 1951: Solomon Kullback & ─────────► Relative Entropy (KL Divergence):
       Richard Leibler               D_KL(P || Q) = sum_i P(i) * log(P(i) / Q(i))
-                                    (The information wasted by using Q instead of P)
+                                     (The information wasted by using Q instead of P)
       │
       ▼
 Modern Machine Learning ──────────► Cross-Entropy Decomposition:
-                                    H(P, Q) = H(P) + D_KL(P || Q)
-                                    Since human language P is fixed,
-                                    minimizing Cross-Entropy minimizes KL divergence!
+                                     H(P, Q) = H(P) + D_KL(P || Q)
+                                     Since human language P is fixed,
+                                     minimizing Cross-Entropy minimizes KL divergence!
 </pre>
-<figcaption><strong>Figure 15.2:</strong> From Shannon's telecommunication theory to the universal training loss of LLMs.</figcaption>
+<figcaption><strong>Figure 15.3:</strong> From Shannon's telecommunication theory to the universal training loss of LLMs.</figcaption>
 </figure>
 
 In Information Theory:
