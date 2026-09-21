@@ -3,7 +3,7 @@ import os
 docs = {}
 
 # 1. index.md
-docs["index.md"] = """# 大模型文献全景阅读指南：淘汰与精读路线图
+docs["index.md"] = r"""# 大模型文献全景阅读指南：淘汰与精读路线图
 
 > 面向大语言模型（LLM）研究者与工程师的文献筛选指南：厘清技术演进脉络，剔除已被时代淘汰的过时范式，将有限精力集中在真正跨越周期与引领前沿的传世经典上。本文库所有收录论文均提供直接的官方 **PDF 链接** 与 **arXiv 页面**。
 
@@ -68,7 +68,7 @@ docs["index.md"] = """# 大模型文献全景阅读指南：淘汰与精读路�
 """
 
 # 2. 01-foundations-must-read.md
-docs["01-foundations-must-read.md"] = """# 01. 必读基石篇：奠定当代 LLM 体系的传世经典
+docs["01-foundations-must-read.md"] = r"""# 01. 必读基石篇：奠定当代 LLM 体系的传世经典
 
 本篇精选的 7 篇论文，是现代大语言模型演进史上真正的里程碑。无论技术如何演化，现代主流大模型（LLaMA、Mistral、Qwen、DeepSeek 等）的骨架全部基于这些论文所确立的底层法则。每篇论文均附带官方 **PDF 直达链接** 与 **arXiv 页面**。
 
@@ -174,7 +174,7 @@ docs["01-foundations-must-read.md"] = """# 01. 必读基石篇：奠定当代 LL
 """
 
 # 3. 02-obsolete-and-superseded.md
-docs["02-obsolete-and-superseded.md"] = """# 02. 淘汰与过时篇：哪些昔日明星方法已经被彻底取代？
+docs["02-obsolete-and-superseded.md"] = r"""# 02. 淘汰与过时篇：哪些昔日明星方法已经被彻底取代？
 
 大模型领域的快速发展，不仅体现在新技术的诞生，更体现在对旧技术的“无情淘汰”。
 本章系统盘点已被现代大语言模型**彻底淘汰或不再建议深入研读**的 7 大方向，每篇经典均附带论文出处与 **PDF 链接**，帮助你明辨历史脉络、果断断舍离。
@@ -245,7 +245,7 @@ docs["02-obsolete-and-superseded.md"] = """# 02. 淘汰与过时篇：哪些昔�
 """
 
 # 4. 03-architecture-evolution.md
-docs["03-architecture-evolution.md"] = """# 03. 架构演进实录：现代主流大模型组件进化路线图
+docs["03-architecture-evolution.md"] = r"""# 03. 架构演进实录：现代主流大模型组件进化路线图
 
 现代大语言模型（如 LLaMA-3、Mistral、Qwen-2.5、DeepSeek-V3）虽然依然自称属于 Transformer 家族，但其内部的每一个关键零件，都已经历了多轮翻天覆地的优胜劣汰迭代。
 本章为你梳理各核心组件的工业进化脉络，并附带所有突破性论文的官方 **PDF 链接**。
@@ -318,7 +318,7 @@ docs["03-architecture-evolution.md"] = """# 03. 架构演进实录：现代主�
 """
 
 # 5. 04-training-and-alignment.md
-docs["04-training-and-alignment.md"] = """# 04. 训练与对齐洗牌：预训练数据清洗、DPO 与 GRPO 的三次大革命
+docs["04-training-and-alignment.md"] = r"""# 04. 训练与对齐洗牌：预训练数据清洗、DPO 与 GRPO 的三次大革命
 
 后训练（Post-training）决定了大模型的价值观与逻辑分寸感。
 在对齐领域，技术的迭代速度甚至超越了底层架构。每篇核心突破均附带官方 **PDF 直达链接**。
@@ -372,7 +372,7 @@ docs["04-training-and-alignment.md"] = """# 04. 训练与对齐洗牌：预训�
 """
 
 # 6. 05-reasoning-and-frontier.md
-docs["05-reasoning-and-frontier.md"] = """# 05. 前沿推理新纪元：测试时计算扩展与纯强化学习反思涌现
+docs["05-reasoning-and-frontier.md"] = r"""# 05. 前沿推理新纪元：测试时计算扩展与纯强化学习反思涌现
 
 当业界还在忧虑“互联网人类高质量文本即将耗尽”、“预训练 Scaling Law 是否遭遇天花板”时，OpenAI o1 与 DeepSeek-R1 开辟了全新赛道——**测试时计算扩展（Test-Time Compute Scaling Law）与推理模型新范式**。每篇前沿文献均附带官方 **PDF 直达链接**。
 
@@ -403,7 +403,7 @@ docs["05-reasoning-and-frontier.md"] = """# 05. 前沿推理新纪元：测试�
 """
 
 # 7. 06-system-and-inference.md
-docs["06-system-and-inference.md"] = """# 06. 系统工程与推理解码：冲破硅基内存墙的必读文献
+docs["06-system-and-inference.md"] = r"""# 06. 系统工程与推理解码：冲破硅基内存墙的必读文献
 
 在当代大模型的生命周期中，**99% 的计算成本与商业开销发生在推理部署阶段**。
 不懂硬件底层的算法研究员，做出来的模型往往根本无法在服务器上以可控成本跑起来。
