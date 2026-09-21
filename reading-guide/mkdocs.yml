@@ -1,0 +1,57 @@
+site_name: 大模型必读文献与淘汰技术全景指南
+site_description: 厘清大模型技术演进谱系：哪些传世经典必须精读，哪些昔日明星方法已被彻底淘汰，哪些前沿范式正在重塑未来。
+site_author: Antigravity Research Team
+site_url: https://github.com/herrryan/the-math-behind-llm
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: 切换至深色模式
+    - scheme: slate
+      primary: indigo
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: 切换至浅色模式
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.mark
+  - tables
+  - attr_list
+  - md_in_html
+  - def_list
+
+nav:
+  - 全景导读: index.md
+  - 必读基石篇: 01-foundations-must-read.md
+  - 淘汰与过时篇: 02-obsolete-and-superseded.md
+  - 架构演进实录: 03-architecture-evolution.md
+  - 训练与对齐洗牌: 04-training-and-alignment.md
+  - 前沿推理新纪元: 05-reasoning-and-frontier.md
+  - 系统工程与推理解码: 06-system-and-inference.md
