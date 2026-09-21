@@ -54,45 +54,89 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
-  - Home: index.md
-  - Curriculum Overview: curriculum.md
-  - Module 0 - Hardware Landscape:
-      - Chapter E00 - Silicon Anatomy: module-0/00-silicon-anatomy.md
-      - Chapter E01 - The Roofline Model: module-0/01-roofline-model.md
-      - Chapter E02 - Memory Layouts & Coalescing: module-0/02-memory-layouts-and-coalescing.md
-  - Module 1 - Attention in Silicon:
-      - Chapter E03 - Naive Attention Memory Wall: module-1/03-naive-attention-memory-wall.md
-      - Chapter E04 - FlashAttention (1, 2, 3): module-1/04-flash-attention.md
-      - Chapter E05 - KV Cache & PagedAttention: module-1/05-kv-cache-and-paged-attention.md
-      - Chapter E06 - MHA, GQA, and MLA: module-1/06-mha-mqa-gqa-mla.md
-  - Module 2 - GEMM & Activations:
-      - Chapter E07 - GEMM & Tensor Cores: module-2/07-gemm-tensor-cores.md
-      - Chapter E08 - SwiGLU & FFNs in Silicon: module-2/08-swiglu-ffn-in-silicon.md
-      - Chapter E09 - Fused RMSNorm & Residuals: module-2/09-fused-rmsnorm-residuals.md
-      - Chapter E10 - RoPE Kernel Fusion: module-2/10-rope-kernel-fusion.md
-  - Module 3 - Precision & Quantization:
-      - Chapter E11 - Number Formats (FP8, BF16): module-3/11-number-formats-fp8-bf16.md
-      - Chapter E12 - Quantization Strategies: module-3/12-quantization-strategies-w8a8-w4a16.md
-      - Chapter E13 - KV Cache Quantization: module-3/13-kv-cache-quantization.md
-  - Module 4 - Distributed Systems:
-      - Chapter E14 - Communication Primitives: module-4/14-distributed-communication-primitives.md
-      - Chapter E15 - Tensor Parallelism: module-4/15-tensor-parallelism-megatron.md
-      - Chapter E16 - Pipeline Parallelism: module-4/16-pipeline-parallelism-1f1b.md
-      - Chapter E17 - ZeRO & FSDP Data Parallelism: module-4/17-zero-fsdp-data-parallelism.md
-      - Chapter E18 - Ring & Sequence Parallelism: module-4/18-ring-attention-context-parallelism.md
-  - Module 5 - Serving & Inference:
-      - Chapter E19 - Prefill vs. Decode Regimes: module-5/19-prefill-vs-decode-regimes.md
-      - Chapter E20 - Continuous Batching: module-5/20-continuous-batching-scheduling.md
-      - Chapter E21 - Speculative Decoding: module-5/21-speculative-decoding.md
-      - Chapter E22 - Chunked Prefill & Prefix Caching: module-5/22-chunked-prefill-prefix-caching.md
-  - Module 6 - MoE Systems:
-      - Chapter E23 - MoE Routing & Capacity: module-6/23-moe-routing-capacity-factor.md
-      - Chapter E24 - All-to-All MoE Bottlenecks: module-6/24-all-to-all-distributed-moe.md
-  - Module 7 - Auditing & MFU:
-      - Chapter E25 - Model Memory Budget: module-7/25-model-memory-budget.md
-      - Chapter E26 - Measuring MFU & Profiling: module-7/26-measuring-mfu-hfu-profiling.md
-  - Hands-On Systems Labs:
-      - Lab E1 - Roofline Profiler: labs/01-roofline-profiler.md
-      - Lab E2 - FlashAttention Kernel: labs/02-flash-attention-kernel.md
-      - Lab E3 - Paged KV Cache: labs/03-paged-kv-cache.md
-      - Lab E4 - Tensor Parallel Engine: labs/04-tensor-parallel-engine.md
+  - English Curriculum:
+      - Home: index.md
+      - Curriculum Overview: curriculum.md
+      - Module 0 - Hardware Landscape:
+          - Chapter E00 - Silicon Anatomy: module-0/00-silicon-anatomy.md
+          - Chapter E01 - The Roofline Model: module-0/01-roofline-model.md
+          - Chapter E02 - Memory Layouts & Coalescing: module-0/02-memory-layouts-and-coalescing.md
+      - Module 1 - Attention in Silicon:
+          - Chapter E03 - Naive Attention Memory Wall: module-1/03-naive-attention-memory-wall.md
+          - Chapter E04 - FlashAttention (1, 2, 3): module-1/04-flash-attention.md
+          - Chapter E05 - KV Cache & PagedAttention: module-1/05-kv-cache-and-paged-attention.md
+          - Chapter E06 - MHA, GQA, and MLA: module-1/06-mha-mqa-gqa-mla.md
+      - Module 2 - GEMM & Activations:
+          - Chapter E07 - GEMM & Tensor Cores: module-2/07-gemm-tensor-cores.md
+          - Chapter E08 - SwiGLU & FFNs in Silicon: module-2/08-swiglu-ffn-in-silicon.md
+          - Chapter E09 - Fused RMSNorm & Residuals: module-2/09-fused-rmsnorm-residuals.md
+          - Chapter E10 - RoPE Kernel Fusion: module-2/10-rope-kernel-fusion.md
+      - Module 3 - Precision & Quantization:
+          - Chapter E11 - Number Formats (FP8, BF16): module-3/11-number-formats-fp8-bf16.md
+          - Chapter E12 - Quantization Strategies: module-3/12-quantization-strategies-w8a8-w4a16.md
+          - Chapter E13 - KV Cache Quantization: module-3/13-kv-cache-quantization.md
+      - Module 4 - Distributed Systems:
+          - Chapter E14 - Communication Primitives: module-4/14-distributed-communication-primitives.md
+          - Chapter E15 - Tensor Parallelism: module-4/15-tensor-parallelism-megatron.md
+          - Chapter E16 - Pipeline Parallelism: module-4/16-pipeline-parallelism-1f1b.md
+          - Chapter E17 - ZeRO & FSDP Data Parallelism: module-4/17-zero-fsdp-data-parallelism.md
+          - Chapter E18 - Ring & Sequence Parallelism: module-4/18-ring-attention-context-parallelism.md
+      - Module 5 - Serving & Inference:
+          - Chapter E19 - Prefill vs. Decode Regimes: module-5/19-prefill-vs-decode-regimes.md
+          - Chapter E20 - Continuous Batching: module-5/20-continuous-batching-scheduling.md
+          - Chapter E21 - Speculative Decoding: module-5/21-speculative-decoding.md
+          - Chapter E22 - Chunked Prefill & Prefix Caching: module-5/22-chunked-prefill-prefix-caching.md
+      - Module 6 - MoE Systems:
+          - Chapter E23 - MoE Routing & Capacity: module-6/23-moe-routing-capacity-factor.md
+          - Chapter E24 - All-to-All MoE Bottlenecks: module-6/24-all-to-all-distributed-moe.md
+      - Module 7 - Auditing & MFU:
+          - Chapter E25 - Model Memory Budget: module-7/25-model-memory-budget.md
+          - Chapter E26 - Measuring MFU & Profiling: module-7/26-measuring-mfu-hfu-profiling.md
+      - Hands-On Systems Labs:
+          - Lab E1 - Roofline Profiler: labs/01-roofline-profiler.md
+          - Lab E2 - FlashAttention Kernel: labs/02-flash-attention-kernel.md
+          - Lab E3 - Paged KV Cache: labs/03-paged-kv-cache.md
+          - Lab E4 - Tensor Parallel Engine: labs/04-tensor-parallel-engine.md
+  - 中文课程 (Chinese):
+      - 首页: index.zh.md
+      - 课程体系全景: curriculum.zh.md
+      - 模块 0 - 硬件物理底座:
+          - 第 E00 章 - 芯片硅基解剖: module-0/00-silicon-anatomy.zh.md
+          - 第 E01 章 - 屋顶模型推导: module-0/01-roofline-model.zh.md
+          - 第 E02 章 - 访存布局与合并: module-0/02-memory-layouts-and-coalescing.zh.md
+      - 模块 1 - 注意力硅基实现:
+          - 第 E03 章 - 朴素注意力显存墙: module-1/03-naive-attention-memory-wall.zh.md
+          - 第 E04 章 - FlashAttention 演进: module-1/04-flash-attention.zh.md
+          - 第 E05 章 - KV Cache 与 PagedAttention: module-1/05-kv-cache-and-paged-attention.zh.md
+          - 第 E06 章 - MHA, GQA 与 MLA: module-1/06-mha-mqa-gqa-mla.zh.md
+      - 模块 2 - 矩阵乘与激活层:
+          - 第 E07 章 - GEMM 与张量核心: module-2/07-gemm-tensor-cores.zh.md
+          - 第 E08 章 - SwiGLU 物理实现: module-2/08-swiglu-ffn-in-silicon.zh.md
+          - 第 E09 章 - Fused RMSNorm 熔合: module-2/09-fused-rmsnorm-residuals.zh.md
+          - 第 E10 章 - RoPE 即时计算: module-2/10-rope-kernel-fusion.zh.md
+      - 模块 3 - 精度与量化架构:
+          - 第 E11 章 - 数值格式 (FP8, BF16): module-3/11-number-formats-fp8-bf16.zh.md
+          - 第 E12 章 - 量化策略实战: module-3/12-quantization-strategies-w8a8-w4a16.zh.md
+          - 第 E13 章 - KV Cache 量化: module-3/13-kv-cache-quantization.zh.md
+      - 模块 4 - 分布式系统拓扑:
+          - 第 E14 章 - 集合通信原语: module-4/14-distributed-communication-primitives.zh.md
+          - 第 E15 章 - 张量并行 (Megatron): module-4/15-tensor-parallelism-megatron.zh.md
+          - 第 E16 章 - 流水线并行与 1F1B: module-4/16-pipeline-parallelism-1f1b.zh.md
+          - 第 E17 章 - ZeRO 与 FSDP: module-4/17-zero-fsdp-data-parallelism.zh.md
+          - 第 E18 章 - Ring Attention 序列并行: module-4/18-ring-attention-context-parallelism.zh.md
+      - 模块 5 - 推理与在线调度:
+          - 第 E19 章 - Prefill 与 Decode 工况: module-5/19-prefill-vs-decode-regimes.zh.md
+          - 第 E20 章 - 连续批处理动态调度: module-5/20-continuous-batching-scheduling.zh.md
+          - 第 E21 章 - 投机解码加速: module-5/21-speculative-decoding.zh.md
+          - 第 E22 章 - 分块预填与前缀缓存: module-5/22-chunked-prefill-prefix-caching.zh.md
+      - 模块 6 - 混合专家系统 (MoE):
+          - 第 E23 章 - 门控路由与容量因子: module-6/23-moe-routing-capacity-factor.zh.md
+          - 第 E24 章 - All-to-All 跨机瓶颈: module-6/24-all-to-all-distributed-moe.zh.md
+      - 模块 7 - 系统审计与 MFU 评测:
+          - 第 E25 章 - 显存预算全景公式: module-7/25-model-memory-budget.zh.md
+          - 第 E26 章 - 真实硬件 MFU 度量: module-7/26-measuring-mfu-hfu-profiling.zh.md
+      - 动手实战 Labs:
+          - 实验 E1 - 屋顶模型分析器: labs/01-roofline-profiler.zh.md
+          - 实验 E2 - FlashAttention 算子: labs/02-flash-attention-kernel.zh.md
+          - 实验 E3 - Paged KV Cache 引擎: labs/03-paged-kv-cache.zh.md
+          - 实验 E4 - 张量并行引擎: labs/04-tensor-parallel-engine.zh.md
