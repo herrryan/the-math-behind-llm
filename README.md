@@ -12,29 +12,34 @@ This repository provides a complete four-pillar learning ecosystem for mastering
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                             THE LLM KNOWLEDGE MATRIX                        │
 ├──────────────────────────────┬──────────────────────────────────────────────┤
-│ 1. Core Mathematical Guide   │ 2. Engineering Implementation                │
-│    Root Directory            │    engineering/                              │
-│    - 5-step pedagogical ladder│    - PyTorch & Triton code implementations   │
-│    - Rigorous formulas & toy │    - GPU memory math (VRAM / HBM vs SRAM)    │
-│      arithmetic walkthroughs │    - Distributed parallelism & vLLM serving  │
+│ 1. Core Mathematical Guide   │ 2. Hands-on Coding Curriculum                │
+│    Root Directory            │    coding-guide/                             │
+│    - 5-step pedagogical ladder│    - 4-stage progressive coding roadmap     │
+│    - Rigorous formulas & toy │    - 0-dependency pure Python to NanoGPT     │
+│      arithmetic walkthroughs │    - LoRA fine-tuning & inference servers    │
 │    - Fully bilingual (EN/ZH) │    - Interactive MkDocs Material portal      │
 ├──────────────────────────────┼──────────────────────────────────────────────┤
-│ 3. Zero-Math Intuitive Guide │ 4. Literature & Obsolete Methods Guide       │
-│    concepts/                 │    reading-guide/                            │
-│    - Strictly zero formulas  │    - 7 timeless must-read foundational papers│
-│    - Tangible physical models│    - 7 obsolete methods to avoid / stop      │
-│    - Friendly teacher voice  │    - Architectural evolution & reasoning     │
-│    - Interactive MkDocs site │    - Interactive MkDocs Material portal      │
-└──────────────────────────────┴──────────────────────────────────────────────┘
+│ 3. Engineering Implementation│ 4. Literature & Reading Roadmap              │
+│    engineering/              │    reading-guide/                            │
+│    - PyTorch & Triton code   │    - 7 timeless must-read foundational papers│
+│    - GPU memory & FlashAttn  │    - 7 obsolete methods to avoid / stop      │
+│    - Distributed & vLLM      │    - Architectural evolution & reasoning     │
+├──────────────────────────────┴──────────────────────────────────────────────┤
+│ 5. Zero-Math Intuitive Guide                                                │
+│    concepts/                                                                │
+│    - Strictly zero formulas, tangible physical models & friendly voice       │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 1. **[Core Mathematical Guide (Root)](index.html)**:
    The foundational curriculum answering two questions for every component: *What physical intuition makes this obvious to a 3-year-old child?* and *Where does the exact mathematical formula come from?*
-2. **[Engineering Implementation (`engineering/`)](engineering/)**:
+2. **[Hands-on Coding Curriculum (`coding-guide/`)](coding-guide/)**:
+   A step-by-step roadmap for programming large language models from scratch: starting with 80 lines of zero-dependency pure Python (Bengio 2003 MLP), progressing to PyTorch NanoGPT, Hugging Face LoRA/DPO fine-tuning, and ending in production inference engines.
+3. **[Engineering Implementation (`engineering/`)](engineering/)**:
    Translates mathematical equations into production PyTorch and CUDA/Triton implementations, detailing GPU memory math, KV Cache bottlenecks, FlashAttention tiling, distributed sharding (TP, PP, ZeRO), and serving optimizations.
-3. **[Zero-Math Intuitive Guide (`concepts/`)](concepts/)**:
+4. **[Zero-Math Intuitive Guide (`concepts/`)](concepts/)**:
    A dedicated course teaching all core transformer mechanics strictly without mathematical formulas or Greek letters, relying purely on tangible physical models, mechanical diagrams, and conversational teacher explanations.
-4. **[Literature & Obsolete Methods Guide (`reading-guide/`)](reading-guide/)**:
+5. **[Literature & Obsolete Methods Guide (`reading-guide/`)](reading-guide/)**:
    A high-signal roadmap categorizing essential research papers versus obsolete paradigms (Word2Vec, LSTM, BERT, Performer linear attention, 4-model PPO) and explaining the first-principles reasons why older methods were superseded.
 
 ---

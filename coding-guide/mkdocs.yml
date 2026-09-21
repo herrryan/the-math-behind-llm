@@ -1,0 +1,63 @@
+site_name: 大模型从零上手编程实战课程表
+site_description: 专为初学者与工程师打造的大模型从零上手编程进阶路径：从零依赖纯 Python 手写神经网络，到 PyTorch 手搓 Transformer，再到开源模型 LoRA 微调与工业级系统加速。
+site_author: Antigravity Research Team
+site_url: https://github.com/herrryan/the-math-behind-llm
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: 切换至深色模式
+    - scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: 切换至浅色模式
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.arithmatex:
+      generic: true
+  - tables
+  - attr_list
+  - md_in_html
+  - def_list
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - 课程表总览: index.md
+  - 第一阶段：纯Python从零打铁: 01-stage1-pure-python-scratch.md
+  - 第二阶段：PyTorch手搓NanoGPT: 02-stage2-pytorch-nanogpt.md
+  - 第三阶段：开源生态与轻量微调: 03-stage3-huggingface-and-lora.md
+  - 第四阶段：系统工程与显存加速: 04-stage4-systems-and-acceleration.md
+  - 实战进阶：四大毕业设计: 05-stage5-capstone-projects.md
+  - 避坑手册：显存与训练FAQ: 06-troubleshooting-and-faq.md
