@@ -23,10 +23,13 @@
 **总显存需求飙升至 70-80 GB，必须依赖昂贵的 A100/H100 显卡！**
 
 ### 3. 救命解法：低秩自适应微调（LoRA, Low-Rank Adaptation）
+
 LoRA 的数学核心极为优雅：**保持原始预训练权重 $W_0 \in \mathbb{R}^{d \times k}$ 完全冻结（不存优化器状态），仅在其旁边外挂两个极低维度的旁路矩阵 $A$ 和 $B$**：
+
 $$
 W = W_0 + \Delta W = W_0 + \frac{\alpha}{r} (B \cdot A)
 $$
+
 其中 $A \in \mathbb{R}^{r \times k}, B \in \mathbb{R}^{d \times r}$，秩 $r$ 通常仅取 8 或 16。
 - 训练参数量直接从 70 亿（7B）暴降至几百万（不到 0.1%）；
 - 优化器显存从数十 GB 暴降至几百 MB；

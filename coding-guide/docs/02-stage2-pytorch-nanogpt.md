@@ -25,10 +25,13 @@
 一个现代自回归 Transformer 脑结构包含五个核心积木：
 
 ### 1. 缩放点积自注意力（Scaled Dot-Product Attention）
+
 输入序列向量 $X \in \mathbb{R}^{B \times T \times C}$，通过三个线性矩阵投影为 $Q, K, V$：
+
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^\top}{\sqrt{d_k}} + M\right) V
 $$
+
 其中 $M$ 为因果遮蔽下三角矩阵（Causal Mask），保证模型在看第 $t$ 个词时，绝对看不到未来词的信息。
 
 ```python

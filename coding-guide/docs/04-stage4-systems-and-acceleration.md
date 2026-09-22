@@ -24,12 +24,15 @@
 ## 工业系统的三大必修硬核主题
 
 ### 1. KV Cache 内存复用原理与显存爆炸
+
 自回归生成中，每生成一个新 Token，过去所有词的 Key 和 Value 向量都必须参与注意力计算。
 如果不存缓存，生成长度为 $S$ 的文章需要重复计算 $O(S^2)$ 次历史注意力；
 如果缓存起来，显存消耗为：
+
 $$
 \text{KV Cache 显存} = 2 \times L \times H_{\text{kv}} \times d_k \times S \times \text{sizeof(dtype)}
 $$
+
 - 对于 70B 模型，并发 64 个用户、上下文 8k 时，KV Cache 显存将超过 **80 GB**！
 - 朴素分配机制会导致 60%-80% 的内部碎片浪费。
 
