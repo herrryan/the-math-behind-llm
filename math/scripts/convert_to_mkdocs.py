@@ -207,21 +207,61 @@ def convert_callouts(md_text: str, lang: str = 'en') -> str:
     return '\n'.join(out)
 
 
-def sanitize_math(md_text: str) -> str:
-    """Sanitize inequality signs inside math delimiters to prevent collisions."""
-    # Convert < followed by alphanumeric inside math
-    def repl_inline(m):
-        code = m.group(1)
-        code = re.sub(r'<([a-zA-Z0-9])', r'\\lt \1', code)
-        return f"${code}$"
+def process_math(md_text: str) -> str:
+    """
+    Safely normalizes and sanitizes LaTeX math equations for MkDocs Material & KaTeX.
+    1. Protects code blocks (``` and `) and <pre> tags so their contents are never touched.
+    2. Converts single-line display math (^[ \\t]*\\$\\$(.+?)\\$\\$\\s*$) into isolated display blocks with preserved indentation.
+    3. Normalizes existing display math blocks ($$\\n...\\n$$) so they are surrounded by blank lines and properly indented.
+    4. Sanitizes inequality symbols inside LaTeX formulas (e.g. w_{<t} -> w_{\\lt t}) strictly inside isolated math contents.
+    5. Restores protected code blocks.
+    """
+    code_store = {}
+    def save_code(m):
+        token = f"XXPROTECTEDCODE{len(code_store)}XX"
+        code_store[token] = m.group(0)
+        return token
 
-    def repl_display(m):
-        code = m.group(1)
-        code = re.sub(r'<([a-zA-Z0-9])', r'\\lt \1', code)
-        return f"$$\n{code}\n$$"
+    # Protect code and preformatted blocks
+    md_text = re.sub(r'```[\s\S]*?```', save_code, md_text)
+    md_text = re.sub(r'`[^`\n]+`', save_code, md_text)
+    md_text = re.sub(r'<pre[\s\S]*?</pre>', save_code, md_text)
 
-    md_text = re.sub(r'\$([^\$\n]+?)\$', repl_inline, md_text)
-    md_text = re.sub(r'\$\$\n([\s\S]+?)\n\$\$', repl_display, md_text)
+    # Sanitize helper for math expressions only
+    def sanitize_latex(s: str) -> str:
+        return re.sub(r'<([a-zA-Z0-9])', r'\\lt \1', s)
+
+    # Convert single-line display math to multi-line blocks with preserved indentation
+    def normalize_single_line_display(m):
+        indent = m.group(1)
+        math = m.group(2).strip()
+        return f"\n\n{indent}$$\n{indent}{math}\n{indent}$$\n\n"
+
+    md_text = re.sub(r'^([ \t]*)\$\$([^\$\n]+?)\$\$\s*$', normalize_single_line_display, md_text, flags=re.MULTILINE)
+
+    # Normalize multi-line display math: preserve indentation and sanitize formula
+    def repl_display_math(m):
+        indent = m.group(1)
+        content = m.group(2)
+        sanitized = sanitize_latex(content)
+        lines = sanitized.strip().split('\n')
+        indented_lines = '\n'.join(f"{indent}{l.strip()}" for l in lines)
+        return f"\n\n{indent}$$\n{indented_lines}\n{indent}$$\n\n"
+
+    md_text = re.sub(r'^([ \t]*)\$\$\s*\n([\s\S]*?)\n[ \t]*\$\$', repl_display_math, md_text, flags=re.MULTILINE)
+
+    # Sanitize inline math strictly inside single $ delimiters
+    def repl_inline_math(m):
+        content = m.group(1)
+        sanitized = sanitize_latex(content)
+        return f"${sanitized}$"
+
+    md_text = re.sub(r'(?<!\$)\$(?!\$)([^\$\n]+?)(?<!\$)\$(?!\$)', repl_inline_math, md_text)
+
+    # Restore protected code and pre blocks
+    for token, orig in code_store.items():
+        md_text = md_text.replace(token, orig)
+
     return md_text
 
 
@@ -276,7 +316,7 @@ def process_chapter_file(src_path: Path, dst_path: Path, current_module: str, la
     content = strip_manual_navs(content)
     content = adapt_headings(content, lang=lang)
     content = convert_callouts(content, lang=lang)
-    content = sanitize_math(content)
+    content = process_math(content)
     content = adapt_links(content, current_module=current_module, is_zh=is_zh)
 
     dst_path.parent.mkdir(parents=True, exist_ok=True)
@@ -296,7 +336,7 @@ def generate_curriculum_pages():
     # Adapt English curriculum
     curr_en = strip_manual_navs(raw_en)
     curr_en = convert_callouts(curr_en, lang='en')
-    curr_en = sanitize_math(curr_en)
+    curr_en = process_math(curr_en)
     # Replace relative links in curriculum:
     for ch_dir, mod_path in CHAPTER_MAP:
         curr_en = re.sub(rf'{re.escape(ch_dir)}/index\.html', f'{mod_path}.md', curr_en)
@@ -310,7 +350,7 @@ def generate_curriculum_pages():
     # Generate Chinese curriculum page
     curr_zh = strip_manual_navs(raw_en)
     curr_zh = convert_callouts(curr_zh, lang='zh')
-    curr_zh = sanitize_math(curr_zh)
+    curr_zh = process_math(curr_zh)
     for ch_dir, mod_path in CHAPTER_MAP:
         curr_zh = re.sub(rf'{re.escape(ch_dir)}/index\.html', f'{mod_path}.zh.md', curr_zh)
     curr_zh = re.sub(r'08b-lab-attention-brain/index\.html', '#', curr_zh)

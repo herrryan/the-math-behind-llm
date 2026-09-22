@@ -52,9 +52,13 @@
 
     在真实的大模型中，向量维度绝不是 2 维或 3 维这样的玩具数值，而是通常达到 $d_k = 64$、$d_k = 128$ 甚至更高。向量点积是 $d_k$ 个乘积的累加：
 
+
+
     $$
     \mathbf{q} \cdot \mathbf{k} = \sum_{i=1}^{d_k} q_i k_i = q_1 k_1 + q_2 k_2 + \dots + q_{d_k} k_{d_k}
     $$
+
+
 
     随着维度 $d_k$ 增大，这个累加和的**方差随着维度线性增长**，把原始打分推向可怕的极端极大值与极小值（如 $\pm 20$、$\pm 30$）。在这个庞大的数值面前，Softmax 函数输出直接退化为极端的 $1.0000$ 与 $0.0000$，导致局部导数瞬间跌入**绝对归零**的深渊。模型彻底丧失反向传播能力，参数完全冻结！
 
@@ -70,14 +74,18 @@
 
 Transformer 中缩放点积注意力（Scaled Dot-Product Attention）的标准数学定义为：
 
+
+
 $$
 \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
 $$
 
+
+
 让我们拆解整条流水线上的张量维度与线性代数几何流向：
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
   Q 矩阵                K^T 矩阵                   原始点积矩阵               注意力权重矩阵 (A)                V 矩阵                最终上下文输出 (O)
  [T × d_k]             [d_k × T]                   [T × T]                          [T × T]                   [T × d_v]                    [T × d_v]
 ┌─────────┐           ┌──────────────┐          ┌──────────────┐                 ┌──────────────┐            ┌─────────┐                  ┌─────────┐
@@ -87,68 +95,68 @@ $$
 └─────────┘           └──────────────┘          └──────────────┘                 └──────────────┘            └─────────┘                  └─────────┘
   查询矩阵               键矩阵（转置）             全序列两两打分                     按行概率归一化                  值内容矩阵                   融合后的上下文表征
 </pre>
-\lt figcaption>\lt strong>图 8.2：</strong> 缩放点积注意力张量维度变换与信息流动全景图。</figcaption>
+<figcaption><strong>图 8.2：</strong> 缩放点积注意力张量维度变换与信息流动全景图。</figcaption>
 </figure>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 8.1：</strong> 注意力机制核心数学符号与物理意义对照表</caption>
-  \lt thead>
-    \lt tr bgcolor="#eae9e1">
-      \lt th scope="col" align="left" width="22%">数学符号</th>
-      \lt th scope="col" align="left" width="22%">类型与维度</th>
-      \lt th scope="col" align="left" width="56%">严谨数学定义与计算角色</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 8.1：</strong> 注意力机制核心数学符号与物理意义对照表</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">数学符号</th>
+      <th scope="col" align="left" width="22%">类型与维度</th>
+      <th scope="col" align="left" width="56%">严谨数学定义与计算角色</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{Q}$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times d_k}$</td>
-      \lt td>整句 $T$ 个词元的查询向量打包矩阵，第 $i$ 行为 $\mathbf{q}_i^\top$。</td>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">$\mathbf{Q}$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times d_k}$</td>
+      <td>整句 $T$ 个词元的查询向量打包矩阵，第 $i$ 行为 $\mathbf{q}_i^\top$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{K}$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times d_k}$</td>
-      \lt td>整句 $T$ 个词元的键向量打包矩阵，第 $j$ 行为 $\mathbf{k}_j^\top$。</td>
+    <tr>
+      <th scope="row" align="left">$\mathbf{K}$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times d_k}$</td>
+      <td>整句 $T$ 个词元的键向量打包矩阵，第 $j$ 行为 $\mathbf{k}_j^\top$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{K}^\top$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{d_k \times T}$</td>
-      \lt td>键矩阵的转置。矩阵乘法 $\mathbf{Q}\mathbf{K}^\top$ 一次性并行完成全部 $T \times T$ 对词元之间的内积打分。</td>
+    <tr>
+      <th scope="row" align="left">$\mathbf{K}^\top$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{d_k \times T}$</td>
+      <td>键矩阵的转置。矩阵乘法 $\mathbf{Q}\mathbf{K}^\top$ 一次性并行完成全部 $T \times T$ 对词元之间的内积打分。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{Q}\mathbf{K}^\top$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times T}$</td>
-      \lt td>原始相关度打分矩阵，位置 $(i, j)$ 对应未缩放内积 $\mathbf{q}_i^\top \mathbf{k}_j$。</td>
+    <tr>
+      <th scope="row" align="left">$\mathbf{Q}\mathbf{K}^\top$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times T}$</td>
+      <td>原始相关度打分矩阵，位置 $(i, j)$ 对应未缩放内积 $\mathbf{q}_i^\top \mathbf{k}_j$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$d_k$</th>
-      \lt td align="left">标量 $\in \mathbb{N}^+$</td>
-      \lt td>查询与键的子空间投影维度（现代大模型单头维度通常为 $64$ 或 $128$）。</td>
+    <tr>
+      <th scope="row" align="left">$d_k$</th>
+      <td align="left">标量 $\in \mathbb{N}^+$</td>
+      <td>查询与键的子空间投影维度（现代大模型单头维度通常为 $64$ 或 $128$）。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\sqrt{d_k}$</th>
-      \lt td align="left">标量 $\in \mathbb{R}^+$</td>
-      \lt td>\lt strong>缩放因子</strong>（标准差归一化系数），用于强制将点积方差锚定回常数 $1$。</td>
+    <tr>
+      <th scope="row" align="left">$\sqrt{d_k}$</th>
+      <td align="left">标量 $\in \mathbb{R}^+$</td>
+      <td><strong>缩放因子</strong>（标准差归一化系数），用于强制将点积方差锚定回常数 $1$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{S} = \frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times T}$</td>
-      \lt td>缩放后的相关度矩阵，每个元素的期望方差被稳定在 $\operatorname{Var}(S_{ij}) \approx 1$。</td>
+    <tr>
+      <th scope="row" align="left">$\mathbf{S} = \frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times T}$</td>
+      <td>缩放后的相关度矩阵，每个元素的期望方差被稳定在 $\operatorname{Var}(S_{ij}) \approx 1$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{A} = \operatorname{softmax}(\mathbf{S})$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times T}$</td>
-      \lt td>行随机注意力权重矩阵，每行满足概率归一性：$\sum_{j=1}^T A_{ij} = 1.0$。</td>
+    <tr>
+      <th scope="row" align="left">$\mathbf{A} = \operatorname{softmax}(\mathbf{S})$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times T}$</td>
+      <td>行随机注意力权重矩阵，每行满足概率归一性：$\sum_{j=1}^T A_{ij} = 1.0$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{V}$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times d_v}$</td>
-      \lt td>整句 $T$ 个词元的值向量打包矩阵，承载各个词元的核心特征实体。</td>
+    <tr>
+      <th scope="row" align="left">$\mathbf{V}$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times d_v}$</td>
+      <td>整句 $T$ 个词元的值向量打包矩阵，承载各个词元的核心特征实体。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V})$</th>
-      \lt td align="left">矩阵 $\in \mathbb{R}^{T \times d_v}$</td>
-      \lt td>输出矩阵 $\mathbf{O} = \mathbf{A}\mathbf{V}$，每个词元吸收全句上下文后的全新融合向量。</td>
+    <tr>
+      <th scope="row" align="left">$\operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V})$</th>
+      <td align="left">矩阵 $\in \mathbb{R}^{T \times d_v}$</td>
+      <td>输出矩阵 $\mathbf{O} = \mathbf{A}\mathbf{V}$，每个词元吸收全句上下文后的全新融合向量。</td>
     </tr>
   </tbody>
 </table>
@@ -162,27 +170,43 @@ $$
 #### 基础预备 1：期望与方差的定义
 对任意离散或连续随机变量 $X$：
 - **期望（Expected Value）** $\mathbb{E}[X]$ 衡量分布的概率重心（均值）：
+
+
   $$
   \mathbb{E}[X] = \mu
   $$
+
+
 - **方差（Variance）** $\operatorname{Var}(X)$ 衡量数据偏离均值的离散程度（离散度的平方）：
+
+
   $$
   \operatorname{Var}(X) = \mathbb{E}\left[(X - \mathbb{E}[X])^2\right] = \mathbb{E}[X^2] - (\mathbb{E}[X])^2
   $$
+
+
 
 #### 基础预备 2：独立随机变量乘积的性质
 若两个随机变量 $X$ 与 $Y$ **统计独立**：
 - 乘积的期望等于期望的乘积：$\mathbb{E}[X Y] = \mathbb{E}[X] \mathbb{E}[Y]$。
 - 若两者均为零均值（$\mathbb{E}[X] = 0, \mathbb{E}[Y] = 0$），则其乘积的方差为：
+
+
   $$
   \operatorname{Var}(X Y) = \mathbb{E}[(X Y)^2] - (\mathbb{E}[X Y])^2 = \mathbb{E}[X^2]\mathbb{E}[Y^2] - 0 = \operatorname{Var}(X) \operatorname{Var}(Y)
   $$
 
+
+
 #### 基础预备 3：独立变量和的方差可加性
 若 $X_1, X_2, \dots, X_N$ 相互独立，则和的方差等于各分量方差之和：
+
+
 $$
 \operatorname{Var}\left(\sum_{i=1}^N X_i\right) = \sum_{i=1}^N \operatorname{Var}(X_i)
 $$
+
+
 
 ---
 
@@ -190,69 +214,89 @@ $$
 
 假设查询向量分量 $q_i$ 与键向量分量 $k_i$ 是相互独立、均值为 0、方差为 1 的随机变量：
 
+
+
 $$
 \mathbb{E}[q_i] = 0, \quad \operatorname{Var}(q_i) = 1, \quad \mathbb{E}[k_i] = 0, \quad \operatorname{Var}(k_i) = 1
 $$
 
+
+
 考查未缩放的点积标量 $Z = \mathbf{q} \cdot \mathbf{k} = \sum_{i=1}^{d_k} q_i k_i$：
 
 1. **计算点积的期望值**：
+
+
    $$
    \mathbb{E}[Z] = \mathbb{E}\left[\sum_{i=1}^{d_k} q_i k_i\right] = \sum_{i=1}^{d_k} \mathbb{E}[q_i]\mathbb{E}[k_i] = \sum_{i=1}^{d_k} (0)(0) = 0
    $$
+
+
    点积的均值稳居于零。
 
 2. **计算单项乘积 $q_i k_i$ 的方差**：
+
+
    $$
    \operatorname{Var}(q_i k_i) = \operatorname{Var}(q_i)\operatorname{Var}(k_i) = (1)(1) = 1
    $$
 
+
+
 3. **计算 $d_k$ 项累加和的方差**：
+
+
    $$
    \operatorname{Var}(Z) = \operatorname{Var}\left(\sum_{i=1}^{d_k} q_i k_i\right) = \sum_{i=1}^{d_k} \operatorname{Var}(q_i k_i) = \sum_{i=1}^{d_k} 1 = d_k
    $$
 
+
+
 4. **计算点积的标准差（波动幅度）**：
+
+
    $$
    \sigma_Z = \sqrt{\operatorname{Var}(Z)} = \sqrt{d_k}
    $$
 
+
+
 数学铁证摆在眼前：**原始点积的波动幅度（标准差）严格正比于 $\sqrt{d_k}$！**
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 8.2：</strong> 向量维度 $d_k$ 增长导致的方差膨胀与打分极端化</caption>
-  \lt thead>
-    \lt tr bgcolor="#eae9e1">
-      \lt th scope="col" align="center" width="16%">向量维度 $d_k$</th>
-      \lt th scope="col" align="center" width="20%">点积方差 $\operatorname{Var}(Z) = d_k$</th>
-      \lt th scope="col" align="center" width="24%">标准差 $\sigma = \sqrt{d_k}$</th>
-      \lt th scope="col" align="left" width="40%">典型打分区间（$\pm 3\sigma$）与危害</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 8.2：</strong> 向量维度 $d_k$ 增长导致的方差膨胀与打分极端化</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="center" width="16%">向量维度 $d_k$</th>
+      <th scope="col" align="center" width="20%">点积方差 $\operatorname{Var}(Z) = d_k$</th>
+      <th scope="col" align="center" width="24%">标准差 $\sigma = \sqrt{d_k}$</th>
+      <th scope="col" align="left" width="40%">典型打分区间（$\pm 3\sigma$）与危害</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td align="center">$d_k = 4$</td>
-      \lt td align="center">$4$</td>
-      \lt td align="center">$2.0$</td>
-      \lt td>$[-6.0, +6.0]$ &mdash; 波动温和，Softmax 仍具备一定灵敏度。</td>
+  <tbody>
+    <tr>
+      <td align="center">$d_k = 4$</td>
+      <td align="center">$4$</td>
+      <td align="center">$2.0$</td>
+      <td>$[-6.0, +6.0]$ &mdash; 波动温和，Softmax 仍具备一定灵敏度。</td>
     </tr>
-    \lt tr>
-      \lt td align="center">$d_k = 16$</td>
-      \lt td align="center">$16$</td>
-      \lt td align="center">$4.0$</td>
-      \lt td>$[-12.0, +12.0]$ &mdash; 波动显著变宽，开始出现极端指数项。</td>
+    <tr>
+      <td align="center">$d_k = 16$</td>
+      <td align="center">$16$</td>
+      <td align="center">$4.0$</td>
+      <td>$[-12.0, +12.0]$ &mdash; 波动显著变宽，开始出现极端指数项。</td>
     </tr>
-    \lt tr>
-      \lt td align="center">$d_k = 64$</td>
-      \lt td align="center">$64$</td>
-      \lt td align="center">$8.0$</td>
-      \lt td>$[-24.0, +24.0]$ &mdash; \lt mark>极端饱和！</mark> 指数项飙升至 $e^{24} \approx 2.6 \times 10^{10}$。</td>
+    <tr>
+      <td align="center">$d_k = 64$</td>
+      <td align="center">$64$</td>
+      <td align="center">$8.0$</td>
+      <td>$[-24.0, +24.0]$ &mdash; <mark>极端饱和！</mark> 指数项飙升至 $e^{24} \approx 2.6 \times 10^{10}$。</td>
     </tr>
-    \lt tr>
-      \lt td align="center">$d_k = 128$</td>
-      \lt td align="center">$128$</td>
-      \lt td align="center">$11.31$</td>
-      \lt td>$[-33.9, +33.9]$ &mdash; 灾难级饱和！Softmax 彻底坍缩为 One-Hot 硬选择。</td>
+    <tr>
+      <td align="center">$d_k = 128$</td>
+      <td align="center">$128$</td>
+      <td align="center">$11.31$</td>
+      <td>$[-33.9, +33.9]$ &mdash; 灾难级饱和！Softmax 彻底坍缩为 One-Hot 硬选择。</td>
     </tr>
   </tbody>
 </table>
@@ -265,28 +309,44 @@ $$
 
 回顾我们在第 07 章第 3 步严密求导出的 Softmax 雅可比导数公式：
 
+
+
 $$
 \frac{\partial s_i}{\partial z_j} = s_i (\delta_{ij} - s_j) = \begin{cases} s_i(1 - s_i) & \text{当 } i = j \\ -s_i s_j & \text{当 } i \neq j \end{cases}
 $$
 
+
+
 当输入打分的标准差高达 $8$（例如一组得分为 $[+24, 0, -8]$）时，代入 Softmax 计算：
 
 - 对最高分候选者 $i=1$：$s_1 \approx 0.9999999999$。
+
+
   $$
   \frac{\partial s_1}{\partial z_1} = s_1(1 - s_1) \approx 1.0 \times (1.0 - 1.0) = \mathbf{0.0}
   $$
+
+
 - 对其他落选候选者 $i \neq 1$：$s_j \approx 0.0000000001$。
+
+
   $$
   \frac{\partial s_1}{\partial z_j} = -s_1 s_j \approx -(1.0) \times (0.0) = \mathbf{0.0}
   $$
+
+
 
 所有偏导数在一瞬间全部跌至计算机浮点下溢极限（精确为 0）！
 
 当损失函数的误差梯度沿着计算图反向传播时，链式法则要求乘以 Softmax 的局部偏导数 $\frac{\partial s}{\partial z} \approx 0$：
 
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}_Q} = \sum \frac{\partial \mathcal{L}}{\partial s} \cdot \mathbf{0} = \mathbf{0}
 $$
+
+
 
 梯度学习信号在这一层被彻底截断掐死！网络陷入了类似重度昏迷的“梯度消失假死状态”，参数再也无法更新分毫。
 
@@ -296,15 +356,23 @@ $$
 
 根据方差的数乘运算公理，对任意常数 $c$：
 
+
+
 $$
 \operatorname{Var}(c X) = c^2 \operatorname{Var}(X)
 $$
 
+
+
 令常数 $c = \frac{1}{\sqrt{d_k}}$，对原始点积 $Z$ 进行缩放：
+
+
 
 $$
 \operatorname{Var}\left(\frac{Z}{\sqrt{d_k}}\right) = \left(\frac{1}{\sqrt{d_k}}\right)^2 \operatorname{Var}(Z) = \frac{1}{d_k} \times d_k = \mathbf{1}
 $$
+
+
 
 **方差严丝合缝地恢复为 1，标准差稳稳锁定在 1.0！**
 
@@ -316,38 +384,50 @@ $$
 
 ## 第 4 步：历史渊源与技术演进 {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="2014">2014</time> &mdash; \lt strong>Dzmitry Bahdanau, Kyunghyun Cho, 与 Yoshua Bengio</strong></dt>
-  \lt dd>
-    在里程碑论文 \lt cite>"Neural Machine Translation by Jointly Learning to Align and Translate"</cite> 中，Bahdanau 等人首次提出了软性注意力机制，打破了循环神经网络（RNN）编码器固定长度语义向量的信息瓶颈。然而，他们使用的是\lt strong>加性注意力（Additive Attention）</strong>：
+<dl>
+  <dt><time datetime="2014">2014</time> &mdash; <strong>Dzmitry Bahdanau, Kyunghyun Cho, 与 Yoshua Bengio</strong></dt>
+  <dd>
+    在里程碑论文 <cite>"Neural Machine Translation by Jointly Learning to Align and Translate"</cite> 中，Bahdanau 等人首次提出了软性注意力机制，打破了循环神经网络（RNN）编码器固定长度语义向量的信息瓶颈。然而，他们使用的是<strong>加性注意力（Additive Attention）</strong>：
+
+
 
 $$
 \operatorname{score}(\mathbf{s}, \mathbf{h}) = \mathbf{v}_a^\top \tanh(\mathbf{W}_a \mathbf{s} + \mathbf{U}_a \mathbf{h})
 $$
 
+
+
     加性注意力虽然拟合能力极强，但它必须为每一对词元执行矩阵加法和非线性 $\tanh$ 激活，计算开销巨大，极难在 GPU 上进行大规模并行化加速。
   </dd>
 
-  \lt dt>\lt time datetime="2015">2015</time> &mdash; \lt strong>Minh-Thang Luong, Hieu Pham, 与 Christopher D. Manning</strong></dt>
-  \lt dd>
-    在论文 \lt cite>"Effective Approaches to Attention-based Neural Machine Translation"</cite> 中，Luong 等人提出了更为精简的\lt strong>乘法（点积）注意力（Multiplicative / Dot-Product Attention）</strong>：
+  <dt><time datetime="2015">2015</time> &mdash; <strong>Minh-Thang Luong, Hieu Pham, 与 Christopher D. Manning</strong></dt>
+  <dd>
+    在论文 <cite>"Effective Approaches to Attention-based Neural Machine Translation"</cite> 中，Luong 等人提出了更为精简的<strong>乘法（点积）注意力（Multiplicative / Dot-Product Attention）</strong>：
+
+
 
 $$
 \operatorname{score}(\mathbf{s}, \mathbf{h}) = \mathbf{s}^\top \mathbf{W} \mathbf{h}
 $$
 
+
+
     点积注意力在 GPU 上具有极高计算效率，因为它能完美利用底层高度优化的矩阵乘法核心（BLAS）。然而，研究人员当时观察到一个令人困惑的现象：当隐藏层维度较小时，点积注意力与加性注意力性能相仿；但当维度增大时，未经缩放的点积注意力性能急剧恶化，甚至无法收敛。
   </dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>Ashish Vaswani 等人（Google Brain / Research）</strong></dt>
-  \lt dd>
-    在开山之作 \lt cite>"Attention Is All You Need"</cite> 中，Vaswani 等人首次揭示了点积注意力在高维度下表现落后的理论根源：方差爆炸把 Softmax 推向了梯度微弱的饱和区。
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Ashish Vaswani 等人（Google Brain / Research）</strong></dt>
+  <dd>
+    在开山之作 <cite>"Attention Is All You Need"</cite> 中，Vaswani 等人首次揭示了点积注意力在高维度下表现落后的理论根源：方差爆炸把 Softmax 推向了梯度微弱的饱和区。
 
     他们提出了乘以 $\frac{1}{\sqrt{d_k}}$ 的优雅解法，兼具了点积矩阵乘法的极限速度与加性注意力的训练稳定性：
+
+
 
 $$
 \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
 $$
+
+
 
     这一公式彻底终结了 RNN 与 CNN 在自然语言处理领域的统治，成为了 GPT、BERT、LLaMA、Claude 与 Gemini 共同的神经网络底层基石。
   </dd>
@@ -359,21 +439,27 @@ $$
 
 让我们追踪由 3 个词元组成的简短句子：
 
-- 词元 1（$t=1$）：\lt kbd>"The"</kbd>
-- 词元 2（$t=2$）：\lt kbd>"river"</kbd>
-- 词元 3（$t=3$）：\lt kbd>"bank"</kbd>（多义词：河岸/银行）
+- 词元 1（$t=1$）：<kbd>"The"</kbd>
+- 词元 2（$t=2$）：<kbd>"river"</kbd>
+- 词元 3（$t=3$）：<kbd>"bank"</kbd>（多义词：河岸/银行）
 
-我们将以手工算术的方式，手算词元 3（\lt kbd>"bank"</kbd>）吸收全句上下文的更新全过程。我们选择 $d_k = 4$，这样 $\sqrt{d_k} = \sqrt{4} = 2.0$ 为整数，每一步除法都能一眼手算验证！
+我们将以手工算术的方式，手算词元 3（<kbd>"bank"</kbd>）吸收全句上下文的更新全过程。我们选择 $d_k = 4$，这样 $\sqrt{d_k} = \sqrt{4} = 2.0$ 为整数，每一步除法都能一眼手算验证！
 
 ### 步骤 5.1：初始向量设定
 
-设第 3 个词元（\lt kbd>"bank"</kbd>）的查询探针向量为：
+设第 3 个词元（<kbd>"bank"</kbd>）的查询探针向量为：
+
+
 
 $$
 \mathbf{q}_3 = \begin{bmatrix} 1.0 \\ 2.0 \\ 1.0 \\ 0.0 \end{bmatrix} \in \mathbb{R}^4
 $$
 
+
+
 设句中三个词元的键特征向量为：
+
+
 
 $$
 \mathbf{k}_1 (\text{"The"}) = \begin{bmatrix} 0.0 \\ 1.0 \\ 0.0 \\ 1.0 \end{bmatrix}, \quad
@@ -381,7 +467,11 @@ $$
 \mathbf{k}_3 (\text{"bank"}) = \begin{bmatrix} 1.0 \\ 1.0 \\ 1.0 \\ 0.0 \end{bmatrix}
 $$
 
+
+
 设每个词元拥有 2 维的值向量 $\mathbf{v}_j \in \mathbb{R}^2$（$d_v = 2$），其中第 1 维表示语法虚词度，第 2 维表示自然/河流语义度：
+
+
 
 $$
 \mathbf{v}_1 (\text{"The"}) = \begin{bmatrix} 1.0 \\ 0.0 \end{bmatrix}, \quad
@@ -389,32 +479,50 @@ $$
 \mathbf{v}_3 (\text{"bank"}) = \begin{bmatrix} 2.0 \\ 1.0 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 步骤 5.2：计算原始点积（$\mathbf{q}_3 \cdot \mathbf{k}_j$）
 
 我们计算未缩放的原始内积得分：
 
-1. **与词元 1（\lt kbd>"The"</kbd>）的碰撞得分**：
+1. **与词元 1（<kbd>"The"</kbd>）的碰撞得分**：
+
+
    $$
    z_1 = \mathbf{q}_3^\top \mathbf{k}_1 = (1.0)(0.0) + (2.0)(1.0) + (1.0)(0.0) + (0.0)(1.0) = 0.0 + 2.0 + 0.0 + 0.0 = 2.0
    $$
 
-2. **与词元 2（\lt kbd>"river"</kbd>）的碰撞得分**：
+
+
+2. **与词元 2（<kbd>"river"</kbd>）的碰撞得分**：
+
+
    $$
    z_2 = \mathbf{q}_3^\top \mathbf{k}_2 = (1.0)(2.0) + (2.0)(2.0) + (1.0)(1.0) + (0.0)(1.0) = 2.0 + 4.0 + 1.0 + 0.0 = \mathbf{7.0}
    $$
 
-3. **与词元 3（\lt kbd>"bank"</kbd>，自注意力）的碰撞得分**：
+
+
+3. **与词元 3（<kbd>"bank"</kbd>，自注意力）的碰撞得分**：
+
+
    $$
    z_3 = \mathbf{q}_3^\top \mathbf{k}_3 = (1.0)(1.0) + (2.0)(1.0) + (1.0)(1.0) + (0.0)(0.0) = 1.0 + 2.0 + 1.0 + 0.0 = 4.0
    $$
 
+
+
 未缩放的原始 Logits 打分向量为：
+
+
 
 $$
 \mathbf{z}_{\text{raw}} = [2.0, 7.0, 4.0]^\top
 $$
+
+
 
 ---
 
@@ -422,9 +530,13 @@ $$
 
 现在启动总音量衰减旋钮：
 
+
+
 $$
 \tilde{z}_j = \frac{z_j}{\sqrt{d_k}} = \frac{z_j}{2.0}
 $$
+
+
 
 - $\tilde{z}_1 = \frac{2.0}{2.0} = 1.0$
 - $\tilde{z}_2 = \frac{7.0}{2.0} = 3.5$
@@ -432,9 +544,13 @@ $$
 
 缩放后的规范化 Logits 打分向量为：
 
+
+
 $$
 \tilde{\mathbf{z}} = [1.0, 3.5, 2.0]^\top
 $$
+
+
 
 对比一目了然：最高分（$7.0$）与最低分（$2.0$）的分差由原来的 $5.0$ 瞬间压缩到了舒适温和的 $2.5$！
 
@@ -450,9 +566,13 @@ $$
    - $e^{\tilde{z}_3} = e^{2.0} \approx 7.3891$
 
 2. **累加计算配分函数（分母 $Z$）**：
+
+
    $$
    \sum_{j=1}^3 e^{\tilde{z}_j} = 2.7183 + 33.1155 + 7.3891 = 43.2229
    $$
+
+
 
 3. **计算各项归一化注意力权重**：
    - $A_{31} = \frac{2.7183}{43.2229} \approx \mathbf{0.0629}$（$6.29\%$）
@@ -461,45 +581,45 @@ $$
 
 验证总概率和：$0.0629 + 0.7662 + 0.1709 = 1.0000$（严格 $100.0\%$）。
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 8.3：</strong> $\sqrt{d_k}$ 缩放对注意力分布形态与梯度活跃度的实测影响对比</caption>
-  \lt thead>
-    \lt tr bgcolor="#eae9e1">
-      \lt th scope="col" align="left" width="22%">目标词元</th>
-      \lt th scope="col" align="center" width="26%">未缩放原始分布（$[2.0, 7.0, 4.0]$）</th>
-      \lt th scope="col" align="center" width="26%">缩放后健康分布（$[1.0, 3.5, 2.0]$）</th>
-      \lt th scope="col" align="left" width="26%">缩放后概率仪表盘</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 8.3：</strong> $\sqrt{d_k}$ 缩放对注意力分布形态与梯度活跃度的实测影响对比</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">目标词元</th>
+      <th scope="col" align="center" width="26%">未缩放原始分布（$[2.0, 7.0, 4.0]$）</th>
+      <th scope="col" align="center" width="26%">缩放后健康分布（$[1.0, 3.5, 2.0]$）</th>
+      <th scope="col" align="left" width="26%">缩放后概率仪表盘</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt th scope="row" align="left">\lt kbd>"The"</kbd></th>
-      \lt td align="center">0.64% ($s_1 = 0.0064$)</td>
-      \lt td align="center">\lt strong>6.29%</strong> ($A_{31} = 0.0629$)</td>
-      \lt td>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0629">6.29%</meter></td>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><kbd>"The"</kbd></th>
+      <td align="center">0.64% ($s_1 = 0.0064$)</td>
+      <td align="center"><strong>6.29%</strong> ($A_{31} = 0.0629$)</td>
+      <td><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0629">6.29%</meter></td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">\lt kbd>"river"</kbd></th>
-      \lt td align="center">94.65% ($s_2 = 0.9465$)</td>
-      \lt td align="center">\lt strong>76.62%</strong> ($A_{32} = 0.7662$)</td>
-      \lt td>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.7662">76.62%</meter></td>
+    <tr>
+      <th scope="row" align="left"><kbd>"river"</kbd></th>
+      <td align="center">94.65% ($s_2 = 0.9465$)</td>
+      <td align="center"><strong>76.62%</strong> ($A_{32} = 0.7662$)</td>
+      <td><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.7662">76.62%</meter></td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">\lt kbd>"bank"</kbd>（自身）</th>
-      \lt td align="center">4.71% ($s_3 = 0.0471$)</td>
-      \lt td align="center">\lt strong>17.09%</strong> ($A_{33} = 0.1709$)</td>
-      \lt td>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1709">17.09%</meter></td>
+    <tr>
+      <th scope="row" align="left"><kbd>"bank"</kbd>（自身）</th>
+      <td align="center">4.71% ($s_3 = 0.0471$)</td>
+      <td align="center"><strong>17.09%</strong> ($A_{33} = 0.1709$)</td>
+      <td><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1709">17.09%</meter></td>
     </tr>
-    \lt tr bgcolor="#f0f7f0">
-      \lt th scope="row" align="left">\lt strong>关键导数 $\frac{\partial s_2}{\partial z_2}$</strong></th>
-      \lt td align="center">\lt strong>$0.0506$</strong>（快速趋向衰亡！）</td>
-      \lt td align="center">\lt strong>$0.1791$</strong>（\lt mark>强健 3.5 倍！</mark>）</td>
-      \lt td>健康充沛的参数更新信号</td>
+    <tr bgcolor="#f0f7f0">
+      <th scope="row" align="left"><strong>关键导数 $\frac{\partial s_2}{\partial z_2}$</strong></th>
+      <td align="center"><strong>$0.0506$</strong>（快速趋向衰亡！）</td>
+      <td align="center"><strong>$0.1791$</strong>（<mark>强健 3.5 倍！</mark>）</td>
+      <td>健康充沛的参数更新信号</td>
     </tr>
   </tbody>
 </table>
 
-如果不做缩放，最高分词元狂飙到 $94.65\%$，其局部导数被腰斩暴跌了 $72\%$！而加入缩放后，\lt kbd>"river"</kbd> 依然以 $76.62\%$ 的压倒性优势获胜，但注意力权重保持了极佳的塑形弹性，反向传播的梯度得以汹涌澎湃地回传！
+如果不做缩放，最高分词元狂飙到 $94.65\%$，其局部导数被腰斩暴跌了 $72\%$！而加入缩放后，<kbd>"river"</kbd> 依然以 $76.62\%$ 的压倒性优势获胜，但注意力权重保持了极佳的塑形弹性，反向传播的梯度得以汹涌澎湃地回传！
 
 ---
 
@@ -507,11 +627,17 @@ $$
 
 注意力机制的最终收官步骤，是将计算出的注意力权重向量 $\mathbf{A}_{3,:}$ 与值矩阵 $\mathbf{V}$ 相乘：
 
+
+
 $$
 \mathbf{c}_3 = \sum_{j=1}^3 A_{3j} \mathbf{v}_j = A_{31} \mathbf{v}_1 + A_{32} \mathbf{v}_2 + A_{33} \mathbf{v}_3
 $$
 
+
+
 将具体数值代入算式：
+
+
 
 $$
 \begin{aligned}
@@ -521,6 +647,8 @@ $$
 &= \mathbf{\begin{bmatrix} 0.4047 \\ 2.4695 \end{bmatrix}}
 \end{aligned}
 $$
+
+
 
 见证奇迹的时刻：
 - 在注意力融合之前，<kbd>"bank"</kbd> 的值向量初始坐标为 $\mathbf{v}_3 = [2.0, 1.0]^\top$，其代表“河流/水体”的第 2 维语义值仅仅只有微弱的 $1.0$。

@@ -59,37 +59,57 @@ Relative Distance:
 !!! question "The Bridging Question: Why Vanilla Attention is Permutation-Equivariant"
     In Chapter 06 and Chapter 08, we studied how the attention mechanism computes pairwise token compatibility using dot products:
 
+
+
     $$
     S_{ij} = \frac{\mathbf{q}_i^\top \mathbf{k}_j}{\sqrt{d_k}}
     $$
 
+
+
     Now, suppose we permute the input sequence of token vectors $\mathbf{X} = [\mathbf{x}_1, \dots, \mathbf{x}_T]^\top$ using a permutation matrix $\mathbf{P} \in \{0, 1\}^{T \times T}$. Because projection matrices $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ operate row-by-row independently:
+
+
 
     $$
     \mathbf{Q}_{\text{perm}} = \mathbf{P}\mathbf{Q}, \quad \mathbf{K}_{\text{perm}} = \mathbf{P}\mathbf{K}, \quad \mathbf{V}_{\text{perm}} = \mathbf{P}\mathbf{V}
     $$
 
+
+
     When we calculate the attention score matrix:
+
+
 
     $$
     \mathbf{Q}_{\text{perm}} \mathbf{K}_{\text{perm}}^\top = (\mathbf{P}\mathbf{Q})(\mathbf{P}\mathbf{K})^\top = \mathbf{P}\mathbf{Q}\mathbf{K}^\top \mathbf{P}^\top
     $$
 
+
+
     Passing this through Softmax and multiplying by $\mathbf{V}_{\text{perm}}$ yields:
+
+
 
     $$
     \operatorname{Attention}(\mathbf{Q}_{\text{perm}}, \mathbf{K}_{\text{perm}}, \mathbf{V}_{\text{perm}}) = \mathbf{P} \cdot \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V})
     $$
 
-    This mathematical property is called \lt dfn id="def-permutation-equivariance">Permutation Equivariance</dfn>.
+
+
+    This mathematical property is called <dfn id="def-permutation-equivariance">Permutation Equivariance</dfn>.
 
     It means that if you shuffle the input words, the output vectors are simply shuffled in the exact same way—**no interaction changes at all**! The model has zero built-in notion of which word came first, which came second, or how far apart two words are.
 
     Early Transformers (Vaswani et al., 2017) attempted to solve this by adding static position vectors directly to token embeddings:
 
+
+
     $$
     \mathbf{x}_m \leftarrow \mathbf{x}_m + \mathbf{p}_m
     $$
+
+
 
     But adding $\mathbf{p}_m$ directly into $\mathbf{x}_m$ has two severe flaws:
     1. **Semantic Contamination**: It adds raw numbers directly into the semantic embedding space, distorting the lexical meaning of the word.
@@ -107,6 +127,8 @@ In the original Transformer (*"Attention Is All You Need"*, Vaswani et al., 2017
 
 For a token at position $m \in \{0, 1, \dots, T-1\}$ and feature dimension index $i \in \{0, 1, \dots, \frac{d}{2}-1\}$:
 
+
+
 $$
 \begin{aligned}
 \text{PE}_{(m, 2i)} &= \sin\left(\frac{m}{10000^{2i/d}}\right) \\
@@ -114,7 +136,11 @@ $$
 \end{aligned}
 $$
 
+
+
 Let $\theta_i = \frac{1}{10000^{2i/d}} = 10000^{-2i/d}$. Then the positional vector for position $m$ is:
+
+
 
 $$
 \mathbf{p}_m = \begin{bmatrix}
@@ -128,6 +154,8 @@ $$
 \end{bmatrix} \in \mathbb{R}^d
 $$
 
+
+
 The wavelengths form a geometric progression from $2\pi$ to $2\pi \cdot 10000$:
 - Low dimensions ($i = 0$): $\theta_0 = 1$, wavelength is $2\pi \approx 6.28$ tokens (fast-ticking clock hand).
 - High dimensions ($i = \frac{d}{2}-1$): wavelength reaches tens of thousands of tokens (slow-moving calendar dial).
@@ -138,11 +166,13 @@ While elegant, this classical scheme adds $\mathbf{p}_m$ additively: $\widetilde
 
 ### 2. The Modern Standard: Rotary Position Embedding (RoPE)
 
-Formulated by Jianlin Su (2021), \lt dfn id="def-rope">Rotary Position Embedding (RoPE)</dfn> solves the relative position problem geometrically by **rotating** Query and Key vectors in 2D coordinate planes instead of adding vectors.
+Formulated by Jianlin Su (2021), <dfn id="def-rope">Rotary Position Embedding (RoPE)</dfn> solves the relative position problem geometrically by **rotating** Query and Key vectors in 2D coordinate planes instead of adding vectors.
 
 #### The 2D Rotation Block
 
 Consider a 2-dimensional vector $\mathbf{v} = [v_1, v_2]^\top$. Rotating this vector by an angle $m\theta$ is represented by the 2D rotation matrix:
+
+
 
 $$
 \mathbf{R}_{\theta, m} = \begin{bmatrix}
@@ -151,15 +181,23 @@ $$
 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
 $$
 
+
+
 #### The Full $d$-Dimensional Rotation Operator
 
 For a $d$-dimensional Query vector $\mathbf{q}_m \in \mathbb{R}^d$ and Key vector $\mathbf{k}_n \in \mathbb{R}^d$ (where $d$ is an even number, such as $d = 64$ or $d = 128$), RoPE divides the $d$ coordinates into $\frac{d}{2}$ consecutive pairs:
+
+
 
 $$
 (q^{(1)}, q^{(2)}), \quad (q^{(3)}, q^{(4)}), \quad \dots, \quad (q^{(d-1)}, q^{(d)})
 $$
 
+
+
 Each 2D pair is rotated by its own dedicated frequency angle $m\theta_i$:
+
+
 
 $$
 \mathbf{R}_{\Theta, m}^d = \begin{bmatrix}
@@ -173,35 +211,45 @@ $$
 \end{bmatrix} \in \mathbb{R}^{d \times d}
 $$
 
+
+
 where the frequencies are defined identically to the sinusoidal base:
+
+
 
 $$
 \theta_i = 10000^{-2(i-1)/d}, \quad i \in \left\{1, 2, \dots, \frac{d}{2}\right\}
 $$
 
+
+
 The rotated Query and Key vectors at positions $m$ and $n$ are:
+
+
 
 $$
 \widetilde{\mathbf{q}}_m = \mathbf{R}_{\Theta, m}^d \mathbf{q}_m, \quad \widetilde{\mathbf{k}}_n = \mathbf{R}_{\Theta, n}^d \mathbf{k}_n
 $$
 
+
+
 Notice that the Value vectors $\mathbf{V}$ are **not rotated**. Value vectors carry semantic payload, not geometric search coordinates!
 
-\lt details>
-\lt summary>\lt strong>Mathematical Symbol Catalog & Tensor Definitions</strong></summary>
-\lt dl>
-  \lt dt>\lt strong>$m, n \in \mathbb{N}$</strong></dt>
-  \lt dd>Absolute token sequence positions: $m$ is the Query token position, $n$ is the Key token position ($0 \le m, n \lt T$).</dd>
-  \lt dt>\lt strong>$d$ (Head Dimension)</strong></dt>
-  \lt dd>The dimensionality of each attention head (must be an even integer, typically $d = 64$ or $d = 128$).</dd>
-  \lt dt>\lt strong>$\theta_i$ (Base Frequency for Pair $i$)</strong></dt>
-  \lt dd>The rotational angular velocity for the $i$-th coordinate subspace: $\theta_i = b^{-2(i-1)/d}$, where base $b = 10000$ (or up to $500000$ in modern long-context models).</dd>
-  \lt dt>\lt strong>$\mathbf{R}_{\theta_i, m} \in \mathbb{R}^{2 \times 2}$</strong></dt>
-  \lt dd>Standard orthogonal 2D rotation matrix: $\mathbf{R}_{\theta_i, m}^\top \mathbf{R}_{\theta_i, m} = \mathbf{I}_2$, $\det(\mathbf{R}) = 1$.</dd>
-  \lt dt>\lt strong>$\mathbf{R}_{\Theta, m}^d \in \mathbb{R}^{d \times d}$</strong></dt>
-  \lt dd>Block-diagonal orthogonal rotation matrix composed of $\frac{d}{2}$ independent 2D rotation blocks.</dd>
-  \lt dt>\lt strong>$\widetilde{\mathbf{q}}_m, \widetilde{\mathbf{k}}_n \in \mathbb{R}^d$</strong></dt>
-  \lt dd>Position-aware Query and Key vectors after applying RoPE rotation.</dd>
+<details>
+<summary><strong>Mathematical Symbol Catalog & Tensor Definitions</strong></summary>
+<dl>
+  <dt><strong>$m, n \in \mathbb{N}$</strong></dt>
+  <dd>Absolute token sequence positions: $m$ is the Query token position, $n$ is the Key token position ($0 \le m, n \lt T$).</dd>
+  <dt><strong>$d$ (Head Dimension)</strong></dt>
+  <dd>The dimensionality of each attention head (must be an even integer, typically $d = 64$ or $d = 128$).</dd>
+  <dt><strong>$\theta_i$ (Base Frequency for Pair $i$)</strong></dt>
+  <dd>The rotational angular velocity for the $i$-th coordinate subspace: $\theta_i = b^{-2(i-1)/d}$, where base $b = 10000$ (or up to $500000$ in modern long-context models).</dd>
+  <dt><strong>$\mathbf{R}_{\theta_i, m} \in \mathbb{R}^{2 \times 2}$</strong></dt>
+  <dd>Standard orthogonal 2D rotation matrix: $\mathbf{R}_{\theta_i, m}^\top \mathbf{R}_{\theta_i, m} = \mathbf{I}_2$, $\det(\mathbf{R}) = 1$.</dd>
+  <dt><strong>$\mathbf{R}_{\Theta, m}^d \in \mathbb{R}^{d \times d}$</strong></dt>
+  <dd>Block-diagonal orthogonal rotation matrix composed of $\frac{d}{2}$ independent 2D rotation blocks.</dd>
+  <dt><strong>$\widetilde{\mathbf{q}}_m, \widetilde{\mathbf{k}}_n \in \mathbb{R}^d$</strong></dt>
+  <dd>Position-aware Query and Key vectors after applying RoPE rotation.</dd>
 </dl>
 </details>
 
@@ -216,6 +264,8 @@ Let us prove this step by step.
 #### Step A: Orthogonality and Transpose of 2D Rotations
 The 2D rotation matrix for an angle $\alpha$ has the property that its transpose is its inverse, which equals a rotation by $-\alpha$:
 
+
+
 $$
 \mathbf{R}_\alpha^\top = \begin{bmatrix}
 \cos(\alpha) & \sin(\alpha) \\
@@ -226,21 +276,33 @@ $$
 \end{bmatrix} = \mathbf{R}_{-\alpha}
 $$
 
+
+
 #### Step B: Product of Rotation Matrices
 Multiplying two 2D rotation matrices corresponds to adding their angles:
+
+
 
 $$
 \mathbf{R}_\alpha \mathbf{R}_\beta = \mathbf{R}_{\alpha + \beta}
 $$
 
+
+
 Therefore:
+
+
 
 $$
 \mathbf{R}_{\theta, m}^\top \mathbf{R}_{\theta, n} = \mathbf{R}_{\theta, -m} \mathbf{R}_{\theta, n} = \mathbf{R}_{\theta, (n - m)}
 $$
 
+
+
 #### Step C: The Attention Score Dot Product
 Now evaluate the dot product between the rotated Query $\widetilde{\mathbf{q}}_m$ and rotated Key $\widetilde{\mathbf{k}}_n$:
+
+
 
 $$
 \begin{aligned}
@@ -250,17 +312,27 @@ $$
 \end{aligned}
 $$
 
+
+
 Because $\mathbf{R}_{\Theta, m}^d$ is block-diagonal, each 2D block multiplies independently:
+
+
 
 $$
 (\mathbf{R}_{\Theta, m}^d)^\top \mathbf{R}_{\Theta, n}^d = \mathbf{R}_{\Theta, (n - m)}^d
 $$
 
+
+
 Substituting this back gives the foundational identity:
+
+
 
 $$
 \langle \widetilde{\mathbf{q}}_m, \widetilde{\mathbf{k}}_n \rangle = \mathbf{q}_m^\top \mathbf{R}_{\Theta, (n - m)}^d \mathbf{k}_n
 $$
+
+
 
 Look at the right-hand side:
 - The absolute positions $m$ and $n$ have completely disappeared!
@@ -273,17 +345,27 @@ Look at the right-hand side:
 
 In complex analysis, rotating a 2D vector $(x, y)$ by angle $\phi$ is identical to multiplying the complex number $z = x + i y$ by $e^{i\phi}$:
 
+
+
 $$
 z \cdot e^{i\phi} = (x + iy)(\cos\phi + i\sin\phi) = (x\cos\phi - y\sin\phi) + i(x\sin\phi + y\cos\phi)
 $$
 
+
+
 Under this complex lens, for the $k$-th coordinate pair $q_{(k)} \in \mathbb{C}$ and $k_{(k)} \in \mathbb{C}$:
+
+
 
 $$
 \widetilde{q}_{(k), m} = q_{(k)} e^{i m \theta_k}, \quad \widetilde{k}_{(k), n} = k_{(k)} e^{i n \theta_k}
 $$
 
+
+
 The real dot product of two 2D vectors equals the real part of the complex inner product $\operatorname{Re}(u v^*)$, where $v^*$ is the complex conjugate:
+
+
 
 $$
 \begin{aligned}
@@ -292,6 +374,8 @@ $$
 &= \operatorname{Re}\left( q_{(k)} k_{(k)}^* \cdot e^{i (m - n) \theta_k} \right)
 \end{aligned}
 $$
+
+
 
 This provides an immediate, 1-line proof of the relative position property!
 
@@ -303,6 +387,8 @@ In actual PyTorch or CUDA code, we **never** instantiate the $d \times d$ sparse
 
 Instead, notice that:
 
+
+
 $$
 \begin{bmatrix}
 \cos(m\theta) & -\sin(m\theta) \\
@@ -313,17 +399,27 @@ $$
 = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} \cos(m\theta) + \begin{bmatrix} -x_2 \\ x_1 \end{bmatrix} \sin(m\theta)
 $$
 
+
+
 For the entire vector $\mathbf{x} = [x_1, x_2, x_3, x_4, \dots, x_{d-1}, x_d]^\top$, define the half-rotated vector $\mathbf{x}_{\text{rot}}$:
+
+
 
 $$
 \mathbf{x}_{\text{rot}} = [-x_2, x_1, -x_4, x_3, \dots, -x_d, x_{d-1}]^\top
 $$
 
+
+
 Then RoPE rotation is computed using simple element-wise operations:
+
+
 
 $$
 \mathbf{R}_{\Theta, m}^d \mathbf{x} = \mathbf{x} \odot \cos(\mathbf{m}\Theta) + \mathbf{x}_{\text{rot}} \odot \sin(\mathbf{m}\Theta)
 $$
+
+
 
 This runs at memory bandwidth speed with **zero matrix multiplication** overhead!
 
@@ -331,8 +427,8 @@ This runs at memory bandwidth speed with **zero matrix multiplication** overhead
 
 ## Step 4: Where Did It Come From? {: #step-4 }
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 The Evolution of Positional Representations in NLP:
 
 1950s-2010s: Bag-of-Words / Naive Attention ──► P = None. Permutation invariant.
@@ -357,57 +453,57 @@ The Evolution of Positional Representations in NLP:
                                                   Preserves relative distance; O(1) allocation;
                                                   Adopted by LLaMA, Mistral, Qwen, DeepSeek.
 </pre>
-\lt figcaption>\lt strong>Figure 10.2:</strong> Historical evolution from static bag-of-words to multiplicative rotary geometry.</figcaption>
+<figcaption><strong>Figure 10.2:</strong> Historical evolution from static bag-of-words to multiplicative rotary geometry.</figcaption>
 </figure>
 
 ### 1. The Historical Quest for Relative Position
 
 To understand why RoPE became universal, examine what broke in prior architectures:
 
-\lt fieldset>
-\lt legend>\lt strong>Evolution of Positional Encodings: Strengths & Fatal Flaws</strong></legend>
+<fieldset>
+<legend><strong>Evolution of Positional Encodings: Strengths & Fatal Flaws</strong></legend>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>Table 10.1:</strong> Comparison of positional encoding mechanisms in language models.</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0eee6">
-      \lt th align="left">Mechanism</th>
-      \lt th align="center">Mathematical Form</th>
-      \lt th align="left">Where Used</th>
-      \lt th align="left">Fatal Flaw / Limitation</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 10.1:</strong> Comparison of positional encoding mechanisms in language models.</caption>
+  <thead>
+    <tr bgcolor="#f0eee6">
+      <th align="left">Mechanism</th>
+      <th align="center">Mathematical Form</th>
+      <th align="left">Where Used</th>
+      <th align="left">Fatal Flaw / Limitation</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>\lt strong>Sinusoidal Absolute PE</strong></td>
-      \lt td align="center">$\mathbf{x}_m + \mathbf{p}_m$</td>
-      \lt td>Transformer (2017)</td>
-      \lt td>
-        \lt del>Additive corruption!</del> Injects position directly into semantic embedding space. Cross-terms $\mathbf{x}^\top \mathbf{p}$ introduce unintended artifacts.
+  <tbody>
+    <tr>
+      <td><strong>Sinusoidal Absolute PE</strong></td>
+      <td align="center">$\mathbf{x}_m + \mathbf{p}_m$</td>
+      <td>Transformer (2017)</td>
+      <td>
+        <del>Additive corruption!</del> Injects position directly into semantic embedding space. Cross-terms $\mathbf{x}^\top \mathbf{p}$ introduce unintended artifacts.
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>Learned Absolute PE</strong></td>
-      \lt td align="center">$\mathbf{x}_m + \mathbf{W}_{\text{pos}}[m]$</td>
-      \lt td>BERT (2018), GPT-2 (2019)</td>
-      \lt td>
-        \lt del>Hard length ceiling!</del> If table size is $T_{\max} = 2048$, position $2049$ has no embedding. Model cannot process longer sequences without retraining.
+    <tr>
+      <td><strong>Learned Absolute PE</strong></td>
+      <td align="center">$\mathbf{x}_m + \mathbf{W}_{\text{pos}}[m]$</td>
+      <td>BERT (2018), GPT-2 (2019)</td>
+      <td>
+        <del>Hard length ceiling!</del> If table size is $T_{\max} = 2048$, position $2049$ has no embedding. Model cannot process longer sequences without retraining.
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>Relative Bias (T5 / Shaw)</strong></td>
-      \lt td align="center">$S_{ij} + b_{i-j}$</td>
-      \lt td>Shaw (2018), T5 (2020)</td>
-      \lt td>
-        \lt del>Memory & speed bottleneck!</del> Requires allocating and indexing an explicit $T \times T$ bias matrix in memory. Completely incompatible with fused kernels like FlashAttention.
+    <tr>
+      <td><strong>Relative Bias (T5 / Shaw)</strong></td>
+      <td align="center">$S_{ij} + b_{i-j}$</td>
+      <td>Shaw (2018), T5 (2020)</td>
+      <td>
+        <del>Memory & speed bottleneck!</del> Requires allocating and indexing an explicit $T \times T$ bias matrix in memory. Completely incompatible with fused kernels like FlashAttention.
       </td>
     </tr>
-    \lt tr bgcolor="#fdfdf0">
-      \lt td>\lt strong>Rotary Position (RoPE)</strong></td>
-      \lt td align="center">$\mathbf{R}_m \mathbf{q}_m, \, \mathbf{R}_n \mathbf{k}_n$</td>
-      \lt td>LLaMA, Mistral, Qwen, DeepSeek</td>
-      \lt td>
-        \lt ins>\lt strong>The Ideal Standard!</strong></ins> Relative distance invariance $\mathbf{R}_{n-m}$, zero memory allocation, zero interference with Values, 100% compatible with FlashAttention!
+    <tr bgcolor="#fdfdf0">
+      <td><strong>Rotary Position (RoPE)</strong></td>
+      <td align="center">$\mathbf{R}_m \mathbf{q}_m, \, \mathbf{R}_n \mathbf{k}_n$</td>
+      <td>LLaMA, Mistral, Qwen, DeepSeek</td>
+      <td>
+        <ins><strong>The Ideal Standard!</strong></ins> Relative distance invariance $\mathbf{R}_{n-m}$, zero memory allocation, zero interference with Values, 100% compatible with FlashAttention!
       </td>
     </tr>
   </tbody>
@@ -434,9 +530,13 @@ Because RoPE is based on continuous rotation angles $m\theta$, researchers disco
 
 1. **Linear Position Interpolation (PI)**:
    To expand context window by a factor $s$ (e.g., $s = 4$ for $4\text{k} \to 16\text{k}$), simply divide position by $s$:
+
+
    $$
    m' = \frac{m}{s}
    $$
+
+
    This keeps all rotated angles within the familiar $[0, 4000\theta]$ interval seen during pretraining!
 
 2. **NTK-Aware Scaling & YaRN**:
@@ -455,28 +555,40 @@ Let base frequency be $\theta = 0.5$ radians ($\approx 28.65^\circ$).
 
 Suppose we have two tokens in a sentence:
 
-\lt p align="center">
-  \lt kbd>Token A (Query token at position m = 1)</kbd> &emsp;
-  \lt kbd>Token B (Key token at position n = 3)</kbd>
+<p align="center">
+  <kbd>Token A (Query token at position m = 1)</kbd> &emsp;
+  <kbd>Token B (Key token at position n = 3)</kbd>
 </p>
 
 Relative distance between them:
+
+
 
 $$
 n - m = 3 - 1 = 2 \quad \text{(Key is 2 steps to the right of Query)}
 $$
 
+
+
 Let their unrotated Query and Key vectors be:
+
+
 
 $$
 \mathbf{q}_1 = \begin{bmatrix} 1.0 \\ 0.0 \end{bmatrix}, \quad \mathbf{k}_3 = \begin{bmatrix} 0.0 \\ 1.0 \end{bmatrix}
 $$
 
+
+
 Notice that the raw unrotated dot product is:
+
+
 
 $$
 \mathbf{q}_1^\top \mathbf{k}_3 = (1.0)(0.0) + (0.0)(1.0) = 0.0
 $$
+
+
 
 ---
 
@@ -484,15 +596,21 @@ $$
 
 The rotation angle for position $m = 1$ is:
 
+
+
 $$
 \phi_1 = m \theta = 1 \times 0.5 = 0.5 \text{ rad}
 $$
+
+
 
 Trigonometric values (to 4 decimal places):
 - $\cos(0.5) \approx 0.8776$
 - $\sin(0.5) \approx 0.4794$
 
 The rotation matrix $\mathbf{R}_{0.5, 1}$ is:
+
+
 
 $$
 \mathbf{R}_{0.5, 1} = \begin{bmatrix}
@@ -504,7 +622,11 @@ $$
 \end{bmatrix}
 $$
 
+
+
 Rotate Query $\mathbf{q}_1$:
+
+
 
 $$
 \widetilde{\mathbf{q}}_1 = \mathbf{R}_{0.5, 1} \mathbf{q}_1 = \begin{bmatrix}
@@ -513,21 +635,29 @@ $$
 \end{bmatrix} \begin{bmatrix} 1.0 \\ 0.0 \end{bmatrix} = \begin{bmatrix} 0.8776 \\ 0.4794 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 3. Rotating Token B at Position $n = 3$
 
 The rotation angle for position $n = 3$ is:
 
+
+
 $$
 \phi_3 = n \theta = 3 \times 0.5 = 1.5 \text{ rad}
 $$
+
+
 
 Trigonometric values:
 - $\cos(1.5) \approx 0.0707$
 - $\sin(1.5) \approx 0.9975$
 
 The rotation matrix $\mathbf{R}_{0.5, 3}$ is:
+
+
 
 $$
 \mathbf{R}_{0.5, 3} = \begin{bmatrix}
@@ -539,7 +669,11 @@ $$
 \end{bmatrix}
 $$
 
+
+
 Rotate Key $\mathbf{k}_3$:
+
+
 
 $$
 \widetilde{\mathbf{k}}_3 = \mathbf{R}_{0.5, 3} \mathbf{k}_3 = \begin{bmatrix}
@@ -548,11 +682,15 @@ $$
 \end{bmatrix} \begin{bmatrix} 0.0 \\ 1.0 \end{bmatrix} = \begin{bmatrix} -0.9975 \\ 0.0707 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 4. Computing the RoPE Attention Dot Product
 
 Now compute the attention score between the rotated vectors:
+
+
 
 $$
 \begin{aligned}
@@ -563,6 +701,8 @@ $$
 \end{aligned}
 $$
 
+
+
 ---
 
 ### 5. Verification: Direct Relative Formula ($n - m = 2$)
@@ -572,15 +712,21 @@ Now let us check whether the direct relative formula gives the exact same result
 The relative distance is $n - m = 3 - 1 = 2$.
 The relative angle is:
 
+
+
 $$
 \Delta\phi = (n - m)\theta = 2 \times 0.5 = 1.0 \text{ rad}
 $$
+
+
 
 Trigonometric values for angle $1.0$ rad:
 - $\cos(1.0) \approx 0.5403$
 - $\sin(1.0) \approx 0.8415$
 
 The relative rotation matrix $\mathbf{R}_{0.5, 2}$ is:
+
+
 
 $$
 \mathbf{R}_{0.5, 2} = \begin{bmatrix}
@@ -592,7 +738,11 @@ $$
 \end{bmatrix}
 $$
 
+
+
 Apply the relative identity $\mathbf{q}_1^\top \mathbf{R}_{0.5, 2} \mathbf{k}_3$:
+
+
 
 $$
 \begin{aligned}
@@ -602,7 +752,9 @@ $$
 \end{aligned}
 $$
 
-\lt mark>The numbers match to the fourth decimal place!</mark>
+
+
+<mark>The numbers match to the fourth decimal place!</mark>
 
 ---
 
@@ -612,9 +764,13 @@ What if the sentence appears later in a long prompt, say at positions $m' = 11$ 
 
 The relative distance is still:
 
+
+
 $$
 n' - m' = 13 - 11 = 2
 $$
+
+
 
 Let us calculate:
 1. $\phi_{11} = 11 \times 0.5 = 5.5 \text{ rad}$. $\cos(5.5) \approx 0.7087, \sin(5.5) \approx -0.7055$.
@@ -622,9 +778,13 @@ Let us calculate:
 2. $\phi_{13} = 13 \times 0.5 = 6.5 \text{ rad}$. $\cos(6.5) \approx 0.9766, \sin(6.5) \approx 0.2151$.
    $\widetilde{\mathbf{k}}_{13} = [-0.2151, 0.9766]^\top$.
 3. Inner product:
+
+
    $$
    \widetilde{\mathbf{q}}_{11}^\top \widetilde{\mathbf{k}}_{13} = (0.7087)(-0.2151) + (-0.7055)(0.9766) = -0.1524 - 0.6889 = \mathbf{-0.8413} \approx \mathbf{-0.8415}
    $$
+
+
 
 The score remains completely invariant under arbitrary spatial translations!
 

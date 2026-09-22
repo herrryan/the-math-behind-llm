@@ -63,9 +63,13 @@ Input Vector [1 x 4] ───┬──► Head 1 (Syntax / Grammar)  ──► 
 !!! question "The Bridging Question: The Subspace Averaging Bottleneck"
     In Chapter 08, we formulated the standard Scaled Dot-Product Attention:
 
+
+
     $$
     \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
     $$
+
+
 
     For any pair of tokens $i$ and $j$, the term $\mathbf{q}_i^\top \mathbf{k}_j$ produces **a single scalar score**.
 
@@ -90,19 +94,27 @@ Input Vector [1 x 4] ───┬──► Head 1 (Syntax / Grammar)  ──► 
 
 ### 1. The Multi-Head Attention Architecture
 
-In *Attention Is All You Need* (Vaswani et al., 2017), \lt dfn id="def-mha">Multi-Head Attention (MHA)</dfn> projects the Queries, Keys, and Values $h$ times with different, learned linear projections into lower-dimensional subspaces.
+In *Attention Is All You Need* (Vaswani et al., 2017), <dfn id="def-mha">Multi-Head Attention (MHA)</dfn> projects the Queries, Keys, and Values $h$ times with different, learned linear projections into lower-dimensional subspaces.
 
 Given input sequence representations $\mathbf{Q}, \mathbf{K}, \mathbf{V} \in \mathbb{R}^{T \times d_{\text{model}}}$:
+
+
 
 $$
 \operatorname{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{Concat}(\operatorname{head}_1, \operatorname{head}_2, \dots, \operatorname{head}_h)\mathbf{W}^O
 $$
 
+
+
 where each individual attention head is calculated independently:
+
+
 
 $$
 \operatorname{head}_i = \operatorname{Attention}\left(\mathbf{Q}\mathbf{W}_i^Q, \, \mathbf{K}\mathbf{W}_i^K, \, \mathbf{V}\mathbf{W}_i^V\right) = \operatorname{softmax}\left(\frac{(\mathbf{Q}\mathbf{W}_i^Q)(\mathbf{K}\mathbf{W}_i^K)^\top}{\sqrt{d_k}}\right)(\mathbf{V}\mathbf{W}_i^V)
 $$
+
+
 
 ---
 
@@ -110,25 +122,25 @@ $$
 
 The dimensionality parameters of Multi-Head Attention are structured with mathematical precision:
 
-\lt details>
-\lt summary>\lt strong>Mathematical Symbol Catalog & Dimensionality Mapping</strong></summary>
-\lt dl>
-  \lt dt>\lt strong>$d_{\text{model}}$ (Model Dimension)</strong></dt>
-  \lt dd>The width of the token representation vectors in the residual stream (e.g., $d_{\text{model}} = 512$ in standard Transformer, $4096$ in LLaMA-7B, $8192$ in LLaMA-70B).</dd>
-  \lt dt>\lt strong>$h$ (Number of Heads)</strong></dt>
-  \lt dd>The number of parallel attention subspaces (e.g., $h = 8$ in standard Transformer, $h = 32$ in LLaMA-7B, $h = 64$ in LLaMA-70B).</dd>
-  \lt dt>\lt strong>$d_k$ (Key / Query Head Dimension)</strong></dt>
-  \lt dd>The dimensionality of Query and Key vectors inside each individual head: $d_k = \frac{d_{\text{model}}}{h}$ (typically $d_k = 64$ or $128$).</dd>
-  \lt dt>\lt strong>$d_v$ (Value Head Dimension)</strong></dt>
-  \lt dd>The dimensionality of Value vectors inside each head (almost always set to $d_v = d_k = \frac{d_{\text{model}}}{h}$).</dd>
-  \lt dt>\lt strong>$\mathbf{W}_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
-  \lt dd>Learned Query projection matrix for head $i \in \{1, 2, \dots, h\}$.</dd>
-  \lt dt>\lt strong>$\mathbf{W}_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
-  \lt dd>Learned Key projection matrix for head $i \in \{1, 2, \dots, h\}$.</dd>
-  \lt dt>\lt strong>$\mathbf{W}_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$</strong></dt>
-  \lt dd>Learned Value projection matrix for head $i \in \{1, 2, \dots, h\}$.</dd>
-  \lt dt>\lt strong>$\mathbf{W}^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$</strong></dt>
-  \lt dd>Learned Output projection matrix that mixes and combines all head representations back into the model dimension.</dd>
+<details>
+<summary><strong>Mathematical Symbol Catalog & Dimensionality Mapping</strong></summary>
+<dl>
+  <dt><strong>$d_{\text{model}}$ (Model Dimension)</strong></dt>
+  <dd>The width of the token representation vectors in the residual stream (e.g., $d_{\text{model}} = 512$ in standard Transformer, $4096$ in LLaMA-7B, $8192$ in LLaMA-70B).</dd>
+  <dt><strong>$h$ (Number of Heads)</strong></dt>
+  <dd>The number of parallel attention subspaces (e.g., $h = 8$ in standard Transformer, $h = 32$ in LLaMA-7B, $h = 64$ in LLaMA-70B).</dd>
+  <dt><strong>$d_k$ (Key / Query Head Dimension)</strong></dt>
+  <dd>The dimensionality of Query and Key vectors inside each individual head: $d_k = \frac{d_{\text{model}}}{h}$ (typically $d_k = 64$ or $128$).</dd>
+  <dt><strong>$d_v$ (Value Head Dimension)</strong></dt>
+  <dd>The dimensionality of Value vectors inside each head (almost always set to $d_v = d_k = \frac{d_{\text{model}}}{h}$).</dd>
+  <dt><strong>$\mathbf{W}_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
+  <dd>Learned Query projection matrix for head $i \in \{1, 2, \dots, h\}$.</dd>
+  <dt><strong>$\mathbf{W}_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
+  <dd>Learned Key projection matrix for head $i \in \{1, 2, \dots, h\}$.</dd>
+  <dt><strong>$\mathbf{W}_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$</strong></dt>
+  <dd>Learned Value projection matrix for head $i \in \{1, 2, \dots, h\}$.</dd>
+  <dt><strong>$\mathbf{W}^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$</strong></dt>
+  <dd>Learned Output projection matrix that mixes and combines all head representations back into the model dimension.</dd>
 </dl>
 </details>
 
@@ -147,26 +159,38 @@ For a single gigantic head operating on full dimension $d_{\text{model}}$:
 
 Now calculate the parameter count for $h$ independent heads, where each head has dimension $d_k = \frac{d_{\text{model}}}{h}$:
 
+
+
 $$
 \sum_{i=1}^h \operatorname{size}(\mathbf{W}_i^Q) = h \times \left(d_{\text{model}} \times d_k\right) = h \times \left(d_{\text{model}} \times \frac{d_{\text{model}}}{h}\right) = d_{\text{model}}^2
 $$
+
+
 
 The factor of $h$ in the head count and the factor of $\frac{1}{h}$ in the subspace dimension cancel out completely!
 
 The same cancellation applies to $\mathbf{W}^K$, $\mathbf{W}^V$, and the output projection $\mathbf{W}^O$:
 
+
+
 $$
 \operatorname{size}(\mathbf{W}^O) = (h \cdot d_v) \times d_{\text{model}} = \left(h \cdot \frac{d_{\text{model}}}{h}\right) \times d_{\text{model}} = d_{\text{model}}^2
 $$
+
+
 
 #### B. Total Attention FLOPs
 
 For each head $i$, computing $\mathbf{Q}_i \mathbf{K}_i^\top$ takes $T^2 d_k$ multiply-accumulate operations.
 Across all $h$ heads:
 
+
+
 $$
 \text{Total FLOPs} = h \times (T^2 d_k) = h \times \left(T^2 \frac{d_{\text{model}}}{h}\right) = T^2 d_{\text{model}}
 $$
+
+
 
 Multi-Head Attention divides the feature space into $h$ orthogonal channels without spending an extra single floating-point operation!
 
@@ -174,12 +198,12 @@ Multi-Head Attention divides the feature space into $h$ orthogonal channels with
 
 ### 4. Modern KV Cache Variants: MHA vs. MQA vs. GQA
 
-During LLM generation (inference), the model must store the Keys and Values of all past tokens in GPU memory (the \lt abbr title="Key-Value Cache">KV Cache</abbr>). As context windows expanded to 32k and 128k tokens, the memory required to store $h$ Key and Value matrices per layer became the ultimate hardware bottleneck.
+During LLM generation (inference), the model must store the Keys and Values of all past tokens in GPU memory (the <abbr title="Key-Value Cache">KV Cache</abbr>). As context windows expanded to 32k and 128k tokens, the memory required to store $h$ Key and Value matrices per layer became the ultimate hardware bottleneck.
 
 To break this bottleneck, researchers engineered two major architectural evolutions:
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 Comparison of Attention Head Configurations:
 
 1. Multi-Head Attention (MHA) ── Vaswani et al. (2017)
@@ -197,7 +221,7 @@ Comparison of Attention Head Configurations:
    Keys:    [   K_1     ] [   K_2     ] [   K_3     ] [   K_4     ]        ◄── 4 KV heads in memory
    Values:  [   V_1     ] [   V_2     ] [   V_3     ] [   V_4     ]          (Best balance of quality & speed)
 </pre>
-\lt figcaption>\lt strong>Figure 11.2:</strong> Structural difference between MHA (standard), MQA (extreme memory savings), and GQA (modern production standard).</figcaption>
+<figcaption><strong>Figure 11.2:</strong> Structural difference between MHA (standard), MQA (extreme memory savings), and GQA (modern production standard).</figcaption>
 </figure>
 
 1. **Multi-Query Attention (MQA, Shazeer 2019)**:
@@ -212,8 +236,8 @@ Comparison of Attention Head Configurations:
 
 ## Step 4: Where Did It Come From? {: #step-4 }
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 The Evolutionary Journey of Multi-Perspective Attention:
 
 1990s-2015: Single Ensemble Classifiers ──► Train N separate models and average outputs.
@@ -237,7 +261,7 @@ The Evolutionary Journey of Multi-Perspective Attention:
                                              Golden compromise between quality and inference throughput;
                                              Adopted by LLaMA-2/3, Mistral, Gemma, and DeepSeek.
 </pre>
-\lt figcaption>\lt strong>Figure 11.3:</strong> Historical timeline from early ensemble models to modern Grouped-Query Attention.</figcaption>
+<figcaption><strong>Figure 11.3:</strong> Historical timeline from early ensemble models to modern Grouped-Query Attention.</figcaption>
 </figure>
 
 ### 1. The Historical Catalyst: The Collapse of Single-Head Attention
@@ -256,46 +280,46 @@ By projecting $\mathbf{Q}, \mathbf{K}, \mathbf{V}$ into multiple orthogonal subs
 
 ### 2. Architectural Comparison: Trade-offs Across Paradigms
 
-\lt fieldset>
-\lt legend>\lt strong>Architectural Trade-offs: MHA vs. MQA vs. GQA</strong></legend>
+<fieldset>
+<legend><strong>Architectural Trade-offs: MHA vs. MQA vs. GQA</strong></legend>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>Table 11.1:</strong> Comparison of attention head architectures.</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0eee6">
-      \lt th align="left">Architecture</th>
-      \lt th align="center">Query Heads</th>
-      \lt th align="center">KV Heads</th>
-      \lt th align="center">KV Cache Memory Ratio</th>
-      \lt th align="left">Primary Trade-off / Verdict</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 11.1:</strong> Comparison of attention head architectures.</caption>
+  <thead>
+    <tr bgcolor="#f0eee6">
+      <th align="left">Architecture</th>
+      <th align="center">Query Heads</th>
+      <th align="center">KV Heads</th>
+      <th align="center">KV Cache Memory Ratio</th>
+      <th align="left">Primary Trade-off / Verdict</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>\lt strong>Multi-Head Attention (MHA)</strong></td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$1.0\times$ (Baseline)</td>
-      \lt td>
-        \lt del>Heavy memory footprint!</del> Maximum expressive power during training, but KV cache consumes dozens of gigabytes during long-context inference.
+  <tbody>
+    <tr>
+      <td><strong>Multi-Head Attention (MHA)</strong></td>
+      <td align="center">$h$</td>
+      <td align="center">$h$</td>
+      <td align="center">$1.0\times$ (Baseline)</td>
+      <td>
+        <del>Heavy memory footprint!</del> Maximum expressive power during training, but KV cache consumes dozens of gigabytes during long-context inference.
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>Multi-Query Attention (MQA)</strong></td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$1$</td>
-      \lt td align="center">$\frac{1}{h}\times$ (Up to $32\times$ smaller)</td>
-      \lt td>
-        \lt del>Minor quality degradation.</del> Extremely fast inference and massive batching capacity, but can suffer slight accuracy drops on complex reasoning.
+    <tr>
+      <td><strong>Multi-Query Attention (MQA)</strong></td>
+      <td align="center">$h$</td>
+      <td align="center">$1$</td>
+      <td align="center">$\frac{1}{h}\times$ (Up to $32\times$ smaller)</td>
+      <td>
+        <del>Minor quality degradation.</del> Extremely fast inference and massive batching capacity, but can suffer slight accuracy drops on complex reasoning.
       </td>
     </tr>
-    \lt tr bgcolor="#fdfdf0">
-      \lt td>\lt strong>Grouped-Query Attention (GQA)</strong></td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$g$ ($1 \lt g \lt h$)</td>
-      \lt td align="center">$\frac{g}{h}\times$ (Typically $8\times$ smaller)</td>
-      \lt td>
-        \lt ins>\lt strong>The Modern Production Standard!</strong></ins> Matches MHA accuracy across virtually all benchmarks while delivering MQA-level inference speed and memory savings.
+    <tr bgcolor="#fdfdf0">
+      <td><strong>Grouped-Query Attention (GQA)</strong></td>
+      <td align="center">$h$</td>
+      <td align="center">$g$ ($1 \lt g \lt h$)</td>
+      <td align="center">$\frac{g}{h}\times$ (Typically $8\times$ smaller)</td>
+      <td>
+        <ins><strong>The Modern Production Standard!</strong></ins> Matches MHA accuracy across virtually all benchmarks while delivering MQA-level inference speed and memory savings.
       </td>
     </tr>
   </tbody>
@@ -310,16 +334,22 @@ Let us trace a complete numerical example with tiny numbers so you can verify ev
 
 ### 1. Setup
 
-Let sequence length be $T = 2$ (tokens: \lt kbd>"The"</kbd> and \lt kbd>"cat"</kbd>).
+Let sequence length be $T = 2$ (tokens: <kbd>"The"</kbd> and <kbd>"cat"</kbd>).
 Let model dimension be $d_{\text{model}} = 4$.
 Let number of heads be $h = 2$.
 Subspace dimension:
+
+
 
 $$
 d_k = d_v = \frac{d_{\text{model}}}{h} = \frac{4}{2} = 2
 $$
 
+
+
 Suppose the input token representations are:
+
+
 
 $$
 \mathbf{X} = \begin{bmatrix}
@@ -331,6 +361,8 @@ $$
 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
 
+
+
 For simplicity, assume $\mathbf{Q} = \mathbf{K} = \mathbf{V} = \mathbf{X}$.
 
 ---
@@ -339,13 +371,19 @@ For simplicity, assume $\mathbf{Q} = \mathbf{K} = \mathbf{V} = \mathbf{X}$.
 
 Let the projection matrices for Head 1 be:
 
+
+
 $$
 \mathbf{W}_1^Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix}, \quad
 \mathbf{W}_1^K = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix}, \quad
 \mathbf{W}_1^V = \begin{bmatrix} 1 & 0 \\ 0 & 2 \\ 0 & 0 \\ 0 & 0 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
 $$
 
+
+
 Notice that Head 1 completely ignores the 3rd and 4th dimensions of $\mathbf{X}$! It projects into the subspace of the first two dimensions:
+
+
 
 $$
 \mathbf{Q}_1 = \mathbf{X}\mathbf{W}_1^Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
@@ -353,32 +391,50 @@ $$
 \mathbf{V}_1 = \mathbf{X}\mathbf{W}_1^V = \begin{bmatrix} 1 & 0 \\ 0 & 2 \end{bmatrix}
 $$
 
+
+
 Compute the raw score matrix for Head 1 (with $\sqrt{d_k} = \sqrt{2} \approx 1.414$):
+
+
 
 $$
 \mathbf{Q}_1 \mathbf{K}_1^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 1.0 & 0.0 \\ 0.0 & 1.0 \end{bmatrix}
 $$
 
+
+
 Scaled scores $\mathbf{S}_1 = \frac{\mathbf{Q}_1 \mathbf{K}_1^\top}{\sqrt{2}}$:
+
+
 
 $$
 \mathbf{S}_1 = \begin{bmatrix} \frac{1}{\sqrt{2}} & 0 \\ 0 & \frac{1}{\sqrt{2}} \end{bmatrix} \approx \begin{bmatrix} 0.7071 & 0.0000 \\ 0.0000 & 0.7071 \end{bmatrix}
 $$
+
+
 
 Row-wise Softmax:
 - Row 1: $e^{0.7071} \approx 2.0281$, $e^{0} = 1.0000$. $\sum = 3.0281$.
   $A_{11} = \frac{2.0281}{3.0281} \approx 0.67$, $A_{12} = \frac{1.0}{3.0281} \approx 0.33$.
 - Row 2 (by symmetry): $A_{21} \approx 0.33$, $A_{22} \approx 0.67$.
 
+
+
 $$
 \mathbf{A}_1 \approx \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
 $$
 
+
+
 Head 1 output representation:
+
+
 
 $$
 \operatorname{head}_1 = \mathbf{A}_1 \mathbf{V}_1 = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} 0.67 & 0.66 \\ 0.33 & 1.34 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
 $$
+
+
 
 ---
 
@@ -386,14 +442,20 @@ $$
 
 Now let the projection matrices for Head 2 focus on the 3rd and 4th dimensions:
 
+
+
 $$
 \mathbf{W}_2^Q = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
 \mathbf{W}_2^K = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}, \quad
 \mathbf{W}_2^V = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 3 & 0 \\ 0 & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
 $$
 
+
+
 Notice that $\mathbf{W}_2^K$ flips the two axes!
 Compute projections:
+
+
 
 $$
 \mathbf{Q}_2 = \mathbf{X}\mathbf{W}_2^Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
@@ -401,31 +463,49 @@ $$
 \mathbf{V}_2 = \mathbf{X}\mathbf{W}_2^V = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}
 $$
 
+
+
 Compute raw dot products for Head 2:
+
+
 
 $$
 \mathbf{Q}_2 \mathbf{K}_2^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0.0 & 1.0 \\ 1.0 & 0.0 \end{bmatrix}
 $$
 
+
+
 Scaled scores $\mathbf{S}_2$:
+
+
 
 $$
 \mathbf{S}_2 \approx \begin{bmatrix} 0.0000 & 0.7071 \\ 0.7071 & 0.0000 \end{bmatrix}
 $$
 
+
+
 Softmax weights $\mathbf{A}_2$:
+
+
 
 $$
 \mathbf{A}_2 \approx \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix}
 $$
 
-\lt mark>Notice the profound difference: Head 1 attended mostly to itself (diagonal = 0.67), while Head 2 attended mostly to the opposite token (off-diagonal = 0.67)!</mark>
+
+
+<mark>Notice the profound difference: Head 1 attended mostly to itself (diagonal = 0.67), while Head 2 attended mostly to the opposite token (off-diagonal = 0.67)!</mark>
 
 Head 2 output representation:
+
+
 
 $$
 \operatorname{head}_2 = \mathbf{A}_2 \mathbf{V}_2 = \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix} \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.99 & 0.67 \\ 2.01 & 0.33 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
 $$
+
+
 
 ---
 
@@ -433,12 +513,16 @@ $$
 
 Now concatenate the two specialized 2D outputs along the feature dimension:
 
+
+
 $$
 \mathbf{H}_{\text{cat}} = \operatorname{Concat}(\operatorname{head}_1, \operatorname{head}_2) = \begin{bmatrix}
 0.67 & 0.66 & 0.99 & 0.67 \\
 0.33 & 1.34 & 2.01 & 0.33
 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
+
+
 
 Each row now contains the combined, multi-perspective intelligence of both heads!
 
@@ -448,12 +532,16 @@ Each row now contains the combined, multi-perspective intelligence of both heads
 
 Finally, the concatenated tensor is multiplied by the learned output projection matrix $\mathbf{W}^O \in \mathbb{R}^{4 \times 4}$. For simplicity, let $\mathbf{W}^O = \mathbf{I}_4$ (identity matrix):
 
+
+
 $$
 \operatorname{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \mathbf{H}_{\text{cat}} \mathbf{W}^O = \begin{bmatrix}
 0.67 & 0.66 & 0.99 & 0.67 \\
 0.33 & 1.34 & 2.01 & 0.33
 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
+
+
 
 Both tokens now possess rich, multi-dimensional representations incorporating both self-focus and cross-token contextual information, produced with zero parameter blowup!
 

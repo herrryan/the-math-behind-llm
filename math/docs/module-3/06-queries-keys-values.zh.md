@@ -96,9 +96,13 @@
 
 设一个包含 $T$ 个 Token 的输入文本序列，经过词嵌入矩阵查找后，形成输入特征矩阵：
 
+
+
 $$
 \mathbf{X} \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
+
+
 
 其中：
 - $T$ 为序列的时间步长度（Token 数量，如上下文窗口内的 2048 个词）；
@@ -106,29 +110,49 @@ $$
 
 为了赋予模型在不同角色维度上观察信息的能力，Transformer 引入了**三个完全独立、可学习的线性投影参数矩阵**：
 
+
+
 $$
 \mathbf{W}_Q \in \mathbb{R}^{d_{\text{model}} \times d_k}, \quad \mathbf{W}_K \in \mathbb{R}^{d_{\text{model}} \times d_k}, \quad \mathbf{W}_V \in \mathbb{R}^{d_{\text{model}} \times d_v}
 $$
 
+
+
 通过三次并行的矩阵乘法，原始输入矩阵 $\mathbf{X}$ 被瞬间投射为三个全新的几何空间：
+
+
 
 $$
 \mathbf{Q} = \mathbf{X} \mathbf{W}_Q \in \mathbb{R}^{T \times d_k} \quad (\text{查询矩阵，Query Matrix})
 $$
 
+
+
+
+
 $$
 \mathbf{K} = \mathbf{X} \mathbf{W}_K \in \mathbb{R}^{T \times d_k} \quad (\text{键矩阵，Key Matrix})
 $$
+
+
+
+
 
 $$
 \mathbf{V} = \mathbf{X} \mathbf{W}_V \in \mathbb{R}^{T \times d_v} \quad (\text{值矩阵，Value Matrix})
 $$
 
+
+
 在单头注意力（Single-Head Attention）的经典设定中，通常取 $d_k = d_v = d_{\text{model}}$；而在现代多头注意力机制（Multi-Head Attention）中，设头数为 $h$，则每个注意力子空间的维度被切分为：
+
+
 
 $$
 d_k = d_v = \frac{d_{\text{model}}}{h}
 $$
+
+
 
 例如在 LLaMA-3 8B 中，$d_{\text{model}} = 4096, h = 32$，因此每个头对应的注意力子空间维度为 $d_k = \frac{4096}{32} = 128$。
 
@@ -138,17 +162,29 @@ $$
 
 宏观的矩阵乘法本质上是每个 Token 独立向量运算的并行打包。让我们剥离矩阵外壳，透视位于第 $i$ 个位置的单字行向量 $\mathbf{x}_i^\top \in \mathbb{R}^{1 \times d_{\text{model}}}$：
 
+
+
 $$
 \mathbf{q}_i^\top = \mathbf{x}_i^\top \mathbf{W}_Q \in \mathbb{R}^{1 \times d_k} \quad (\text{Token } i \text{ 的查询向量})
 $$
+
+
+
+
 
 $$
 \mathbf{k}_i^\top = \mathbf{x}_i^\top \mathbf{W}_K \in \mathbb{R}^{1 \times d_k} \quad (\text{Token } i \text{ 的键向量})
 $$
 
+
+
+
+
 $$
 \mathbf{v}_i^\top = \mathbf{x}_i^\top \mathbf{W}_V \in \mathbb{R}^{1 \times d_v} \quad (\text{Token } i \text{ 的值向量})
 $$
+
+
 
 <figure>
 <pre>
@@ -182,9 +218,13 @@ $$
 #### 灾难 1：点积的对称性陷阱（The Symmetry Trap）
 向量的点积运算在代数上具有天然的交换律：
 
+
+
 $$
 \mathbf{x}_i \cdot \mathbf{x}_j = \mathbf{x}_j \cdot \mathbf{x}_i
 $$
+
+
 
 如果直接使用原始向量计算相关性，那么 **Token $i$ 对 Token $j$ 的注意力强度，必然百分之百严格等于 Token $j$ 对 Token $i$ 的注意力强度**！
 
@@ -199,24 +239,36 @@ $$
 **语言的关系是高度有向、高度不对称的（Asymmetric & Directed）**。
 通过引入独立的 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$，相关度计算变成了：
 
+
+
 $$
 \text{Score}(i \to j) = \mathbf{q}_i^\top \mathbf{k}_j = (\mathbf{x}_i^\top \mathbf{W}_Q)(\mathbf{x}_j^\top \mathbf{W}_K)^\top = \mathbf{x}_i^\top (\mathbf{W}_Q \mathbf{W}_K^\top) \mathbf{x}_j
 $$
+
+
 
 由于矩阵相乘通常不满足对称性（$\mathbf{W}_Q \mathbf{W}_K^\top \ne \mathbf{W}_K \mathbf{W}_Q^\top$），这便彻底**打破了对称性诅咒**，使模型能够精确建模 $i$ 关注 $j$ 与 $j$ 关注 $i$ 截然不同的有向依赖！
 
 #### 灾难 2：自恋狂自注意力陷阱（The Self-Absorption Bias）
 在线性代数中，任何非零向量与自身的点积，等于其模长的平方（即欧几里得范数的平方）：
 
+
+
 $$
 \mathbf{x}_i \cdot \mathbf{x}_i = \|\mathbf{x}_i\|^2 = \sum_{k=1}^d x_{ik}^2 > 0
 $$
 
+
+
 根据柯西-施瓦茨不等式（Cauchy-Schwarz Inequality）：
+
+
 
 $$
 |\mathbf{x}_i \cdot \mathbf{x}_j| \le \|\mathbf{x}_i\| \cdot \|\mathbf{x}_j\|
 $$
+
+
 
 如果两个词向量的模长相仿，那么**一个词与自己的点积，几乎永远大于它与其他任何不同词的点积**！
 - 如果没有 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 的转置投影，每个词计算出的自相关分数 $\mathbf{x}_i \cdot \mathbf{x}_i$ 会以压倒性优势碾压周围的所有词；
@@ -325,6 +377,8 @@ $$
 
 假设经过词嵌入后，3 个词的 4 维特征行向量如下：
 
+
+
 $$
 \mathbf{X} = \begin{bmatrix}
 \mathbf{x}_1^\top \\
@@ -337,6 +391,8 @@ $$
 \end{bmatrix}
 $$
 
+
+
 其中：
 - $\mathbf{x}_1 = [1, 0, 1, 0]$（虚词 "The"）
 - $\mathbf{x}_2 = [0, 2, 0, 1]$（水利词 "river"）
@@ -347,6 +403,8 @@ $$
 ### 2. 设定三个投影矩阵 $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{4 \times 2}$
 
 为了让算术过程一目了然，我们精心设计包含简单整数与小数的投影参数：
+
+
 
 $$
 \mathbf{W}_Q = \begin{bmatrix}
@@ -368,6 +426,8 @@ $$
 0 & 1
 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -392,6 +452,8 @@ $$
 
 汇总得出完整查询矩阵：
 
+
+
 $$
 \mathbf{Q} = \begin{bmatrix}
 1 & 1 \\
@@ -399,6 +461,8 @@ $$
 3 & 1
 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -421,6 +485,8 @@ $$
 
 汇总得出完整键矩阵：
 
+
+
 $$
 \mathbf{K} = \begin{bmatrix}
 1 & 1 \\
@@ -428,6 +494,8 @@ $$
 1 & 3
 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -444,6 +512,8 @@ $$
 
 汇总得出完整值矩阵：
 
+
+
 $$
 \mathbf{V} = \begin{bmatrix}
 1 & 2 \\
@@ -452,12 +522,16 @@ $$
 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 4. 关键高潮：手算原始注意力关联矩阵 $\mathbf{S} = \mathbf{Q} \mathbf{K}^\top \in \mathbb{R}^{3 \times 3}$
 
 现在，让我们见证奇迹时刻！
 我们计算 $\mathbf{Q}$ 的每一行（各词的心愿）与 $\mathbf{K}^\top$ 的每一列（各词的标签）的点积：
+
+
 
 $$
 \mathbf{S} = \mathbf{Q} \mathbf{K}^\top = \begin{bmatrix}
@@ -469,6 +543,8 @@ $$
 1 & 1 & 3
 \end{bmatrix}
 $$
+
+
 
 逐项相乘求和：
 - 第 1 行（"The" 的注意力倾向）：
@@ -484,6 +560,8 @@ $$
   - $S_{32} = \mathbf{q}_3 \cdot \mathbf{k}_2 = 3\times 2 + 1\times 1 = \mathbf{7}$ （对水利词 <mark>"river"</mark> 的匹配分！）
   - $S_{33} = \mathbf{q}_3 \cdot \mathbf{k}_3 = 3\times 1 + 1\times 3 = 6$ （对自身的自相关分）
 
+
+
 $$
 \mathbf{S} = \begin{bmatrix}
 2 & 3 & 4 \\
@@ -491,6 +569,8 @@ $$
 4 & \mathbf{7} & 6
 \end{bmatrix}
 $$
+
+
 
 ---
 

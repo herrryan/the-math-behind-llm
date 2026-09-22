@@ -50,9 +50,13 @@
 !!! question "计算连接问题: 如何将“意外惊吓”转化为数学上可求导的误差信号？"
     在第 00 章和第 07 章中，我们看到 Transformer 最后一层的隐藏向量 $\mathbf{x}_L$ 经由未嵌入矩阵 $\mathbf{W}_U$ 映射为原始分值 Logits $\mathbf{z} \in \mathbb{R}^{|V|}$，并通过 Softmax 转化为概率分布：
 
+
+
     $$
     \hat{y}_i = P(w_{t+1} = i \mid w_{\le t}) = \frac{e^{z_i}}{\sum_{j=1}^{|V|} e^{z_j}}
     $$
+
+
 
     真实训练语料给出了下一个词的真实标准答案 $w^* \in \{1, \dots, |V|\}$，它可以写成一个**独热（One-Hot）目标标签向量** $\mathbf{y} \in \{0, 1\}^{|V|}$，其中只有真实词对应位置为 $1$（$y_{w^*} = 1$），其他位置全为 $0$。
 
@@ -67,17 +71,25 @@
 
 ### 1. 交叉熵损失函数公式
 
-真实离散分布 $\mathbf{y}$ 与预测概率分布 $\hat{\mathbf{y}}$ 之间的 \lt dfn id="def-ce-math-zh">交叉熵损失（Cross-Entropy Loss）</dfn> 定义为：
+真实离散分布 $\mathbf{y}$ 与预测概率分布 $\hat{\mathbf{y}}$ 之间的 <dfn id="def-ce-math-zh">交叉熵损失（Cross-Entropy Loss）</dfn> 定义为：
+
+
 
 $$
 \mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}}) = -\sum_{i=1}^{|V|} y_i \log(\hat{y}_i)
 $$
 
+
+
 由于真实目标向量是独热编码（对于正确词元 $w^*$，其目标值为 $y_{w^*} = 1$；其余所有非目标词元 $i \ne w^*$ 的目标值均为 $y_i = 0$），这个遍历 128,000 个词的庞大求和式会奇迹般地**坍缩为一个唯一的标量项**：
+
+
 
 $$
 \mathcal{L}_{\text{CE}} = -\log(\hat{y}_{w^*})
 $$
+
+
 
 其中：
 - $w^*$ 是当前位置真实词元的字典索引。
@@ -92,20 +104,30 @@ $$
 
 当我们对未经过归一化的原始输出 Logit $z_i$ 求交叉熵损失的偏导数时：
 
+
+
 $$
 \frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} = \hat{y}_i - y_i
 $$
 
+
+
 用向量形式简写为：
+
+
 
 $$
 \nabla_{\mathbf{z}} \mathcal{L}_{\text{CE}} = \hat{\mathbf{y}} - \mathbf{y}
 $$
 
-\lt details>
-\lt summary>\lt strong>数学推导证明：为什么复杂微积分最后只剩下“预测值减真实值”？</strong></summary>
+
+
+<details>
+<summary><strong>数学推导证明：为什么复杂微积分最后只剩下“预测值减真实值”？</strong></summary>
 
 回顾第 07 章中推导出的 Softmax 雅可比导数：
+
+
 
 $$
 \frac{\partial \hat{y}_k}{\partial z_i} = \begin{cases}
@@ -114,7 +136,11 @@ $$
 \end{cases}
 $$
 
+
+
 对交叉熵公式 $\mathcal{L}_{\text{CE}} = -\sum_{k} y_k \log \hat{y}_k$ 应用多元微积分链式法则：
+
+
 
 $$
 \begin{aligned}
@@ -127,6 +153,8 @@ $$
 \end{aligned}
 $$
 
+
+
 所有的指数函数、连乘除法全部消弭无形！得到的梯度竟然就是纯粹的**“模型预测概率减去真实标签概率”**：
 - 如果真实词标签是 $y_{w^*} = 1$，模型预测概率却只有 $\hat{y}_{w^*} = 0.20$，梯度就是 $0.20 - 1.0 = -0.80$（负梯度会命令优化器：猛烈把该词的 Logit $z_{w^*}$ 往上推高！）。
 - 如果某个错误词的标签是 $y_j = 0$，模型却误给了 $\hat{y}_j = 0.35$，梯度就是 $0.35 - 0 = +0.35$（正梯度命令优化器：狠狠把该词的 Logit $z_j$ 往下按低！）。
@@ -136,11 +164,15 @@ $$
 
 ### 3. 困惑度（Perplexity）：损失值的直观物理度量
 
-在学术界论文和前沿技术报告中，研究人员通常不直接看抽象的损失数值，而是汇报 \lt dfn id="def-ppl-math-zh">困惑度（Perplexity, 简称 PPL）</dfn>：
+在学术界论文和前沿技术报告中，研究人员通常不直接看抽象的损失数值，而是汇报 <dfn id="def-ppl-math-zh">困惑度（Perplexity, 简称 PPL）</dfn>：
+
+
 
 $$
-\operatorname{PPL} = \exp\left(\mathcal{L}_{\text{CE}}\right) = e^{-\frac{1}{N}\sum_{t=1}^N \log P(w_t \mid w_{<t})}
+\operatorname{PPL} = \exp\left(\mathcal{L}_{\text{CE}}\right) = e^{-\frac{1}{N}\sum_{t=1}^N \log P(w_t \mid w_{\lt t})}
 $$
+
+
 
 困惑度背后的物理现实含义是什么？
 - **$\operatorname{PPL} = 1.0$**：绝对的完美神迹。模型在每一步都百分之百确定地下注正确（$P = 1.0$）。
@@ -159,8 +191,8 @@ $$
 
 但在大模型的完整生命周期中，随着训练任务从“学习语言统计规律”逐步进阶到“遵循人类意图”与“执行复杂链式推理”，损失函数经历了清晰的三阶段演化：
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 ┌────────────────────────────────────────────────────────────────────────┐
 │               大语言模型完整生命周期的三大损失函数演进                 │
 └────────────────────────────────────────────────────────────────────────┘
@@ -180,7 +212,7 @@ $$
             - DPO 损失: 拉大优质回答与劣质回答的概率差 (参见第 19 章)
             - 强化学习损失: 根据答案对错直接给予数值奖励 (PPO / GRPO)
 </pre>
-\lt figcaption>\lt strong>图 15.2：</strong> 大语言模型从“通读全网”到“学会做人”与“深度思考”的损失函数全景演变。</figcaption>
+<figcaption><strong>图 15.2：</strong> 大语言模型从“通读全网”到“学会做人”与“深度思考”的损失函数全景演变。</figcaption>
 </figure>
 
 此外，在最新的混合专家模型（MoE，如 Mixtral 与 DeepSeek）中，为了防止所有 Token 都扎堆去挤同一个热门专家，算法还会引入**负载均衡辅助损失（Load Balancing Auxiliary Loss）**。
@@ -200,8 +232,8 @@ $$
 
 为什么损失函数非得写成负对数求和 $-\sum y_i \log \hat{y}_i$ 的形式？
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 1948: 克劳德·香农 (贝尔实验室) ──► 信息熵 (Information Entropy):
                                     H(P) = - sum_i p_i * log_2(p_i)
                                     （编码并传输真实世界消息所需的最少位数）
@@ -217,7 +249,7 @@ $$
                                     人类真实语言本身的固有熵 H(P) 是固定常数，
                                     最小化交叉熵等价于将模型与人类现实的 KL 散度清零！
 </pre>
-\lt figcaption>\lt strong>图 15.3：</strong> 从香农通信理论的香农熵，到现代大模型衡量与人类现实差距的损失函数演进路径。</figcaption>
+<figcaption><strong>图 15.3：</strong> 从香农通信理论的香农熵，到现代大模型衡量与人类现实差距的损失函数演进路径。</figcaption>
 </figure>
 
 在信息论中：
@@ -225,9 +257,13 @@ $$
 2. $D_{\text{KL}}(P \parallel Q) = \sum P(x) \log \frac{P(x)}{Q(x)} \ge 0$ 衡量了用大模型预测概率 $Q$ 来模拟真实人类分布 $P$ 时产生的额外信息浪费。
 3. 交叉熵严格等于二者之和：
 
+
+
 $$
 H(P, Q) = \underbrace{H(P)}_{\text{客观固定常数}} + \underbrace{D_{\text{KL}}(P \parallel Q)}_{\ge 0}
 $$
+
+
 
 因为 $H(P)$ 不受模型参数控制，所以**在计算机里最小化交叉熵损失，在数学本质上就是彻底抹平大模型预测与人类真实语言之间的 KL 相对熵！**
 
@@ -239,35 +275,43 @@ $$
 
 ### 1. 微型词表与输入设定
 词表大小 $|V| = 3$：
-- 索引 1：\lt kbd>“苹果”</kbd>
-- 索引 2：\lt kbd>“香蕉”</kbd>
-- 索引 3：\lt kbd>“猫”</kbd>
+- 索引 1：<kbd>“苹果”</kbd>
+- 索引 2：<kbd>“香蕉”</kbd>
+- 索引 3：<kbd>“猫”</kbd>
 
-假设当前输入上文是：“我领养了一只可爱的……”，书籍里的真实下一个词是 **\lt kbd>“猫”</kbd>**（索引 3）。
+假设当前输入上文是：“我领养了一只可爱的……”，书籍里的真实下一个词是 **<kbd>“猫”</kbd>**（索引 3）。
 
 独热目标真实向量为：
+
+
 
 $$
 \mathbf{y} = \begin{bmatrix} 0.0 & 0.0 & 1.0 \end{bmatrix}
 $$
 
+
+
 假设模型最后一层输出的未归一化对数几率 Logits 为：
+
+
 
 $$
 \mathbf{z} = \begin{bmatrix} z_1 \\ z_2 \\ z_3 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 1.0 \\ 0.1 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 2. 前向计算：Softmax 概率化
 
-\lt fieldset>
-\lt legend>\lt strong>计算流程清单</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 A：</strong> 计算指数值 $e^{z_i}$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 B：</strong> 求和并归一化为预测概率分布 $\hat{\mathbf{y}}$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 C：</strong> 计算交叉熵损失 $\mathcal{L}_{\text{CE}} = -\log(\hat{y}_3)$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 D：</strong> 计算困惑度 $\operatorname{PPL} = \exp(\mathcal{L}_{\text{CE}})$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 E：</strong> 计算对数几率误差梯度向量 $\nabla_{\mathbf{z}}\mathcal{L} = \hat{\mathbf{y}} - \mathbf{y}$。</p>
+<fieldset>
+<legend><strong>计算流程清单</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 A：</strong> 计算指数值 $e^{z_i}$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 B：</strong> 求和并归一化为预测概率分布 $\hat{\mathbf{y}}$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 C：</strong> 计算交叉熵损失 $\mathcal{L}_{\text{CE}} = -\log(\hat{y}_3)$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 D：</strong> 计算困惑度 $\operatorname{PPL} = \exp(\mathcal{L}_{\text{CE}})$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 E：</strong> 计算对数几率误差梯度向量 $\nabla_{\mathbf{z}}\mathcal{L} = \hat{\mathbf{y}} - \mathbf{y}$。</p>
 </fieldset>
 
 #### 步骤 A：对数几率指数化
@@ -277,18 +321,26 @@ $$
 
 指数分量总和：
 
+
+
 $$
 \sum_{j=1}^3 e^{z_j} = 7.3891 + 2.7183 + 1.1052 = 11.2126
 $$
+
+
 
 #### 步骤 B：执行 Softmax 归一化
 - $\hat{y}_1 = P(\text{“苹果”}) = \frac{7.3891}{11.2126} \approx 0.6590$
 - $\hat{y}_2 = P(\text{“香蕉”}) = \frac{2.7183}{11.2126} \approx 0.2424$
 - $\hat{y}_3 = P(\text{“猫”}) = \frac{1.1052}{11.2126} \approx 0.0986$
 
+
+
 $$
 \hat{\mathbf{y}} = \begin{bmatrix} 0.6590 & 0.2424 & 0.0986 \end{bmatrix}
 $$
+
+
 
 模型大错特错：它把高达 65.9% 的置信度错押给了“苹果”，而真实正确答案“猫”却仅仅获得了可怜的 9.86% 概率！
 
@@ -299,16 +351,24 @@ $$
 #### 步骤 C：交叉熵损失
 由于 $y_3 = 1$，$y_1 = y_2 = 0$：
 
+
+
 $$
 \mathcal{L}_{\text{CE}} = -\log(\hat{y}_3) = -\ln(0.0986) \approx 2.3167 \text{ 奈特}
 $$
 
+
+
 #### 步骤 D：计算困惑度 PPL
+
+
 $$
 \operatorname{PPL} = e^{\mathcal{L}_{\text{CE}}} = e^{2.3167} \approx 10.14
 $$
 
-\lt mark>看：虽然词典总共只有 3 个词，但因为模型过度盲目相信了错误答案，它的惊骇意外程度相当于在 10 个选项里随机投骰子！</mark>
+
+
+<mark>看：虽然词典总共只有 3 个词，但因为模型过度盲目相信了错误答案，它的惊骇意外程度相当于在 10 个选项里随机投骰子！</mark>
 
 ---
 
@@ -320,9 +380,13 @@ $$
 - $\frac{\partial \mathcal{L}}{\partial z_2} = \hat{y}_2 - y_2 = 0.2424 - 0.0 = \mathbf{+0.2424}$
 - $\frac{\partial \mathcal{L}}{\partial z_3} = \hat{y}_3 - y_3 = 0.0986 - 1.0 = \mathbf{-0.9014}$
 
+
+
 $$
 \nabla_{\mathbf{z}} \mathcal{L}_{\text{CE}} = \begin{bmatrix} +0.6590 \\ +0.2424 \\ -0.9014 \end{bmatrix}
 $$
+
+
 
 这个梯度向量包含着无比美妙的物理指示：
 1. $z_1$（“苹果”）收到了正梯度 $+0.6590$：命令反向传播**“立刻削减这个词的分数！”**

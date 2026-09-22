@@ -31,6 +31,7 @@ import random
 corpus = "the cat sat on the mat the dog sat on the rug"
 words = corpus.split()
 vocab = sorted(list(set(words)))
+print(f"vocab: {vocab}")
 word2id = {w: i for i, w in enumerate(vocab)}
 id2word = {i: w for i, w in enumerate(vocab)}
 

@@ -96,9 +96,13 @@ Computers face three pressing bridging questions:
 
 Given an input text sequence of $T$ tokens, its embedded representation forms an input feature matrix:
 
+
+
 $$
 \mathbf{X} \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
+
+
 
 Where:
 - $T$ is the sequence length (number of tokens in the context window, e.g., 2048 or 4096);
@@ -106,29 +110,49 @@ Where:
 
 To grant the model the ability to observe tokens under different specialized roles, the Transformer introduces **three independent, learnable linear projection parameter matrices**:
 
+
+
 $$
 \mathbf{W}_Q \in \mathbb{R}^{d_{\text{model}} \times d_k}, \quad \mathbf{W}_K \in \mathbb{R}^{d_{\text{model}} \times d_k}, \quad \mathbf{W}_V \in \mathbb{R}^{d_{\text{model}} \times d_v}
 $$
 
+
+
 Through three parallel matrix multiplications, the raw input matrix $\mathbf{X}$ is projected into three new geometric spaces:
+
+
 
 $$
 \mathbf{Q} = \mathbf{X} \mathbf{W}_Q \in \mathbb{R}^{T \times d_k} \quad (\text{Query Matrix})
 $$
 
+
+
+
+
 $$
 \mathbf{K} = \mathbf{X} \mathbf{W}_K \in \mathbb{R}^{T \times d_k} \quad (\text{Key Matrix})
 $$
+
+
+
+
 
 $$
 \mathbf{V} = \mathbf{X} \mathbf{W}_V \in \mathbb{R}^{T \times d_v} \quad (\text{Value Matrix})
 $$
 
+
+
 In standard single-head attention setups, one typically sets $d_k = d_v = d_{\text{model}}$. In modern Multi-Head Attention with $h$ attention heads, the dimensional budget is partitioned evenly:
+
+
 
 $$
 d_k = d_v = \frac{d_{\text{model}}}{h}
 $$
+
+
 
 For example, in LLaMA-3 8B ($d_{\text{model}} = 4096, h = 32$), each head operates in an attention subspace of dimension $d_k = \frac{4096}{32} = 128$.
 
@@ -138,17 +162,29 @@ For example, in LLaMA-3 8B ($d_{\text{model}} = 4096, h = 32$), each head operat
 
 The macro matrix product is simply the batch packing of individual token vector transformations. For token $i$ represented by row vector $\mathbf{x}_i^\top \in \mathbb{R}^{1 \times d_{\text{model}}}$:
 
+
+
 $$
 \mathbf{q}_i^\top = \mathbf{x}_i^\top \mathbf{W}_Q \in \mathbb{R}^{1 \times d_k} \quad (\text{Query Vector for Token } i)
 $$
+
+
+
+
 
 $$
 \mathbf{k}_i^\top = \mathbf{x}_i^\top \mathbf{W}_K \in \mathbb{R}^{1 \times d_k} \quad (\text{Key Vector for Token } i)
 $$
 
+
+
+
+
 $$
 \mathbf{v}_i^\top = \mathbf{x}_i^\top \mathbf{W}_V \in \mathbb{R}^{1 \times d_v} \quad (\text{Value Vector for Token } i)
 $$
+
+
 
 <figure>
 <pre>
@@ -182,9 +218,13 @@ Let us trace the **three fatal mathematical disasters** that occur if one forces
 #### Disaster 1: The Symmetry Trap
 Vector dot products are inherently commutative:
 
+
+
 $$
 \mathbf{x}_i \cdot \mathbf{x}_j = \mathbf{x}_j \cdot \mathbf{x}_i
 $$
+
+
 
 If raw embeddings interact directly, **the attention score of Token $i$ towards Token $j$ would be 100% strictly identical to the attention score of Token $j$ towards Token $i$**!
 
@@ -198,24 +238,36 @@ Natural language relationships, however, are deeply **asymmetric and directed**:
 
 By introducing separate $\mathbf{W}_Q$ and $\mathbf{W}_K$, the attention score becomes:
 
+
+
 $$
 \text{Score}(i \to j) = \mathbf{q}_i^\top \mathbf{k}_j = (\mathbf{x}_i^\top \mathbf{W}_Q)(\mathbf{x}_j^\top \mathbf{W}_K)^\top = \mathbf{x}_i^\top (\mathbf{W}_Q \mathbf{W}_K^\top) \mathbf{x}_j
 $$
+
+
 
 Since the matrix product $\mathbf{W}_Q \mathbf{W}_K^\top$ is generally **non-symmetric** ($\mathbf{W}_Q \mathbf{W}_K^\top \ne \mathbf{W}_K \mathbf{W}_Q^\top$), this **destroys the symmetry trap**, allowing the model to freely learn asymmetric directed relationships!
 
 #### Disaster 2: The Self-Absorption Bias
 In linear algebra, any non-zero vector's dot product with itself equals the square of its Euclidean length:
 
+
+
 $$
 \mathbf{x}_i \cdot \mathbf{x}_i = \|\mathbf{x}_i\|^2 = \sum_{m=1}^d x_{im}^2 > 0
 $$
 
+
+
 By the Cauchy-Schwarz inequality:
+
+
 
 $$
 |\mathbf{x}_i \cdot \mathbf{x}_j| \le \|\mathbf{x}_i\| \cdot \|\mathbf{x}_j\|
 $$
+
+
 
 If all word vectors have roughly comparable norms, **a word's dot product with itself is almost guaranteed to be larger than its dot product with any other word in the dictionary**:
 - Without $\mathbf{W}_Q$ and $\mathbf{W}_K$, self-similarity $\mathbf{x}_i \cdot \mathbf{x}_i$ utterly overpowers surrounding tokens;
@@ -324,6 +376,8 @@ To ensure you can verify every single calculation by hand, let us walk through a
 
 Assume the 4-dimensional embedding row vectors for the 3 tokens are:
 
+
+
 $$
 \mathbf{X} = \begin{bmatrix}
 \mathbf{x}_1^\top \\
@@ -336,6 +390,8 @@ $$
 \end{bmatrix}
 $$
 
+
+
 Where:
 - $\mathbf{x}_1 = [1, 0, 1, 0]$ (the function word "The")
 - $\mathbf{x}_2 = [0, 2, 0, 1]$ (the hydrological word "river")
@@ -346,6 +402,8 @@ Where:
 ### 2. The Three Projection Matrices $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{4 \times 2}$
 
 We choose clean integer weights for transparent manual arithmetic:
+
+
 
 $$
 \mathbf{W}_Q = \begin{bmatrix}
@@ -368,6 +426,8 @@ $$
 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 3. Step-by-Step Manual Projections
@@ -389,6 +449,8 @@ For Row 3: $\mathbf{q}_3^\top = [1, 1, 0, 2] \mathbf{W}_Q$ (Query for <kbd>"bank
 - Col 2: $1\times 0 + 1\times 1 + 0\times 1 + 2\times 0 = 1$
 - $\mathbf{q}_3^\top = [3, 1]$
 
+
+
 $$
 \mathbf{Q} = \begin{bmatrix}
 1 & 1 \\
@@ -396,6 +458,8 @@ $$
 3 & 1
 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -416,6 +480,8 @@ For Row 3: $\mathbf{k}_3^\top = [1, 1, 0, 2] \mathbf{W}_K$:
 - Col 2: $1\times 1 + 1\times 0 + 0\times 0 + 2\times 1 = 1 + 2 = 3$
 - $\mathbf{k}_3^\top = [1, 3]$
 
+
+
 $$
 \mathbf{K} = \begin{bmatrix}
 1 & 1 \\
@@ -423,6 +489,8 @@ $$
 1 & 3
 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -434,6 +502,8 @@ For Row 2: $\mathbf{v}_2^\top = [0, 2, 0, 1] \mathbf{W}_V = [0, 1\times 1] = [0,
 
 For Row 3: $\mathbf{v}_3^\top = [1, 1, 0, 2] \mathbf{W}_V = [1\times 1, 2\times 1] = [1, 2]$
 
+
+
 $$
 \mathbf{V} = \begin{bmatrix}
 1 & 2 \\
@@ -442,11 +512,15 @@ $$
 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 4. Raw Attention Scores $\mathbf{S} = \mathbf{Q} \mathbf{K}^\top \in \mathbb{R}^{3 \times 3}$
 
 Now, let us calculate the dot products of each Query with each Key:
+
+
 
 $$
 \mathbf{S} = \mathbf{Q} \mathbf{K}^\top = \begin{bmatrix}
@@ -458,6 +532,8 @@ $$
 1 & 1 & 3
 \end{bmatrix}
 $$
+
+
 
 Computing each row:
 - Row 1 (Query "The"):
@@ -473,6 +549,8 @@ Computing each row:
   - $S_{32} = \mathbf{q}_3 \cdot \mathbf{k}_2 = 3\times 2 + 1\times 1 = \mathbf{7}$ (match with <mark>"river"</mark>!)
   - $S_{33} = \mathbf{q}_3 \cdot \mathbf{k}_3 = 3\times 1 + 1\times 3 = 6$ (self-attention score)
 
+
+
 $$
 \mathbf{S} = \begin{bmatrix}
 2 & 3 & 4 \\
@@ -480,6 +558,8 @@ $$
 4 & \mathbf{7} & 6
 \end{bmatrix}
 $$
+
+
 
 ---
 

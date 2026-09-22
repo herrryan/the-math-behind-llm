@@ -41,9 +41,13 @@
 
 在第01章中，我们得知所有词汇都被表示为多维空间中的坐标箭头（向量）：
 
+
+
 $$
 \mathbf{u}, \mathbf{v} \in \mathbb{R}^d
 $$
+
+
 
 当大语言模型在生成文本或对比两个词语时，计算机究竟该如何度量这两个箭头是否朝向同一方向？
 
@@ -61,21 +65,33 @@ $$
 
 对于两个维度为 $d$ 的列向量 $\mathbf{u}, \mathbf{v} \in \mathbb{R}^{d \times 1}$：
 
+
+
 $$
 \mathbf{u} = \begin{bmatrix} u_1 \\ u_2 \\ \vdots \\ u_d \end{bmatrix}, \quad \mathbf{v} = \begin{bmatrix} v_1 \\ v_2 \\ \vdots \\ v_d \end{bmatrix}
 $$
 
+
+
 **点积**（记作 $\mathbf{u} \cdot \mathbf{v}$ 或 $\langle \mathbf{u}, \mathbf{v} \rangle$）将对应维度上的数值相乘，并将乘积求和：
+
+
 
 $$
 \mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^d u_i v_i = u_1 v_1 + u_2 v_2 + \dots + u_d v_d
 $$
 
+
+
 在矩阵乘法表示法中，点积等价于转置行向量 $\mathbf{u}^\top \in \mathbb{R}^{1 \times d}$ 与列向量 $\mathbf{v} \in \mathbb{R}^{d \times 1}$ 的乘积：
+
+
 
 $$
 \mathbf{u} \cdot \mathbf{v} = \mathbf{u}^\top \mathbf{v} \in \mathbb{R}
 $$
+
+
 
 ---
 
@@ -83,9 +99,13 @@ $$
 
 箭头 $\mathbf{u}$ 本身有多长？它的物理长度在数学上称为**欧氏范数**或 **$L_2$ 范数**（记作 $\|\mathbf{u}\|$ 或 $\|\mathbf{u}\|_2$），定义为向量与自身做点积后的算术平方根：
 
+
+
 $$
 \|\mathbf{u}\| = \sqrt{\mathbf{u} \cdot \mathbf{u}} = \sqrt{\sum_{i=1}^d u_i^2} = \sqrt{u_1^2 + u_2^2 + \dots + u_d^2}
 $$
+
+
 
 ---
 
@@ -93,9 +113,13 @@ $$
 
 在欧几里得几何中，点积拥有一个完全等价的几何定义，它将两向量的长度与它们夹角 $\theta$ 的余弦值紧密联系在一起：
 
+
+
 $$
 \mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\| \|\mathbf{v}\| \cos(\theta)
 $$
+
+
 
 请仔细观察这个公式的本质：
 点积同时融合了**两件完全不同的物理量**：
@@ -108,15 +132,23 @@ $$
 
 为了彻底剥离向量长度对计算的干扰，专注于**纯粹的方向对齐**，研究人员将点积除以两个向量模长的乘积。这就得到了著名的**余弦相似度**（Cosine Similarity）：
 
+
+
 $$
 \text{Cosine Similarity}(\mathbf{u}, \mathbf{v}) = \cos(\theta) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}
 $$
 
+
+
 将其分子与分母完全展开为各维度的坐标标量：
+
+
 
 $$
 \cos(\theta) = \frac{\sum_{i=1}^d u_i v_i}{\sqrt{\sum_{i=1}^d u_i^2} \sqrt{\sum_{i=1}^d v_i^2}}
 $$
+
+
 
 ---
 
@@ -124,15 +156,23 @@ $$
 
 如果我们预先将每个向量除以自身的模长，将其长度缩放为 $1.0$ 的**单位向量**（Unit Vector）：
 
+
+
 $$
 \hat{\mathbf{u}} = \frac{\mathbf{u}}{\|\mathbf{u}\|}, \quad \hat{\mathbf{v}} = \frac{\mathbf{v}}{\|\mathbf{v}\|}
 $$
 
+
+
 那么余弦相似度就瞬间简化为这两个单位向量之间的普通点积：
+
+
 
 $$
 \cos(\theta) = \hat{\mathbf{u}} \cdot \hat{\mathbf{v}} = \hat{\mathbf{u}}^\top \hat{\mathbf{v}}
 $$
+
+
 
 ---
 
@@ -283,17 +323,25 @@ $$
 
 计算它们的**欧几里得距离**：
 
+
+
 $$
 \text{Distance}(\mathbf{u}_A, \mathbf{u}_B) = \sqrt{(1 - 100)^2 + (2 - 200)^2} = \sqrt{99^2 + 198^2} \approx \mathbf{221.36}
 $$
+
+
 
 欧氏距离给出了一个极其庞大的数字（221.36），断定两篇文档毫不相干！它把**篇幅长短（频次）**与**语义意图（主题）**彻底搞混了。
 
 再来看它们的**余弦相似度**：
 
+
+
 $$
 \cos(\theta) = \frac{(1 \times 100) + (2 \times 200)}{\sqrt{1^2 + 2^2} \sqrt{100^2 + 200^2}} = \frac{100 + 400}{\sqrt{5} \sqrt{50000}} = \frac{500}{\sqrt{250000}} = \frac{500}{500} = \mathbf{1.0}
 $$
+
+
 
 余弦相似度瞬间看穿了假象：**它们指向完全相同的绝对方向（$\cos(\theta) = 1.0$）**！
 
@@ -312,17 +360,25 @@ $$
 
 因为从微观物理层面来看，两个向量的点积就是一连串极为工整的**乘累加（Multiply-Accumulate, MAC）**运算：
 
+
+
 $$
 \text{累加器输出} \leftarrow \text{累加器输出} + (u_i \times v_i)
 $$
+
+
 
 现代 AI 芯片（无论是 NVIDIA H100 GPU 还是 Google TPU）在硬件硅片上集成了数以万计的专用加速单元——**张量核心（Tensor Cores）**。Tensor Cores 在物理晶体管级别被设计为可以在单个时钟周期内，并行并发执行数以万计的乘累加操作！
 
 当 LLM 需要同时对比成千上万个词时，它将词向量堆叠为矩阵 $\mathbf{Q}$（查询 Query）和 $\mathbf{K}$（键 Key）。所有词对之间的点积运算，被一次性转化为单场极速的通用矩阵乘法：
 
+
+
 $$
 \mathbf{S} = \mathbf{Q}\mathbf{K}^\top
 $$
+
+
 
 矩阵里的每一个元素 $S_{i, j}$，就是词元 $i$ 与词元 $j$ 之间的点积。现代 GPU 运行该运算的速度高达每秒几百万亿次浮点运算（TFLOPS）。
 
@@ -366,19 +422,31 @@ $$
 应用欧氏范数公式 $\|\mathbf{x}\| = \sqrt{x_1^2 + x_2^2}$：
 
 1. **"cat" 的模长（$\mathbf{u}$）**：
+
+
    $$
    \|\mathbf{u}\| = \sqrt{3^2 + 4^2} = \sqrt{9 + 16} = \sqrt{25} = \mathbf{5}
    $$
 
+
+
 2. **"kitten" 的模长（$\mathbf{v}$）**：
+
+
    $$
    \|\mathbf{v}\| = \sqrt{6^2 + 8^2} = \sqrt{36 + 64} = \sqrt{100} = \mathbf{10}
    $$
 
+
+
 3. **"apple" 的模长（$\mathbf{w}$）**：
+
+
    $$
    \|\mathbf{w}\| = \sqrt{(-4)^2 + 3^2} = \sqrt{16 + 9} = \sqrt{25} = \mathbf{5}
    $$
+
+
 
 ---
 
@@ -387,6 +455,8 @@ $$
 将对应分量相乘并累加：
 
 1. **"cat" $\cdot$ "kitten"**：
+
+
    $$
    \begin{aligned}
    \mathbf{u} \cdot \mathbf{v} &= (u_1 \times v_1) + (u_2 \times v_2) \\
@@ -396,7 +466,11 @@ $$
    \end{aligned}
    $$
 
+
+
 2. **"cat" $\cdot$ "apple"**：
+
+
    $$
    \begin{aligned}
    \mathbf{u} \cdot \mathbf{w} &= (u_1 \times w_1) + (u_2 \times w_2) \\
@@ -406,7 +480,9 @@ $$
    \end{aligned}
    $$
 
-\lt kbd>"cat"</kbd> 与 \lt kbd>"apple"</kbd> 之间的点积恰好严格为 **$0$**！这说明它们在语义空间中彼此垂直正交。
+
+
+<kbd>"cat"</kbd> 与 <kbd>"apple"</kbd> 之间的点积恰好严格为 **$0$**！这说明它们在语义空间中彼此垂直正交。
 
 ---
 
@@ -415,25 +491,33 @@ $$
 将点积除以两向量长度的乘积：
 
 1. **"cat" 与 "kitten" 之间的余弦相似度**：
+
+
    $$
    \cos(\theta_{\text{cat, kitten}}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|} = \frac{50}{5 \times 10} = \frac{50}{50} = \mathbf{1.0}
    $$
 
-   \lt p>
-     \lt strong>对齐分数：</strong> \lt meter min="-1" max="1" value="1.0">1.0</meter>
-     \lt mark>\lt strong>1.0（完美 100% 绝对同向！）</strong></mark>
+
+
+   <p>
+     <strong>对齐分数：</strong> <meter min="-1" max="1" value="1.0">1.0</meter>
+     <mark><strong>1.0（完美 100% 绝对同向！）</strong></mark>
    </p>
 
-   尽管 \lt kbd>"kitten"</kbd> 箭头的物理长度是 \lt kbd>"cat"</kbd> 的整整两倍（$10$ 对比 $5$），它们的余弦相似度依然是完美的 **$1.0$**！
+   尽管 <kbd>"kitten"</kbd> 箭头的物理长度是 <kbd>"cat"</kbd> 的整整两倍（$10$ 对比 $5$），它们的余弦相似度依然是完美的 **$1.0$**！
 
 2. **"cat" 与 "apple" 之间的余弦相似度**：
+
+
    $$
    \cos(\theta_{\text{cat, apple}}) = \frac{\mathbf{u} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{w}\|} = \frac{0}{5 \times 5} = \frac{0}{25} = \mathbf{0.0}
    $$
 
-   \lt p>
-     \lt strong>对齐分数：</strong> \lt meter min="-1" max="1" value="0.0">0.0</meter>
-     \lt mark>\lt strong>0.0（完全垂直正交，毫无关联）</strong></mark>
+
+
+   <p>
+     <strong>对齐分数：</strong> <meter min="-1" max="1" value="0.0">0.0</meter>
+     <mark><strong>0.0（完全垂直正交，毫无关联）</strong></mark>
    </p>
 
 ---
@@ -442,29 +526,49 @@ $$
 
 将每个向量缩放为模长等于 1 的单位向量 $\hat{\mathbf{x}} = \frac{\mathbf{x}}{\|\mathbf{x}\|}$：
 
+
+
 $$
 \hat{\mathbf{u}}_{\text{cat}} = \frac{1}{5} \begin{bmatrix} 3 \\ 4 \end{bmatrix} = \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix}
 $$
+
+
+
+
 
 $$
 \hat{\mathbf{v}}_{\text{kitten}} = \frac{1}{10} \begin{bmatrix} 6 \\ 8 \end{bmatrix} = \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix}
 $$
 
+
+
+
+
 $$
 \hat{\mathbf{w}}_{\text{apple}} = \frac{1}{5} \begin{bmatrix} -4 \\ 3 \end{bmatrix} = \begin{bmatrix} -0.8 \\ 0.6 \end{bmatrix}
 $$
+
+
 
 显而易见，$\hat{\mathbf{u}}_{\text{cat}}$ 与 $\hat{\mathbf{v}}_{\text{kitten}}$ **完全就是同一个单位向量**！
 
 直接计算单位向量点积：
 
+
+
 $$
 \hat{\mathbf{u}} \cdot \hat{\mathbf{v}} = (0.6 \times 0.6) + (0.8 \times 0.8) = 0.36 + 0.64 = \mathbf{1.0}
 $$
 
+
+
+
+
 $$
 \hat{\mathbf{u}} \cdot \hat{\mathbf{w}} = (0.6 \times -0.8) + (0.8 \times 0.6) = -0.48 + 0.48 = \mathbf{0.0}
 $$
+
+
 
 两种推导路径殊途同归，数学逻辑严丝合缝。
 

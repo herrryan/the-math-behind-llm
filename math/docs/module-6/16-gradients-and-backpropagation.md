@@ -48,9 +48,13 @@ Backward Pass (Passing the Blame Note):                     ▼
 !!! question "The Bridging Question: How Do We Compute 70 Billion Partial Derivatives in a Split Second?"
     In Chapter 15, we discovered the miracle gradient at the very top of the network:
 
+
+
     $$
     \frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \hat{\mathbf{y}} - \mathbf{y}
     $$
+
+
 
     But this gradient only tells us how to adjust the final output logits $\mathbf{z}$.
 
@@ -66,14 +70,18 @@ Backward Pass (Passing the Blame Note):                     ▼
 
 ### 1. The Computational Graph & Multivariate Chain Rule
 
-A neural network is formally represented as a directed acyclic graph (\lt dfn id="def-comp-graph">Computational Graph</dfn>) of elementary operations.
+A neural network is formally represented as a directed acyclic graph (<dfn id="def-comp-graph">Computational Graph</dfn>) of elementary operations.
 Suppose variable $\mathbf{x}$ produces intermediate variable $\mathbf{y} = f(\mathbf{x})$, which in turn produces scalar loss $\mathcal{L} = g(\mathbf{y})$.
 
 By the multivariate **Chain Rule of Calculus**:
 
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \cdot \frac{\partial \mathbf{y}}{\partial \mathbf{x}}
 $$
+
+
 
 where:
 - $\frac{\partial \mathcal{L}}{\partial \mathbf{y}} \in \mathbb{R}^{1 \times d_y}$ is the incoming gradient from the downstream layer (the "blame note").
@@ -95,17 +103,25 @@ Let:
 During backpropagation, this single node computes two separate matrix multiplications:
 
 #### A. Gradient with respect to Weights (for Parameter Updating):
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \mathbf{x}^\top \mathbf{G}_y \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}
 $$
 
+
+
 #### B. Gradient with respect to Inputs (for Upstream Propagation):
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \mathbf{G}_y \mathbf{W}^\top \in \mathbb{R}^{B \times d_{\text{in}}}
 $$
 
-\lt figure>
-\lt pre>
+
+
+<figure>
+<pre>
 Linear Layer Backpropagation Flow:
 
 Forward:   x  [ B x d_in ] ──► ( * W ) ──► y  [ B x d_out ]
@@ -116,7 +132,7 @@ Backward:  dL/dx = G_y * W^T ◄── ( G_y ) ◄── dL/dy = G_y
                                   ▼
                          dL/dW = x^T * G_y
 </pre>
-\lt figcaption>\lt strong>Figure 16.2:</strong> A linear layer splits incoming gradient $\mathbf{G}_y$ into weight gradient $\mathbf{x}^\top \mathbf{G}_y$ and input gradient $\mathbf{G}_y \mathbf{W}^\top$.</figcaption>
+<figcaption><strong>Figure 16.2:</strong> A linear layer splits incoming gradient $\mathbf{G}_y$ into weight gradient $\mathbf{x}^\top \mathbf{G}_y$ and input gradient $\mathbf{G}_y \mathbf{W}^\top$.</figcaption>
 </figure>
 
 Notice the strict dimensional symmetry:
@@ -129,9 +145,13 @@ Notice the strict dimensional symmetry:
 
 Once the gradient matrix $\nabla_{\mathbf{W}} \mathcal{L}$ is computed, the parameters are updated along the negative gradient direction:
 
+
+
 $$
 \mathbf{W}_{t+1} = \mathbf{W}_t - \eta \nabla_{\mathbf{W}} \mathcal{L}_t
 $$
+
+
 
 where $\eta > 0$ is the **learning rate** (the step size down the mountain).
 
@@ -145,9 +165,13 @@ Consider a model with $P$ parameters that outputs a single scalar loss $\mathcal
 - **Forward-Mode Differentiation (Tangents)**: Propagates derivatives forward from inputs to outputs. Because each input parameter requires its own independent pass, computing all parameter gradients requires **$\mathcal{O}(P)$ passes** ($70 \times 10^9$ passes!).
 - **Reverse-Mode Differentiation (Adjoints / Backprop)**: Starts at the single scalar output $\mathcal{L}$ and propagates gradients backward toward all parameters. Because there is only **1 scalar output**, all $P$ derivatives are obtained in **a single $\mathcal{O}(1)$ backward pass**!
 
+
+
 $$
 \frac{\text{Cost of Reverse-Mode}}{\text{Cost of Forward-Mode}} = \frac{1}{P} \approx \frac{1}{70,000,000,000}
 $$
+
+
 
 Without Reverse-Mode Automatic Differentiation, training Large Language Models would be physically impossible.
 
@@ -155,15 +179,15 @@ Without Reverse-Mode Automatic Differentiation, training Large Language Models w
 
 ## Step 4: Where Did It Come From? (Linnainmaa, Rumelhart, & Hinton) {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="1970">1970</time> &mdash; \lt strong>Seppo Linnainmaa</strong></dt>
-  \lt dd>Introduced the general algorithm for reverse-mode automatic differentiation in his Master's thesis at the University of Helsinki, demonstrating that the derivatives of nested algebraic functions can be computed in time proportional to the forward evaluation.</dd>
+<dl>
+  <dt><time datetime="1970">1970</time> &mdash; <strong>Seppo Linnainmaa</strong></dt>
+  <dd>Introduced the general algorithm for reverse-mode automatic differentiation in his Master's thesis at the University of Helsinki, demonstrating that the derivatives of nested algebraic functions can be computed in time proportional to the forward evaluation.</dd>
 
-  \lt dt>\lt time datetime="1986">1986</time> &mdash; \lt strong>David Rumelhart, Geoffrey Hinton, & Ronald Williams</strong></dt>
-  \lt dd>Published the landmark paper \lt cite>"Learning representations by back-propagating errors"</cite> in \lt em>Nature</em>. They showed that backpropagation enables multi-layer neural networks to learn internal representations of data, defeating the historic Minsky-Papert XOR pessimism that had frozen neural network research during the AI Winter.</dd>
+  <dt><time datetime="1986">1986</time> &mdash; <strong>David Rumelhart, Geoffrey Hinton, & Ronald Williams</strong></dt>
+  <dd>Published the landmark paper <cite>"Learning representations by back-propagating errors"</cite> in <em>Nature</em>. They showed that backpropagation enables multi-layer neural networks to learn internal representations of data, defeating the historic Minsky-Papert XOR pessimism that had frozen neural network research during the AI Winter.</dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>PyTorch & Autograd</strong></dt>
-  \lt dd>Dynamic computational graphs (tape-based autograd) popularized by Adam Paszke et al. enabled backpropagation through dynamic control flows, attention matrices, and autoregressive generation loops with zero manual gradient coding.</dd>
+  <dt><time datetime="2017">2017</time> &mdash; <strong>PyTorch & Autograd</strong></dt>
+  <dd>Dynamic computational graphs (tape-based autograd) popularized by Adam Paszke et al. enabled backpropagation through dynamic control flows, attention matrices, and autoregressive generation loops with zero manual gradient coding.</dd>
 </dl>
 
 ---
@@ -186,32 +210,44 @@ Let us compute the complete forward pass, loss calculation, backward pass, and w
 
 ### 2. Forward Pass: Making the Prediction
 
-\lt fieldset>
-\lt legend>\lt strong>Execution Checklist</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step A:</strong> Forward compute hidden value $h = x \cdot w_1$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step B:</strong> Forward compute prediction $\hat{y} = h \cdot w_2$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step C:</strong> Compute loss $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step D:</strong> Backward compute $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ and weight gradient $\frac{\partial \mathcal{L}}{\partial w_2}$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step E:</strong> Backward propagate $\frac{\partial \mathcal{L}}{\partial h}$ and weight gradient $\frac{\partial \mathcal{L}}{\partial w_1}$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step F:</strong> Apply gradient descent update and verify loss reduction.</p>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Forward compute hidden value $h = x \cdot w_1$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Forward compute prediction $\hat{y} = h \cdot w_2$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Compute loss $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Backward compute $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ and weight gradient $\frac{\partial \mathcal{L}}{\partial w_2}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step E:</strong> Backward propagate $\frac{\partial \mathcal{L}}{\partial h}$ and weight gradient $\frac{\partial \mathcal{L}}{\partial w_1}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step F:</strong> Apply gradient descent update and verify loss reduction.</p>
 </fieldset>
 
 #### Step A: Layer 1 Output
+
+
 $$
 h = x \cdot w_1 = 2.0 \times 3.0 = 6.0
 $$
 
+
+
 #### Step B: Layer 2 Output
+
+
 $$
 \hat{y} = h \cdot w_2 = 6.0 \times 2.0 = 12.0
 $$
 
+
+
 #### Step C: Loss Calculation
 The model predicted $12.0$, but the target was $10.0$:
+
+
 
 $$
 \mathcal{L} = \frac{1}{2}(12.0 - 10.0)^2 = \frac{1}{2}(2.0)^2 = 2.0000
 $$
+
+
 
 ---
 
@@ -220,28 +256,44 @@ $$
 #### Step D: Gradients at Layer 2
 First, differentiate the loss with respect to the prediction $\hat{y}$:
 
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \hat{y}} = \hat{y} - y = 12.0 - 10.0 = \mathbf{+2.0}
 $$
 
+
+
 Now, differentiate with respect to weight $w_2$:
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial w_2} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial w_2} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot h = 2.0 \times 6.0 = \mathbf{+12.0}
 $$
 
+
+
 Next, propagate the gradient backward into the hidden state $h$:
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial h} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial h} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot w_2 = 2.0 \times 2.0 = \mathbf{+4.0}
 $$
 
+
+
 #### Step E: Gradients at Layer 1
 Now compute the gradient for weight $w_1$ using the propagated signal $\frac{\partial \mathcal{L}}{\partial h}$:
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial w_1} = \frac{\partial \mathcal{L}}{\partial h} \cdot \frac{\partial h}{\partial w_1} = \frac{\partial \mathcal{L}}{\partial h} \cdot x = 4.0 \times 2.0 = \mathbf{+8.0}
 $$
+
+
 
 Summary of computed gradients:
 - $\nabla_{w_2} \mathcal{L} = +12.0$ (push $w_2$ down!)
@@ -254,13 +306,21 @@ Summary of computed gradients:
 #### Step F: Apply Gradient Descent
 With learning rate $\eta = 0.01$:
 
+
+
 $$
 w_{2,\text{new}} = w_2 - \eta \frac{\partial \mathcal{L}}{\partial w_2} = 2.0 - (0.01 \times 12.0) = 2.0 - 0.12 = \mathbf{1.88}
 $$
 
+
+
+
+
 $$
 w_{1,\text{new}} = w_1 - \eta \frac{\partial \mathcal{L}}{\partial w_1} = 3.0 - (0.01 \times 8.0) = 3.0 - 0.08 = \mathbf{2.92}
 $$
+
+
 
 #### Step G: Verification with a New Forward Pass
 Let us re-run the network with the newly updated weights:
@@ -270,9 +330,13 @@ Let us re-run the network with the newly updated weights:
 
 Calculate the new loss:
 
+
+
 $$
 \mathcal{L}_{\text{new}} = \frac{1}{2}(10.9792 - 10.0)^2 = \frac{1}{2}(0.9792)^2 \approx \mathbf{0.4794}
 $$
+
+
 
 <mark>The loss dropped from $2.0000$ to $0.4794$ &mdash; a dramatic $76.0\%$ error reduction in a single tiny step!</mark>
 

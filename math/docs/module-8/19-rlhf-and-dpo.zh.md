@@ -55,11 +55,15 @@
 !!! question "计算连接问题: 为什么模型对齐不能单纯依赖监督微调的交叉熵？"
     在第 15 章中，我们深入掌握了交叉熵损失函数（Cross-Entropy Loss），它驱动模型最大化目标词元的对数似然概率：
 
+
+
     $$
     \mathcal{L}_{\text{SFT}}(\boldsymbol{\theta}) = -\sum_{t=1}^T \log \pi_{\boldsymbol{\theta}}(y_t \mid x, y_{\lt t})
     $$
 
-    这个目标在让模型学会基本的问答格式与文风时非常有效（\lt abbr title="Supervised Fine-Tuning">SFT</abbr>）。但在真正的价值对齐阶段，它暴露出两大根本性绝症：
+
+
+    这个目标在让模型学会基本的问答格式与文风时非常有效（<abbr title="Supervised Fine-Tuning">SFT</abbr>）。但在真正的价值对齐阶段，它暴露出两大根本性绝症：
 
     1. **监督数据无法表达“千万别做这事”**：交叉熵只能把模型往前拉向正向示范。如果我们想让模型不产生毒素、不输出危险攻击教程，在 SFT 框架下我们不得不编写“错误示范”，这反而等于在向模型直接传授如何作恶！
     2. **人类的主观审美是相对的胜负，而不是绝对的打分**：如果让两位评审员给同一篇作文打绝对数值分数（比如“这篇应该打 8.4 还是 8.7？”），两人会争执不休；但如果把作文 A 和作文 B 并排放在眼前让他们选哪个更好，两人在 90% 以上的场景下都能达成高度共识！
@@ -76,9 +80,13 @@
 
 根据 **Bradley-Terry 模型**，人类倾向于选择 $y_w$ 而非 $y_l$ 的概率，由背后的潜在标量奖励函数 $r(x, y) \in \mathbb{R}$ 的差值唯一决定：
 
+
+
 $$
 P(y_w \succ y_l \mid x) = \sigma\left(r(x, y_w) - r(x, y_l)\right) = \frac{1}{1 + \exp\left(-(r(x, y_w) - r(x, y_l))\right)}
 $$
+
+
 
 其中 $\sigma(u) = \frac{1}{1 + e^{-u}}$ 为标准 Sigmoid 逻辑斯蒂函数。
 
@@ -88,15 +96,23 @@ $$
 
 在经典 RLHF 架构中（Christiano et al., 2017; Ouyang et al., 2022），研究人员首先通过人类成对标注数据，训练一个独立的奖励模型参数 $\phi$：
 
+
+
 $$
 \mathcal{L}_R(\phi) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}}\left[ \log \sigma\left(r_\phi(x, y_w) - r_\phi(x, y_l)\right) \right]
 $$
 
+
+
 固定住奖励模型 $r_\phi$ 后，语言模型策略 $\pi_{\boldsymbol{\theta}}$ 通过强化学习（PPO）最大化期望奖励，同时挂载相对初始 SFT 冻结参考策略 $\pi_{\text{ref}}$ 的 KL 散度弹性绳惩罚：
+
+
 
 $$
 \max_{\pi_{\boldsymbol{\theta}}} \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi_{\boldsymbol{\theta}}}\left[ r_\phi(x, y) \right] - \beta D_{\text{KL}}\left(\pi_{\boldsymbol{\theta}}(y \mid x) \parallel \pi_{\text{ref}}(y \mid x)\right)
 $$
+
+
 
 其中：
 - $\beta > 0$ 为 **KL 正则化强度**（弹性牵引绳的刚度）。
@@ -110,9 +126,13 @@ $$
 令人惊叹的是，上述带有 KL 约束的强化学习最优化问题，在变分法（Calculus of Variations）下存在唯一的**解析精确闭式解**！
 在满足概率归一化条件 $\sum_y \pi(y \mid x) = 1$ 的约束下，全局最优策略 $\pi^*$ 的闭式解为：
 
+
+
 $$
 \pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\left( \frac{1}{\beta} r(x, y) \right)
 $$
+
+
 
 其中 $Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp\left(\frac{1}{\beta} r(x, y)\right)$ 是**配分函数（Partition Function）**（对所有可能生成的文本序列求和，序列总空间高达 $32000^{2048}$，在物理世界中根本无法直接计算！）。
 
@@ -124,23 +144,37 @@ $$
 
 拉斐尔·拉法伊洛夫（Rafael Rafailov）等人在斯坦福大学灵光乍现：我们为什么不直接对最优策略闭式解进行代数变换，把隐藏的奖励 $r(x, y)$ 反解出来呢？
 
+
+
 $$
 \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \frac{1}{Z(x)} \exp\left(\frac{1}{\beta} r(x, y)\right)
 $$
 
+
+
 两边同时取自然对数 $\log$：
+
+
 
 $$
 \log \pi^*(y \mid x) - \log \pi_{\text{ref}}(y \mid x) = -\log Z(x) + \frac{1}{\beta} r(x, y)
 $$
 
+
+
 移项整理，即可用模型概率直接表达出**隐式奖励函数**：
+
+
 
 $$
 r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)
 $$
 
+
+
 现在，把这个式子直接代入最初的 Bradley-Terry 人类偏好差值 $r(x, y_w) - r(x, y_l)$ 中：
+
+
 
 $$
 \begin{aligned}
@@ -149,7 +183,9 @@ r(x, y_w) - r(x, y_l) &= \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{r
 \end{aligned}
 $$
 
-\lt mark>奇迹发生了：包含天文数字求和项的无法计算的配分函数 $\beta \log Z(x)$，在相减的瞬间被完全抵消得无影无踪！</mark>
+
+
+<mark>奇迹发生了：包含天文数字求和项的无法计算的配分函数 $\beta \log Z(x)$，在相减的瞬间被完全抵消得无影无踪！</mark>
 
 ---
 
@@ -157,16 +193,24 @@ $$
 
 将这套优雅的差值直接代入 Bradley-Terry 负对数似然中，便诞生了名垂人工智能史册的 **DPO 损失函数**：
 
+
+
 $$
 \mathcal{L}_{\text{DPO}}(\boldsymbol{\theta}; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}}\left[ \log \sigma \left( \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]
 $$
 
+
+
 #### DPO 梯度更新动力学：
 对参数 $\boldsymbol{\theta}$ 求导，剖析其数学内驱力：
+
+
 
 $$
 \nabla_{\boldsymbol{\theta}} \mathcal{L}_{\text{DPO}} = -\beta \, \underbrace{\sigma\left(\hat{r}_{\boldsymbol{\theta}}(x, y_l) - \hat{r}_{\boldsymbol{\theta}}(x, y_w)\right)}_{\text{惊奇度误差加权 } (1 - \sigma)} \cdot \left[ \underbrace{\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(y_w \mid x)}_{\text{强力提升胜者 } y_w \text{ 的概率}} - \underbrace{\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(y_l \mid x)}_{\text{强力压制败者 } y_l \text{ 的概率}} \right]
 $$
+
+
 
 - 如果模型已经很懂事，正确赋予胜者更高奖励（$\hat{r}_w \gg \hat{r}_l$），误差权重 $\sigma(\hat{r}_l - \hat{r}_w) \approx 0$，梯度归零，不做多余打扰。
 - 如果模型判断失误，错误地偏爱败者（$\hat{r}_l > \hat{r}_w$），误差权重逼近 1，以最大马力强推胜者、狠刹败者！
@@ -175,18 +219,18 @@ $$
 
 ## 第 4 步：历史源流与思考演进（Bradley-Terry、InstructGPT 与 DPO） {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="1952">1952</time> &mdash; \lt strong>拉尔夫·布拉德利 与 米尔顿·特里</strong></dt>
-  \lt dd>在统计学界提出了著名的 Bradley-Terry 概率模型，用于分析锦标赛中的成对对决胜率，奠定了现代所有成对偏好排序算法的数学基石。</dd>
+<dl>
+  <dt><time datetime="1952">1952</time> &mdash; <strong>拉尔夫·布拉德利 与 米尔顿·特里</strong></dt>
+  <dd>在统计学界提出了著名的 Bradley-Terry 概率模型，用于分析锦标赛中的成对对决胜率，奠定了现代所有成对偏好排序算法的数学基石。</dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>保罗·克里斯蒂亚诺 等人</strong>（\lt cite>《Deep Reinforcement Learning from Human Preferences》</cite>）</dt>
-  \lt dd>首次证明可以用人类的成对比较偏好训练深度强化学习奖励模型，使虚拟机器人在没有任何预设数学代码目标的情况下，自发学会了优雅的空中后空翻。</dd>
+  <dt><time datetime="2017">2017</time> &mdash; <strong>保罗·克里斯蒂亚诺 等人</strong>（<cite>《Deep Reinforcement Learning from Human Preferences》</cite>）</dt>
+  <dd>首次证明可以用人类的成对比较偏好训练深度强化学习奖励模型，使虚拟机器人在没有任何预设数学代码目标的情况下，自发学会了优雅的空中后空翻。</dd>
 
-  \lt dt>\lt time datetime="2022">2022</time> &mdash; \lt strong>OpenAI 团队</strong>（\lt cite>《InstructGPT / ChatGPT》</cite>）</dt>
-  \lt dd>将 SFT $\to$ RM $\to$ PPO 的完整流水线成功移植到 GPT-3 上，创造了引爆全球的 ChatGPT，证明仅有 13 亿参数的对齐模型，在人类盲测满意度上彻底碾压了 1750 亿参数的未对齐基座大模型。</dd>
+  <dt><time datetime="2022">2022</time> &mdash; <strong>OpenAI 团队</strong>（<cite>《InstructGPT / ChatGPT》</cite>）</dt>
+  <dd>将 SFT $\to$ RM $\to$ PPO 的完整流水线成功移植到 GPT-3 上，创造了引爆全球的 ChatGPT，证明仅有 13 亿参数的对齐模型，在人类盲测满意度上彻底碾压了 1750 亿参数的未对齐基座大模型。</dd>
 
-  \lt dt>\lt time datetime="2023">2023</time> &mdash; \lt strong>拉斐尔·拉法伊洛夫 等人 / 斯坦福大学</strong>（\lt cite>《Direct Preference Optimization》</cite>）</dt>
-  \lt dd>推导出了闭式解等价性，通过代数相消干掉了配分函数，彻底摆脱了复杂的强化学习环境，使全球开源大模型对齐效率提升了数十倍。</dd>
+  <dt><time datetime="2023">2023</time> &mdash; <strong>拉斐尔·拉法伊洛夫 等人 / 斯坦福大学</strong>（<cite>《Direct Preference Optimization》</cite>）</dt>
+  <dd>推导出了闭式解等价性，通过代数相消干掉了配分函数，彻底摆脱了复杂的强化学习环境，使全球开源大模型对齐效率提升了数十倍。</dd>
 </dl>
 
 ---
@@ -196,7 +240,7 @@ $$
 为了让你彻底看清 DPO 是如何纯靠对数概率计算隐式奖励并驱动参数更新的，我们纯手算一套具体的成对对齐数值。
 
 ### 1. 微型场景设定
-- 输入提示词：$x =$ \lt kbd>“请简述量子力学的核心。”</kbd>
+- 输入提示词：$x =$ <kbd>“请简述量子力学的核心。”</kbd>
 - 胜者回答：$y_w$（精炼、通俗、物理事实准确）
 - 败者回答：$y_l$（啰嗦、态度傲慢、概念混淆）
 - 正则化系数：$\beta = 0.50$
@@ -215,69 +259,109 @@ $$
 
 ### 3. DPO 损失与误差权重纯手算推导
 
-\lt fieldset>
-\lt legend>\lt strong>计算流程清单</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 A：</strong> 计算两套答案在当前模型与基准模型下的概率比值。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 B：</strong> 计算对数比值并乘以 $\beta$，得出隐式奖励分数。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 C：</strong> 计算奖励差值 $\Delta r = \hat{r}(y_w) - \hat{r}(y_l)$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 D：</strong> 经过 Sigmoid 激活函数映射为获胜预测概率。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 E：</strong> 计算最终标量损失 $\mathcal{L}_{\text{DPO}} = -\log \sigma(\Delta r)$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 F：</strong> 计算反向传播的梯度误差权重 $\beta(1 - \sigma)$。</p>
+<fieldset>
+<legend><strong>计算流程清单</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 A：</strong> 计算两套答案在当前模型与基准模型下的概率比值。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 B：</strong> 计算对数比值并乘以 $\beta$，得出隐式奖励分数。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 C：</strong> 计算奖励差值 $\Delta r = \hat{r}(y_w) - \hat{r}(y_l)$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 D：</strong> 经过 Sigmoid 激活函数映射为获胜预测概率。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 E：</strong> 计算最终标量损失 $\mathcal{L}_{\text{DPO}} = -\log \sigma(\Delta r)$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 F：</strong> 计算反向传播的梯度误差权重 $\beta(1 - \sigma)$。</p>
 </fieldset>
 
 #### 步骤 A：概率比值
 - 胜者回答 $y_w$ 的概率比：
+
+
   $$
   \frac{\pi_{\boldsymbol{\theta}}(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} = \frac{0.30}{0.20} = \mathbf{1.5000}
   $$
+
+
 - 败者回答 $y_l$ 的概率比：
+
+
   $$
   \frac{\pi_{\boldsymbol{\theta}}(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} = \frac{0.40}{0.10} = \mathbf{4.0000}
   $$
 
+
+
 #### 步骤 B：自然对数与隐式奖励
 - 胜者对数比：
+
+
   $$
   \log(1.5000) \approx \mathbf{+0.4055}
   $$
+
+
 - 胜者隐式奖励：
+
+
   $$
   \hat{r}(x, y_w) = \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_w)}{\pi_{\text{ref}}(y_w)} = 0.50 \times 0.4055 = \mathbf{+0.2028}
   $$
+
+
 - 败者对数比：
+
+
   $$
   \log(4.0000) \approx \mathbf{+1.3863}
   $$
+
+
 - 败者隐式奖励：
+
+
   $$
   \hat{r}(x, y_l) = \beta \log \frac{\pi_{\boldsymbol{\theta}}(y_l)}{\pi_{\text{ref}}(y_l)} = 0.50 \times 1.3863 = \mathbf{+0.6931}
   $$
 
+
+
 #### 步骤 C：奖励差值
+
+
 $$
 \Delta r = \hat{r}(x, y_w) - \hat{r}(x, y_l) = 0.2028 - 0.6931 = \mathbf{-0.4904}
 $$
 
+
+
 差值是负数（$-0.4904$），表明当前模型在隐式奖励上严重奖罚倒挂！
 
 #### 步骤 D：Sigmoid 映射
+
+
 $$
 \sigma(\Delta r) = \sigma(-0.4904) = \frac{1}{1 + e^{0.4904}} = \frac{1}{1 + 1.6330} = \frac{1}{2.6330} \approx \mathbf{0.3798}
 $$
 
+
+
 模型预测人类更喜欢胜者的信心只有可怜的 $38.0\%$！
 
 #### 步骤 E：计算 DPO 标量损失
+
+
 $$
 \mathcal{L}_{\text{DPO}} = -\log(0.3798) \approx \mathbf{0.9681}
 $$
 
+
+
 #### 步骤 F：计算梯度反向推动力
 乘在梯度更新方向上的误差权重大小为：
+
+
 
 $$
 \text{权重} = \beta \left( 1 - \sigma(\Delta r) \right) = 0.50 \times (1 - 0.3798) = 0.50 \times 0.6202 = \mathbf{0.3101}
 $$
+
+
 
 <mark>看：正因为当前模型判断严重失误（错误率高达 $62\%$），系统立刻产生了高达 $0.3101$ 的强劲梯度推力，强力把 $\pi_{\boldsymbol{\theta}}(y_w)$ 向上推拉，同时将 $\pi_{\boldsymbol{\theta}}(y_l)$ 向下狠狠打压！</mark>
 

@@ -47,9 +47,13 @@ Token Vector ──► [ Measure Volume / Energy ]
 !!! question "The Bridging Question: Why Do Neural Activations Explode or Vanish?"
     In Chapter 12, we discovered that residual connections create an additive highway:
 
+
+
     $$
     \mathbf{x}_{l} = \mathbf{x}_{l-1} + \mathcal{F}_l(\mathbf{x}_{l-1})
     $$
+
+
 
     Because every layer *adds* its new output to the running total, the magnitude (Euclidean norm) of the vector $\mathbf{x}_l$ tends to grow systematically as it ascends through dozens of layers.
 
@@ -70,37 +74,53 @@ Token Vector ──► [ Measure Volume / Energy ]
 
 ### 1. Standard Layer Normalization (LayerNorm, Ba et al., 2016)
 
-\lt dfn id="def-ln-math">Layer Normalization</dfn> normalizes across the feature dimension $d_{\text{model}}$ for each token independently.
+<dfn id="def-ln-math">Layer Normalization</dfn> normalizes across the feature dimension $d_{\text{model}}$ for each token independently.
 
 Given an input token vector $\mathbf{x} = [x_1, x_2, \dots, x_d]^\top \in \mathbb{R}^d$ (where $d = d_{\text{model}}$):
 
 #### Step 1: Compute the Mean
 The average component value of the vector:
 
+
+
 $$
 \mu = \frac{1}{d} \sum_{i=1}^d x_i
 $$
 
+
+
 #### Step 2: Compute the Variance
 The spread of the components around their mean:
+
+
 
 $$
 \sigma^2 = \frac{1}{d} \sum_{i=1}^d (x_i - \mu)^2
 $$
 
+
+
 #### Step 3: Standardize to Zero Mean and Unit Variance
 Subtract the center and divide by the standard deviation (with a tiny numerical stabilizer $\epsilon \approx 10^{-5}$ or $10^{-6}$ to prevent division by zero):
+
+
 
 $$
 \hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}}
 $$
 
+
+
 #### Step 4: Learnable Affine Scaling and Shift
 To ensure the network does not lose representational capacity (e.g., if a sub-layer *needs* a specific non-zero mean or non-unit variance), LayerNorm applies learned element-wise parameters:
+
+
 
 $$
 y_i = \gamma_i \hat{x}_i + \beta_i
 $$
+
+
 
 where:
 - $\boldsymbol{\gamma} \in \mathbb{R}^d$ is a learnable gain (scale) vector, initialized to $\mathbf{1}$.
@@ -113,30 +133,42 @@ where:
 In 2019, researchers Biao Zhang and Rico Sennrich made a profound empirical and theoretical discovery:
 **The shift-invariance property granted by subtracting the mean $\mu$ contributes almost nothing to training stability! All of the stabilization power comes strictly from scaling by the magnitude (the Root Mean Square).**
 
-By discarding the mean subtraction $\mu$ and the bias vector $\boldsymbol{\beta}$, they created \lt dfn id="def-rmsnorm-math">RMSNorm</dfn>, which is now the universal standard in modern LLMs (including LLaMA, Mistral, Gemma, and DeepSeek).
+By discarding the mean subtraction $\mu$ and the bias vector $\boldsymbol{\beta}$, they created <dfn id="def-rmsnorm-math">RMSNorm</dfn>, which is now the universal standard in modern LLMs (including LLaMA, Mistral, Gemma, and DeepSeek).
 
 #### Step 1: Compute the Root Mean Square (RMS)
 The quadratic mean of the vector:
+
+
 
 $$
 \operatorname{RMS}(\mathbf{x}) = \sqrt{\frac{1}{d} \sum_{i=1}^d x_i^2 + \epsilon}
 $$
 
+
+
 #### Step 2: Normalize and Rescale
 Scale the vector directly and multiply by the learnable gain parameter $\gamma_i$:
+
+
 
 $$
 y_i = \frac{x_i}{\operatorname{RMS}(\mathbf{x})} \cdot \gamma_i
 $$
 
+
+
 In vector notation:
+
+
 
 $$
 \mathbf{y} = \frac{\mathbf{x}}{\operatorname{RMS}(\mathbf{x})} \odot \boldsymbol{\gamma}
 $$
 
-\lt details>
-\lt summary>\lt strong>Why Did Modern LLMs Abandon the Mean $\mu$ and Bias $\beta$?</strong></summary>
+
+
+<details>
+<summary><strong>Why Did Modern LLMs Abandon the Mean $\mu$ and Bias $\beta$?</strong></summary>
 1. **GPU Memory Bandwidth Optimization**:
    On modern GPUs, normalization operations are **memory-bound** (limited by the speed of moving data between high-bandwidth memory HBM and on-chip SRAM), not compute-bound.
    - Standard LayerNorm requires two full passes over the vector: one pass to calculate the mean $\mu$, and a second pass to calculate $\sum (x_i - \mu)^2$.
@@ -150,8 +182,8 @@ $$
 
 ## Step 4: Where Did It Come From? {: #step-4 }
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 Evolution of Normalization in Neural Networks:
 
 2015: Ioffe & Szegedy ────► Batch Normalization (BatchNorm)
@@ -168,51 +200,51 @@ Evolution of Normalization in Neural Networks:
                             Proved that mean-centering is redundant; scales by RMS only.
                             Saves 1 memory pass; adopted by LLaMA, Mistral, DeepSeek.
 </pre>
-\lt figcaption>\lt strong>Figure 13.2:</strong> The architectural path from batch-dependent normalization to streamlined on-chip RMSNorm.</figcaption>
+<figcaption><strong>Figure 13.2:</strong> The architectural path from batch-dependent normalization to streamlined on-chip RMSNorm.</figcaption>
 </figure>
 
 ### 1. Comparison of Normalization Families
 
-\lt fieldset>
-\lt legend>\lt strong>Normalization Architectures in Large Language Models</strong></legend>
+<fieldset>
+<legend><strong>Normalization Architectures in Large Language Models</strong></legend>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>Table 13.1:</strong> Comparison of Normalization methods.</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0eee6">
-      \lt th align="left">Method</th>
-      \lt th align="center">Mathematical Form</th>
-      \lt th align="center">Learned Parameters</th>
-      \lt th align="center">Memory Passes</th>
-      \lt th align="left">LLM Status</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 13.1:</strong> Comparison of Normalization methods.</caption>
+  <thead>
+    <tr bgcolor="#f0eee6">
+      <th align="left">Method</th>
+      <th align="center">Mathematical Form</th>
+      <th align="center">Learned Parameters</th>
+      <th align="center">Memory Passes</th>
+      <th align="left">LLM Status</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>\lt strong>Batch Normalization</strong></td>
-      \lt td align="center">$\frac{x - \mu_{\text{batch}}}{\sigma_{\text{batch}}}$</td>
-      \lt td align="center">$\gamma, \beta$</td>
-      \lt td align="center">Multiple</td>
-      \lt td>
-        \lt del>Unusable in LLMs.</del> Fails on varying sequence lengths and batch size = 1 autoregressive inference.
+  <tbody>
+    <tr>
+      <td><strong>Batch Normalization</strong></td>
+      <td align="center">$\frac{x - \mu_{\text{batch}}}{\sigma_{\text{batch}}}$</td>
+      <td align="center">$\gamma, \beta$</td>
+      <td align="center">Multiple</td>
+      <td>
+        <del>Unusable in LLMs.</del> Fails on varying sequence lengths and batch size = 1 autoregressive inference.
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>Standard LayerNorm</strong></td>
-      \lt td align="center">$\frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \cdot \gamma + \beta$</td>
-      \lt td align="center">$2d$ ($\boldsymbol{\gamma}, \boldsymbol{\beta}$)</td>
-      \lt td align="center">2 passes</td>
-      \lt td>
-        \lt del>Legacy standard.</del> Used in GPT-2, GPT-3, BERT. Reliable but incurs unnecessary memory bandwidth overhead.
+    <tr>
+      <td><strong>Standard LayerNorm</strong></td>
+      <td align="center">$\frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \cdot \gamma + \beta$</td>
+      <td align="center">$2d$ ($\boldsymbol{\gamma}, \boldsymbol{\beta}$)</td>
+      <td align="center">2 passes</td>
+      <td>
+        <del>Legacy standard.</del> Used in GPT-2, GPT-3, BERT. Reliable but incurs unnecessary memory bandwidth overhead.
       </td>
     </tr>
-    \lt tr bgcolor="#fdfdf0">
-      \lt td>\lt strong>RMSNorm</strong></td>
-      \lt td align="center">$\frac{x}{\operatorname{RMS}(\mathbf{x})} \cdot \gamma$</td>
-      \lt td align="center">\lt ins>\lt strong>$d$ ($\boldsymbol{\gamma}$ only)</strong></ins></td>
-      \lt td align="center">\lt ins>\lt strong>1 pass</strong></ins></td>
-      \lt td>
-        \lt ins>\lt strong>Modern Industry Gold Standard.</strong></ins> Used in LLaMA 1/2/3, Mistral, Gemma, DeepSeek-V2/V3, Qwen. Faster and equally stable.
+    <tr bgcolor="#fdfdf0">
+      <td><strong>RMSNorm</strong></td>
+      <td align="center">$\frac{x}{\operatorname{RMS}(\mathbf{x})} \cdot \gamma$</td>
+      <td align="center"><ins><strong>$d$ ($\boldsymbol{\gamma}$ only)</strong></ins></td>
+      <td align="center"><ins><strong>1 pass</strong></ins></td>
+      <td>
+        <ins><strong>Modern Industry Gold Standard.</strong></ins> Used in LLaMA 1/2/3, Mistral, Gemma, DeepSeek-V2/V3, Qwen. Faster and equally stable.
       </td>
     </tr>
   </tbody>
@@ -229,9 +261,13 @@ To clearly see the difference between LayerNorm and RMSNorm, let us normalize a 
 
 Suppose our token has dimension $d = 3$ and incoming activations:
 
+
+
 $$
 \mathbf{x} = \begin{bmatrix} 2.0 \\ 4.0 \\ 6.0 \end{bmatrix}
 $$
+
+
 
 Let the numerical stabilizer be $\epsilon = 0$ (for simple arithmetic), and let the learnable scale vector be $\boldsymbol{\gamma} = [1.0, 1.0, 1.0]^\top$ with bias $\boldsymbol{\beta} = [0.0, 0.0, 0.0]^\top$.
 
@@ -240,9 +276,13 @@ Let the numerical stabilizer be $\epsilon = 0$ (for simple arithmetic), and let 
 ### 2. Calculating Standard LayerNorm
 
 #### Step A: Compute the Mean $\mu$
+
+
 $$
 \mu = \frac{2.0 + 4.0 + 6.0}{3} = \frac{12.0}{3} = 4.0
 $$
+
+
 
 #### Step B: Compute the Variance $\sigma^2$
 Subtract $\mu = 4.0$ from each component:
@@ -252,15 +292,23 @@ Subtract $\mu = 4.0$ from each component:
 
 Average the squared deviations:
 
+
+
 $$
 \sigma^2 = \frac{4.0 + 0.0 + 4.0}{3} = \frac{8.0}{3} \approx 2.6667
 $$
 
+
+
 The standard deviation is:
+
+
 
 $$
 \sigma = \sqrt{\frac{8}{3}} \approx 1.6330
 $$
+
+
 
 #### Step C: Standardize and Scale
 Divide each centered component by $\sigma \approx 1.6330$:
@@ -268,11 +316,15 @@ Divide each centered component by $\sigma \approx 1.6330$:
 - $\hat{x}_2 = \frac{0.0}{1.6330} = 0.0000$
 - $\hat{x}_3 = \frac{2.0}{1.6330} \approx 1.2247$
 
+
+
 $$
 \mathbf{y}_{\text{LayerNorm}} = \begin{bmatrix} -1.2247 \\ 0.0000 \\ 1.2247 \end{bmatrix}
 $$
 
-\lt mark>Notice: The mean of $\mathbf{y}_{\text{LayerNorm}}$ is exactly $0$, and its variance is exactly $1.0$!</mark>
+
+
+<mark>Notice: The mean of $\mathbf{y}_{\text{LayerNorm}}$ is exactly $0$, and its variance is exactly $1.0$!</mark>
 
 ---
 
@@ -291,13 +343,21 @@ Sum: $4.0 + 16.0 + 36.0 = 56.0$.
 #### Step B: Compute the Root Mean Square
 Divide by $d = 3$ and take the square root:
 
+
+
 $$
 \operatorname{MeanSquare} = \frac{56.0}{3} \approx 18.6667
 $$
 
+
+
+
+
 $$
 \operatorname{RMS}(\mathbf{x}) = \sqrt{18.6667} \approx 4.3205
 $$
+
+
 
 #### Step C: Scale the Vector
 Divide each original component by $\operatorname{RMS}(\mathbf{x}) \approx 4.3205$:
@@ -305,9 +365,13 @@ Divide each original component by $\operatorname{RMS}(\mathbf{x}) \approx 4.3205
 - $y_2 = \frac{4.0}{4.3205} \approx 0.9258$
 - $y_3 = \frac{6.0}{4.3205} \approx 1.3887$
 
+
+
 $$
 \mathbf{y}_{\text{RMSNorm}} = \begin{bmatrix} 0.4629 \\ 0.9258 \\ 1.3887 \end{bmatrix}
 $$
+
+
 
 <mark>Notice: The values maintain their strictly positive, natural relative proportions while their overall root-mean-square energy is clamped to exactly $1.0$!</mark>
 

@@ -47,9 +47,13 @@
 !!! question "计算连接问题: 为什么神经网络的数值会失控爆炸或萎缩？"
     在第 12 章中，我们发现残差连接构筑了一条加法高速公路：
 
+
+
     $$
     \mathbf{x}_{l} = \mathbf{x}_{l-1} + \mathcal{F}_l(\mathbf{x}_{l-1})
     $$
+
+
 
     由于每一层都是在原有向量的基础上**累加**新的特征增量，随着网络层数堆叠到 30 层、60 层甚至 80 层，向量 $\mathbf{x}_l$ 的整体欧氏模长（数值绝对值）往往会像滚雪球一样不断膨胀。
 
@@ -70,37 +74,53 @@
 
 ### 1. 标准层归一化（Layer Normalization, Ba 等人，2016）
 
-\lt dfn id="def-ln-math-zh">层归一化（LayerNorm）</dfn>沿着每个词元自身的隐藏特征维度 $d_{\text{model}}$ 进行独立归一化，与批量维度彻底解耦。
+<dfn id="def-ln-math-zh">层归一化（LayerNorm）</dfn>沿着每个词元自身的隐藏特征维度 $d_{\text{model}}$ 进行独立归一化，与批量维度彻底解耦。
 
 给定一个输入词元向量 $\mathbf{x} = [x_1, x_2, \dots, x_d]^\top \in \mathbb{R}^d$（其中 $d = d_{\text{model}}$）：
 
 #### 步骤 A：计算当前词元的均值（Mean）
 求该向量所有维度的算术平均值：
 
+
+
 $$
 \mu = \frac{1}{d} \sum_{i=1}^d x_i
 $$
 
+
+
 #### 步骤 B：计算方差（Variance）
 计算各维度偏离均值的离散程度：
+
+
 
 $$
 \sigma^2 = \frac{1}{d} \sum_{i=1}^d (x_i - \mu)^2
 $$
 
+
+
 #### 步骤 C：零均值化与单位方差缩放
 将特征中心平移至零，并除以标准差（加上极小微量 $\epsilon \approx 10^{-5}$ 以防除以零）：
+
+
 
 $$
 \hat{x}_i = \frac{x_i - \mu}{\sqrt{\sigma^2 + \epsilon}}
 $$
 
+
+
 #### 步骤 D：可学习的仿射缩放与平移变换
 为防止归一化抹杀特征原本具有的独特表达分布，LayerNorm 引入了两个与维度大小相同的可学习参数：
+
+
 
 $$
 y_i = \gamma_i \hat{x}_i + \beta_i
 $$
+
+
 
 其中：
 - $\boldsymbol{\gamma} \in \mathbb{R}^d$ 是可学习的增益（缩放）向量，初始化为全 $1$。
@@ -113,30 +133,42 @@ $$
 2019 年，张标（Biao Zhang）与 Rico Sennrich 开展了深入的理论与实验探究，得出了一个震撼业界的结论：
 **层归一化中将中心平移至零均值的去均值操作（$x_i - \mu$），对保证训练稳定性几乎毫无用处！真正发挥压制数值失控作用的，完全是根据整体模长进行缩放（均方根 Root Mean Square）的能力。**
 
-基于此，他们去掉了均值计算 $\mu$ 和偏置向量 $\boldsymbol{\beta}$，发明了 \lt dfn id="def-rmsnorm-math-zh">均方根归一化（RMSNorm）</dfn>。该算法现已成为 LLaMA 1/2/3、Mistral、Gemma、DeepSeek 等几乎所有前沿大模型的统一工业标准！
+基于此，他们去掉了均值计算 $\mu$ 和偏置向量 $\boldsymbol{\beta}$，发明了 <dfn id="def-rmsnorm-math-zh">均方根归一化（RMSNorm）</dfn>。该算法现已成为 LLaMA 1/2/3、Mistral、Gemma、DeepSeek 等几乎所有前沿大模型的统一工业标准！
 
 #### 步骤 A：计算均方根（RMS）
 计算该向量各维度的二次平均值：
+
+
 
 $$
 \operatorname{RMS}(\mathbf{x}) = \sqrt{\frac{1}{d} \sum_{i=1}^d x_i^2 + \epsilon}
 $$
 
+
+
 #### 步骤 B：向量缩放与增益重整
 直接用原向量除以均方根，并乘上可学习的增益参数 $\gamma_i$：
+
+
 
 $$
 y_i = \frac{x_i}{\operatorname{RMS}(\mathbf{x})} \cdot \gamma_i
 $$
 
+
+
 向量紧凑表示为：
+
+
 
 $$
 \mathbf{y} = \frac{\mathbf{x}}{\operatorname{RMS}(\mathbf{x})} \odot \boldsymbol{\gamma}
 $$
 
-\lt details>
-\lt summary>\lt strong>为什么现代大模型全面摒弃均值 $\mu$ 与偏置 $\beta$？</strong></summary>
+
+
+<details>
+<summary><strong>为什么现代大模型全面摒弃均值 $\mu$ 与偏置 $\beta$？</strong></summary>
 1. **GPU 显存带宽极致优化（Memory-Bound 破局）**：
    在现代 GPU 上，归一化运算受限于**显存带宽**（即数据在板载显存 HBM 与芯片片上缓存 SRAM 之间的搬运速率），而非计算单元算力。
    - 标准 LayerNorm 需要对向量进行**两次完整的数据扫描**：第一遍算均值 $\mu$，第二遍算 $(x_i - \mu)^2$。
@@ -150,8 +182,8 @@ $$
 
 ## 第 4 步：历史源流与思考演进 {: #step-4 }
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 神经网络归一化技术的演进时间轴：
 
 2015: Ioffe & Szegedy ────► 批归一化 (BatchNorm)
@@ -166,51 +198,51 @@ $$
                             证明中心化多余，单次扫描均方根提速 10%~50%；
                             成为现代 LLaMA、Mistral、DeepSeek 统一标配。
 </pre>
-\lt figcaption>\lt strong>图 13.2：</strong> 从跨样本统计的批归一化，到片上单遍扫描的高性能 RMSNorm 演变脉络。</figcaption>
+<figcaption><strong>图 13.2：</strong> 从跨样本统计的批归一化，到片上单遍扫描的高性能 RMSNorm 演变脉络。</figcaption>
 </figure>
 
 ### 1. 归一化流派横向全面对比
 
-\lt fieldset>
-\lt legend>\lt strong>大模型归一化架构横向评测</strong></legend>
+<fieldset>
+<legend><strong>大模型归一化架构横向评测</strong></legend>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 13.1：</strong> 归一化方法核心属性与性能横向对比。</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0eee6">
-      \lt th align="left">技术方案</th>
-      \lt th align="center">数学缩放核心</th>
-      \lt th align="center">可学习参数量</th>
-      \lt th align="center">显存读取遍数</th>
-      \lt th align="left">大模型工业界落地现状</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 13.1：</strong> 归一化方法核心属性与性能横向对比。</caption>
+  <thead>
+    <tr bgcolor="#f0eee6">
+      <th align="left">技术方案</th>
+      <th align="center">数学缩放核心</th>
+      <th align="center">可学习参数量</th>
+      <th align="center">显存读取遍数</th>
+      <th align="left">大模型工业界落地现状</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>\lt strong>批归一化 (BatchNorm)</strong></td>
-      \lt td align="center">$\frac{x - \mu_{\text{batch}}}{\sigma_{\text{batch}}}$</td>
-      \lt td align="center">$\gamma, \beta$</td>
-      \lt td align="center">多遍全局同步</td>
-      \lt td>
-        \lt del>完全不适用于现代大模型。</del> 无法应对动态变长文本，且在自回归单词元生成时直接失效。
+  <tbody>
+    <tr>
+      <td><strong>批归一化 (BatchNorm)</strong></td>
+      <td align="center">$\frac{x - \mu_{\text{batch}}}{\sigma_{\text{batch}}}$</td>
+      <td align="center">$\gamma, \beta$</td>
+      <td align="center">多遍全局同步</td>
+      <td>
+        <del>完全不适用于现代大模型。</del> 无法应对动态变长文本，且在自回归单词元生成时直接失效。
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>经典层归一化 (LayerNorm)</strong></td>
-      \lt td align="center">$\frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \cdot \gamma + \beta$</td>
-      \lt td align="center">$2d$（$\boldsymbol{\gamma}, \boldsymbol{\beta}$）</td>
-      \lt td align="center">2 遍完整访存</td>
-      \lt td>
-        \lt del>上一代历史标准。</del> 广泛见于 GPT-2、GPT-3、BERT。收敛稳健，但带来不必要的显存带宽开销。
+    <tr>
+      <td><strong>经典层归一化 (LayerNorm)</strong></td>
+      <td align="center">$\frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \cdot \gamma + \beta$</td>
+      <td align="center">$2d$（$\boldsymbol{\gamma}, \boldsymbol{\beta}$）</td>
+      <td align="center">2 遍完整访存</td>
+      <td>
+        <del>上一代历史标准。</del> 广泛见于 GPT-2、GPT-3、BERT。收敛稳健，但带来不必要的显存带宽开销。
       </td>
     </tr>
-    \lt tr bgcolor="#fdfdf0">
-      \lt td>\lt strong>均方根归一化 (RMSNorm)</strong></td>
-      \lt td align="center">$\frac{x}{\operatorname{RMS}(\mathbf{x})} \cdot \gamma$</td>
-      \lt td align="center">\lt ins>\lt strong>$d$（仅 $\boldsymbol{\gamma}$）</strong></ins></td>
-      \lt td align="center">\lt ins>\lt strong>1 遍单次访存</strong></ins></td>
-      \lt td>
-        \lt ins>\lt strong>现代开源与闭源前沿模型的绝对标准！</strong></ins> 全面赋能 LLaMA 1/2/3、Mistral、DeepSeek-V2/V3、Qwen。算子更轻、速度更快。
+    <tr bgcolor="#fdfdf0">
+      <td><strong>均方根归一化 (RMSNorm)</strong></td>
+      <td align="center">$\frac{x}{\operatorname{RMS}(\mathbf{x})} \cdot \gamma$</td>
+      <td align="center"><ins><strong>$d$（仅 $\boldsymbol{\gamma}$）</strong></ins></td>
+      <td align="center"><ins><strong>1 遍单次访存</strong></ins></td>
+      <td>
+        <ins><strong>现代开源与闭源前沿模型的绝对标准！</strong></ins> 全面赋能 LLaMA 1/2/3、Mistral、DeepSeek-V2/V3、Qwen。算子更轻、速度更快。
       </td>
     </tr>
   </tbody>
@@ -227,9 +259,13 @@ $$
 
 设输入词元向量维度为 $d = 3$，当前激活值为：
 
+
+
 $$
 \mathbf{x} = \begin{bmatrix} 2.0 \\ 4.0 \\ 6.0 \end{bmatrix}
 $$
+
+
 
 为让手算过程一目了然，设定平滑项 $\epsilon = 0$，增益参数 $\boldsymbol{\gamma} = [1.0, 1.0, 1.0]^\top$，偏置参数 $\boldsymbol{\beta} = [0.0, 0.0, 0.0]^\top$。
 
@@ -238,9 +274,13 @@ $$
 ### 2. 计算标准 LayerNorm
 
 #### 步骤 A：计算均值 $\mu$
+
+
 $$
 \mu = \frac{2.0 + 4.0 + 6.0}{3} = \frac{12.0}{3} = 4.0
 $$
+
+
 
 #### 步骤 B：计算方差 $\sigma^2$ 与标准差 $\sigma$
 计算各分量距离均值 $4.0$ 的差量平方：
@@ -250,15 +290,23 @@ $$
 
 求平方差的均值：
 
+
+
 $$
 \sigma^2 = \frac{4.0 + 0.0 + 4.0}{3} = \frac{8.0}{3} \approx 2.6667
 $$
 
+
+
 标准差为：
+
+
 
 $$
 \sigma = \sqrt{\frac{8}{3}} \approx 1.6330
 $$
+
+
 
 #### 步骤 C：执行零均值化与缩放
 各分量减去均值后除以标准差 $1.6330$：
@@ -266,11 +314,15 @@ $$
 - $\hat{x}_2 = \frac{0.0}{1.6330} = 0.0000$
 - $\hat{x}_3 = \frac{2.0}{1.6330} \approx 1.2247$
 
+
+
 $$
 \mathbf{y}_{\text{LayerNorm}} = \begin{bmatrix} -1.2247 \\ 0.0000 \\ 1.2247 \end{bmatrix}
 $$
 
-\lt mark>看：LayerNorm 输出的均值精确为 0，方差精确归一化为 1.0！</mark>
+
+
+<mark>看：LayerNorm 输出的均值精确为 0，方差精确归一化为 1.0！</mark>
 
 ---
 
@@ -287,13 +339,21 @@ $$
 求和：$4.0 + 16.0 + 36.0 = 56.0$。
 
 #### 步骤 B：计算均方根 $\operatorname{RMS}(\mathbf{x})$
+
+
 $$
 \operatorname{MeanSquare} = \frac{56.0}{3} \approx 18.6667
 $$
 
+
+
+
+
 $$
 \operatorname{RMS}(\mathbf{x}) = \sqrt{18.6667} \approx 4.3205
 $$
+
+
 
 #### 步骤 C：直接执行缩放
 将每个原始分量直接除以 $\operatorname{RMS}(\mathbf{x}) \approx 4.3205$：
@@ -301,9 +361,13 @@ $$
 - $y_2 = \frac{4.0}{4.3205} \approx 0.9258$
 - $y_3 = \frac{6.0}{4.3205} \approx 1.3887$
 
+
+
 $$
 \mathbf{y}_{\text{RMSNorm}} = \begin{bmatrix} 0.4629 \\ 0.9258 \\ 1.3887 \end{bmatrix}
 $$
+
+
 
 <mark>看：所有数字依然保持着原本自然的正向相对比例，但整体二次能量被精确驯服钳位到了 1.0 左右！整个过程无需减均值，硬件计算单遍完成！</mark>
 

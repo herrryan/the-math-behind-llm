@@ -57,13 +57,17 @@ Final Output Token:   "apple"
 
     The most obvious strategy is **Greedy Decoding**:
 
+
+
     $$
     w_{t}^* = \arg\max_{w \in V} z_w
     $$
 
+
+
     Why doesn't every LLM simply use Greedy Decoding?
 
-    In 2019, Ari Holtzman and his co-authors at the University of Washington proved a startling mathematical discovery (\lt cite>"The Curious Case of Neural Text Degeneration"</cite>):
+    In 2019, Ari Holtzman and his co-authors at the University of Washington proved a startling mathematical discovery (<cite>"The Curious Case of Neural Text Degeneration"</cite>):
     1. **Greedy Text is Unnatural**: Natural human language does *not* consist of the highest-probability words at every step. Real human writers weave between high-probability predictable words and lower-probability creative, surprising words.
     2. **The Repetition Trap**: In deep autoregressive loops, greedy decoding gets trapped in deterministic loops: because word $A$ predicts $B$, and $B$ predicts $A$, the model gets caught in an infinite cycle ($A \to B \to A \to B$).
 
@@ -78,31 +82,47 @@ Final Output Token:   "apple"
 Let $\mathbf{z} = [z_1, z_2, \dots, z_{|V|}]^\top \in \mathbb{R}^{|V|}$ be the raw output logits.
 The **Temperature-Scaled Softmax** defines the probability of token $i$ as:
 
+
+
 $$
 p_i(T) = \frac{\exp(z_i / T)}{\sum_{j=1}^{|V|} \exp(z_j / T)}
 $$
+
+
 
 where $T > 0$ is the **temperature parameter**.
 
 #### Mathematical Properties Across Temperature Regimes:
 1. **As $T \to 0^+$ (Argmax / Greedy Limit)**:
    The gap between the largest logit $z_{\max}$ and all other logits approaches infinity:
+
+
    $$
    \lim_{T \to 0^+} p_i(T) = \begin{cases} 1 & \text{if } z_i = \max_j z_j \\ 0 & \text{otherwise} \end{cases}
    $$
+
+
    The probability collapses into a deterministic **one-hot Dirac delta distribution**.
 
 2. **Standard Temperature ($T = 1.0$)**:
    Recovers the pure mathematical Softmax distribution used during cross-entropy training:
+
+
    $$
    p_i(1.0) = \frac{\exp(z_i)}{\sum_j \exp(z_j)}
    $$
 
+
+
 3. **As $T \to \infty$ (Uniform Noise Limit)**:
    All scaled logits approach zero ($z_i / T \to 0$), meaning $\exp(z_i / T) \to 1$:
+
+
    $$
    \lim_{T \to \infty} p_i(T) = \frac{1}{|V|}
    $$
+
+
    The distribution becomes completely flat (maximum entropy / pure white noise).
 
 ---
@@ -111,16 +131,24 @@ where $T > 0$ is the **temperature parameter**.
 
 Top-$k$ filtering restricts the sampling pool to the $k$ tokens with the largest logits, setting all other logits to negative infinity:
 
+
+
 $$
 z'_i = \begin{cases} z_i & \text{if } z_i \ge z_{(k)} \\ -\infty & \text{otherwise} \end{cases}
 $$
 
+
+
 where $z_{(k)}$ is the $k$-th largest logit in the vocabulary.
 After masking, Softmax is recomputed over the remaining $k$ tokens:
+
+
 
 $$
 p'_i = \frac{\exp(z'_i / T)}{\sum_{j=1}^{|V|} \exp(z'_j / T)}
 $$
+
+
 
 ---
 
@@ -130,21 +158,33 @@ Top-$k$ has a major flaw: a fixed $k=50$ is far too large when the model is conf
 
 **Top-$p$ (Nucleus) Sampling** solves this by dynamically adapting the cutoff threshold:
 1. Sort all vocabulary tokens in descending order of probability:
+
+
    $$
    p_{(1)} \ge p_{(2)} \ge \dots \ge p_{(|V|)}
    $$
-2. Find the smallest index $k^*$ such that the cumulative distribution function (\lt abbr title="Cumulative Distribution Function">CDF</abbr>) reaches threshold $p \in (0, 1]$:
+
+
+2. Find the smallest index $k^*$ such that the cumulative distribution function (<abbr title="Cumulative Distribution Function">CDF</abbr>) reaches threshold $p \in (0, 1]$:
+
+
    $$
    k^* = \min \left\{ k : \sum_{i=1}^k p_{(i)} \ge p \right\}
    $$
+
+
 3. Define the nucleus subset $V^{(p)} = \{ (1), (2), \dots, (k^*) \}$.
 4. Re-normalize the probabilities strictly over $V^{(p)}$:
+
+
    $$
    p'_i = \begin{cases} \frac{p_i}{\sum_{j \in V^{(p)}} p_j} & \text{if } i \in V^{(p)} \\ 0 & \text{otherwise} \end{cases}
    $$
 
-\lt figure>
-\lt pre>
+
+
+<figure>
+<pre>
 Top-p Nucleus Truncation Dynamics:
 
 Case A: Highly Confident Context ("The capital of France is...")
@@ -155,22 +195,22 @@ Case B: Open Creative Context ("She looked outside and saw a...")
   Tokens:       [ bird (0.18) │ tree (0.15) │ cat (0.12) │ car (0.10) ... ]
   CDF:            0.18 + 0.15 + 0.12 + 0.10 + ... >= 0.90 ──► Pool = 18 tokens!
 </pre>
-\lt figcaption>\lt strong>Figure 18.2:</strong> Nucleus sampling dynamically contracts to 1 token when confident, and expands to dozens when ambiguous.</figcaption>
+<figcaption><strong>Figure 18.2:</strong> Nucleus sampling dynamically contracts to 1 token when confident, and expands to dozens when ambiguous.</figcaption>
 </figure>
 
 ---
 
 ## Step 4: Where Did It Come From? (Boltzmann, Fan, & Holtzman) {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="1877">1877</time> &mdash; \lt strong>Ludwig Boltzmann</strong></dt>
-  \lt dd>Formulated statistical mechanics, showing that the probability of a physical system occupying microstate $i$ with energy $E_i$ at thermodynamic temperature $T$ follows $p_i \propto \exp(-E_i / k_B T)$. In LLMs, the negative logit $-z_i$ acts as the particle energy state.</dd>
+<dl>
+  <dt><time datetime="1877">1877</time> &mdash; <strong>Ludwig Boltzmann</strong></dt>
+  <dd>Formulated statistical mechanics, showing that the probability of a physical system occupying microstate $i$ with energy $E_i$ at thermodynamic temperature $T$ follows $p_i \propto \exp(-E_i / k_B T)$. In LLMs, the negative logit $-z_i$ acts as the particle energy state.</dd>
 
-  \lt dt>\lt time datetime="2018">2018</time> &mdash; \lt strong>Angela Fan, Mike Lewis, & Yann Dauphin</strong> (\lt cite>"Hierarchical Neural Story Generation"</cite>)</dt>
-  \lt dd>Introduced Top-$k$ random sampling for neural text generation at Meta AI, proving that truncating the unreliable probability tail dramatically eliminated repetition and gibberish compared to unconstrained sampling.</dd>
+  <dt><time datetime="2018">2018</time> &mdash; <strong>Angela Fan, Mike Lewis, & Yann Dauphin</strong> (<cite>"Hierarchical Neural Story Generation"</cite>)</dt>
+  <dd>Introduced Top-$k$ random sampling for neural text generation at Meta AI, proving that truncating the unreliable probability tail dramatically eliminated repetition and gibberish compared to unconstrained sampling.</dd>
 
-  \lt dt>\lt time datetime="2019">2019</time> &mdash; \lt strong>Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, & Yejin Choi</strong> (\lt cite>"The Curious Case of Neural Text Degeneration"</cite>)</dt>
-  \lt dd>Discovered that human language does not maximize probability, exposed the fatal flaws of both greedy decoding and fixed Top-$k$, and invented Nucleus (Top-$p$) Sampling, which remains the default decoding algorithm in ChatGPT, Claude, and Gemini.</dd>
+  <dt><time datetime="2019">2019</time> &mdash; <strong>Ari Holtzman, Jan Buys, Li Du, Maxwell Forbes, & Yejin Choi</strong> (<cite>"The Curious Case of Neural Text Degeneration"</cite>)</dt>
+  <dd>Discovered that human language does not maximize probability, exposed the fatal flaws of both greedy decoding and fixed Top-$k$, and invented Nucleus (Top-$p$) Sampling, which remains the default decoding algorithm in ChatGPT, Claude, and Gemini.</dd>
 </dl>
 
 ---
@@ -182,9 +222,13 @@ Let us calculate the exact probabilities for a miniature 4-word vocabulary under
 ### 1. Miniature Vocabulary & Raw Logits
 Consider vocabulary $V = \{\text{cat}, \text{dog}, \text{fish}, \text{toaster}\}$ with raw output logits:
 
+
+
 $$
 \mathbf{z} = [z_{\text{cat}} = 4.0, \; z_{\text{dog}} = 2.0, \; z_{\text{fish}} = 1.0, \; z_{\text{toaster}} = -1.0]
 $$
+
+
 
 ---
 

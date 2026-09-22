@@ -50,9 +50,13 @@ AdamW (Momentum cancels chatter + Adaptive scaling accelerates descent):
 !!! question "The Bridging Question: Why Does Plain Gradient Descent Fail in Deep Networks?"
     In Chapter 16, we saw the classic Gradient Descent update rule:
 
+
+
     $$
     \boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \mathbf{g}_t
     $$
+
+
 
     While mathematically elegant, applying this formula directly to train a 70-billion-parameter Transformer is catastrophic:
 
@@ -70,17 +74,25 @@ AdamW (Momentum cancels chatter + Adaptive scaling accelerates descent):
 At each optimization step $t$, given the parameter vector $\boldsymbol{\theta}_{t-1}$ and the mini-batch gradient $\mathbf{g}_t = \nabla_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta}_{t-1})$:
 
 #### Step A: First Moment Estimate (Moving Average of Gradients &mdash; Momentum)
+
+
 $$
 \mathbf{m}_t = \beta_1 \mathbf{m}_{t-1} + (1 - \beta_1) \mathbf{g}_t
 $$
+
+
 
 - $\mathbf{m}_t \in \mathbb{R}^P$ tracks the directional momentum.
 - $\beta_1 \in [0, 1)$ is the first-moment decay factor (standard default: $\beta_1 = 0.9$).
 
 #### Step B: Second Moment Estimate (Moving Average of Squared Gradients &mdash; Energy)
+
+
 $$
 \mathbf{v}_t = \beta_2 \mathbf{v}_{t-1} + (1 - \beta_2) \mathbf{g}_t^2
 $$
+
+
 
 - $\mathbf{v}_t \in \mathbb{R}^P$ tracks the uncentered variance (gradient magnitude). $\mathbf{g}_t^2 = \mathbf{g}_t \odot \mathbf{g}_t$ is computed element-wise.
 - $\beta_2 \in [0, 1)$ is the second-moment decay factor (standard default: $\beta_2 = 0.95$ for LLMs, or $0.999$ in classic vision).
@@ -88,14 +100,20 @@ $$
 #### Step C: Bias Corrections (Correcting for Zero Initialization)
 Because $\mathbf{m}_0 = \mathbf{0}$ and $\mathbf{v}_0 = \mathbf{0}$, early moving averages are heavily biased toward zero. We rescale them by dividing by $(1 - \beta^t)$:
 
+
+
 $$
 \hat{\mathbf{m}}_t = \frac{\mathbf{m}_t}{1 - \beta_1^t}, \quad \hat{\mathbf{v}}_t = \frac{\mathbf{v}_t}{1 - \beta_2^t}
 $$
 
-\lt details>
-\lt summary>\lt strong>Proof: Why Does Dividing by $1 - \beta^t$ Eliminate Startup Drag?</strong></summary>
+
+
+<details>
+<summary><strong>Proof: Why Does Dividing by $1 - \beta^t$ Eliminate Startup Drag?</strong></summary>
 
 Unroll the recursive equation for $\mathbf{m}_t$ with $\mathbf{m}_0 = \mathbf{0}$:
+
+
 
 $$
 \begin{aligned}
@@ -104,32 +122,50 @@ $$
 \end{aligned}
 $$
 
+
+
 Take the mathematical expectation $\mathbb{E}[\mathbf{m}_t]$, assuming the underlying true gradient has expected mean $\mathbb{E}[\mathbf{g}_i] \approx \mathbb{E}[\mathbf{g}]$:
+
+
 
 $$
 \mathbb{E}[\mathbf{m}_t] = \mathbb{E}\left[(1 - \beta_1)\sum_{i=1}^t \beta_1^{t-i} \mathbf{g}_i\right] = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1) \sum_{i=1}^t \beta_1^{t-i}
 $$
 
+
+
 The finite geometric series sum is:
+
+
 
 $$
 \sum_{i=1}^t \beta_1^{t-i} = \frac{1 - \beta_1^t}{1 - \beta_1}
 $$
 
+
+
 Substitute this back:
+
+
 
 $$
 \mathbb{E}[\mathbf{m}_t] = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1) \cdot \frac{1 - \beta_1^t}{1 - \beta_1} = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1^t)
 $$
+
+
 
 At step $t = 1$ with $\beta_1 = 0.9$, $\mathbf{m}_1$ is only $10\%$ of the true gradient!
 Dividing by $(1 - \beta_1^t) = (1 - 0.9^1) = 0.10$ exactly scales it back to $100\%$, ensuring unbiased gradient estimates from step 1!
 </details>
 
 #### Step D: The Decoupled Weight Decay Parameter Update (AdamW)
+
+
 $$
 \boldsymbol{\theta}_t = \boldsymbol{\theta}_{t-1} - \underbrace{\eta \lambda \boldsymbol{\theta}_{t-1}}_{\text{Decoupled Weight Decay}} - \underbrace{\frac{\eta}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \odot \hat{\mathbf{m}}_t}_{\text{Adaptive Momentum Step}}
 $$
+
+
 
 where:
 - $\eta > 0$ is the scheduled learning rate.
@@ -153,18 +189,18 @@ Loshchilov & Hutter (2017) discovered a fatal flaw:
 
 ## Step 4: Where Did It Come From? (From AdaGrad to AdamW) {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="2011">2011</time> &mdash; \lt strong>John Duchi, Elad Hazan, & Yoram Singer</strong> (\lt abbr title="Adaptive Gradient Algorithm">AdaGrad</abbr>)</dt>
-  \lt dd>Introduced parameter-specific learning rates scaled inversely by the square root of historical gradient sums $\sum g_\tau^2$. However, because the denominator grew monotonically, the learning rate decayed to zero and training froze prematurely.</dd>
+<dl>
+  <dt><time datetime="2011">2011</time> &mdash; <strong>John Duchi, Elad Hazan, & Yoram Singer</strong> (<abbr title="Adaptive Gradient Algorithm">AdaGrad</abbr>)</dt>
+  <dd>Introduced parameter-specific learning rates scaled inversely by the square root of historical gradient sums $\sum g_\tau^2$. However, because the denominator grew monotonically, the learning rate decayed to zero and training froze prematurely.</dd>
 
-  \lt dt>\lt time datetime="2012">2012</time> &mdash; \lt strong>Geoffrey Hinton, Nitish Srivastava, & Kevin Swersky</strong> (\lt abbr title="Root Mean Square Propagation">RMSProp</abbr>)</dt>
-  \lt dd>Replaced the monotonic sum with an Exponential Moving Average ($1 - \beta_2$), allowing the optimizer to adapt dynamically to recent landscape geometry without premature freezing.</dd>
+  <dt><time datetime="2012">2012</time> &mdash; <strong>Geoffrey Hinton, Nitish Srivastava, & Kevin Swersky</strong> (<abbr title="Root Mean Square Propagation">RMSProp</abbr>)</dt>
+  <dd>Replaced the monotonic sum with an Exponential Moving Average ($1 - \beta_2$), allowing the optimizer to adapt dynamically to recent landscape geometry without premature freezing.</dd>
 
-  \lt dt>\lt time datetime="2014">2014</time> &mdash; \lt strong>Diederik Kingma & Jimmy Ba</strong> (\lt abbr title="Adaptive Moment Estimation">Adam</abbr>)</dt>
-  \lt dd>Combined RMSProp's adaptive denominator with classical Polyak momentum ($m_t$) and invented the exact $(1 - \beta^t)$ bias correction formulas.</dd>
+  <dt><time datetime="2014">2014</time> &mdash; <strong>Diederik Kingma & Jimmy Ba</strong> (<abbr title="Adaptive Moment Estimation">Adam</abbr>)</dt>
+  <dd>Combined RMSProp's adaptive denominator with classical Polyak momentum ($m_t$) and invented the exact $(1 - \beta^t)$ bias correction formulas.</dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>Ilya Loshchilov & Frank Hutter</strong> (\lt abbr title="Adam with Decoupled Weight Decay">AdamW</abbr>)</dt>
-  \lt dd>Demonstrated that $L_2$ regularization was broken in Adam, introduced decoupled weight decay, and restored the generalization performance of adaptive gradient methods across all modern Transformer LLMs.</dd>
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Ilya Loshchilov & Frank Hutter</strong> (<abbr title="Adam with Decoupled Weight Decay">AdamW</abbr>)</dt>
+  <dd>Demonstrated that $L_2$ regularization was broken in Adam, introduced decoupled weight decay, and restored the generalization performance of adaptive gradient methods across all modern Transformer LLMs.</dd>
 </dl>
 
 ---
@@ -186,12 +222,12 @@ Let us compute two full optimization steps of AdamW by hand on a single scalar w
 
 ### 2. Optimization Step $t = 1$ (High Gradient $g_1 = 2.0$)
 
-\lt fieldset>
-\lt legend>\lt strong>Execution Checklist (Step 1)</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step A:</strong> Update raw moving averages $m_1$ and $v_1$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step B:</strong> Apply bias correction factors $(1 - \beta^1)$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step C:</strong> Calculate adaptive ratio $\hat{m}_1 / \sqrt{\hat{v}_1}$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step D:</strong> Apply decoupled weight decay and compute $\theta_1$.</p>
+<fieldset>
+<legend><strong>Execution Checklist (Step 1)</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Update raw moving averages $m_1$ and $v_1$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Apply bias correction factors $(1 - \beta^1)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Calculate adaptive ratio $\hat{m}_1 / \sqrt{\hat{v}_1}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Apply decoupled weight decay and compute $\theta_1$.</p>
 </fieldset>
 
 #### Step A: Raw Moments
@@ -202,14 +238,20 @@ Let us compute two full optimization steps of AdamW by hand on a single scalar w
 - $\hat{m}_1 = \frac{m_1}{1 - \beta_1^1} = \frac{0.20}{1 - 0.90} = \frac{0.20}{0.10} = \mathbf{2.0000}$
 - $\hat{v}_1 = \frac{v_1}{1 - \beta_2^1} = \frac{0.04}{1 - 0.99} = \frac{0.04}{0.01} = \mathbf{4.0000}$
 
-\lt mark>Look at the bias correction in action: it boosted $m_1$ from 0.20 back to 2.00, and $v_1$ from 0.04 back to 4.00!</mark>
+<mark>Look at the bias correction in action: it boosted $m_1$ from 0.20 back to 2.00, and $v_1$ from 0.04 back to 4.00!</mark>
 
 #### Step C: Adaptive Step Direction
+
+
 $$
 u_1 = \frac{\hat{m}_1}{\sqrt{\hat{v}_1} + \epsilon} = \frac{2.0000}{\sqrt{4.0000}} = \frac{2.0000}{2.0000} = \mathbf{1.0000}
 $$
 
+
+
 #### Step D: Parameter Update with Weight Decay
+
+
 $$
 \begin{aligned}
 \theta_1 &= \theta_0 - \eta \lambda \theta_0 - \eta u_1 \\
@@ -217,6 +259,8 @@ $$
 &= 1.0000 - 0.0050 - 0.1000 = \mathbf{0.8950}
 \end{aligned}
 $$
+
+
 
 ---
 
@@ -235,13 +279,19 @@ Now, at step $t = 2$, suppose the model moved closer to the minimum and the grad
 - $\hat{v}_2 = \frac{0.0421}{0.0199} \approx \mathbf{2.1156}$
 
 #### Step C: Adaptive Step Direction
+
+
 $$
 u_2 = \frac{\hat{m}_2}{\sqrt{\hat{v}_2} + \epsilon} = \frac{1.2105}{\sqrt{2.1156}} \approx \frac{1.2105}{1.4545} \approx \mathbf{0.8322}
 $$
 
+
+
 Notice that even though the gradient plunged by $75\%$ (from $2.0$ down to $0.5$), the actual update step $u_2 = 0.8322$ remained steady and confident due to accumulated momentum!
 
 #### Step D: Parameter Update with Weight Decay
+
+
 $$
 \begin{aligned}
 \theta_2 &= \theta_1 - \eta \lambda \theta_1 - \eta u_2 \\
@@ -249,6 +299,8 @@ $$
 &= 0.8950 - 0.00448 - 0.08322 = \mathbf{0.8073}
 \end{aligned}
 $$
+
+
 
 The parameter smoothly advanced from $1.0000 \to 0.8950 \to 0.8073$.
 

@@ -48,9 +48,13 @@
 !!! question "计算连接问题: 计算机如何在一瞬间算准 700 亿个参数的偏导数？"
     在第 15 章中，我们推导出了网络最顶端的奇迹对数几率梯度：
 
+
+
     $$
     \frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \hat{\mathbf{y}} - \mathbf{y}
     $$
+
+
 
     但这仅仅告诉了我们最顶层 Logits 输出应该如何微调。
 
@@ -66,14 +70,18 @@
 
 ### 1. 计算图与多元链式法则
 
-在数学上，神经网络被形式化为一个有向无环图（\lt dfn id="def-comp-graph-zh">计算图，Computational Graph</dfn>）。
+在数学上，神经网络被形式化为一个有向无环图（<dfn id="def-comp-graph-zh">计算图，Computational Graph</dfn>）。
 假设变量 $\mathbf{x}$ 经过基础变换生成中间变量 $\mathbf{y} = f(\mathbf{x})$，随后经由后续网络生成最终标量损失 $\mathcal{L} = g(\mathbf{y})$。
 
 根据多元微积分的**链式法则（Chain Rule）**：
 
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \cdot \frac{\partial \mathbf{y}}{\partial \mathbf{x}}
 $$
+
+
 
 其中：
 - $\frac{\partial \mathcal{L}}{\partial \mathbf{y}} \in \mathbb{R}^{1 \times d_y}$ 是下游节点逆流回传给当前节点的误差梯度（即向导手中的“误差纸条”）。
@@ -95,17 +103,25 @@ $$
 在反向传播经过该线性节点时，只需执行两次独立的矩阵乘法：
 
 #### A. 对权重矩阵 $\mathbf{W}$ 的梯度（用于参数更新）：
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \mathbf{x}^\top \mathbf{G}_y \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}
 $$
 
+
+
 #### B. 对输入激活 $\mathbf{x}$ 的梯度（继续逆向回传给上一层）：
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}} = \mathbf{G}_y \mathbf{W}^\top \in \mathbb{R}^{B \times d_{\text{in}}}
 $$
 
-\lt figure>
-\lt pre>
+
+
+<figure>
+<pre>
 线性矩阵层的反向传播数据流向图：
 
 前向传播：  x  [ B x d_in ] ──► ( * W ) ──► y  [ B x d_out ]
@@ -116,7 +132,7 @@ $$
                                     ▼
                            dL/dW = x^T * G_y
 </pre>
-\lt figcaption>\lt strong>图 16.2：</strong> 线性层将回传的梯度 $\mathbf{G}_y$ 一分为二：与 $\mathbf{x}^\top$ 相乘获得权重的更新梯度，与 $\mathbf{W}^\top$ 相乘获得回传给上一层的激活梯度。</figcaption>
+<figcaption><strong>图 16.2：</strong> 线性层将回传的梯度 $\mathbf{G}_y$ 一分为二：与 $\mathbf{x}^\top$ 相乘获得权重的更新梯度，与 $\mathbf{W}^\top$ 相乘获得回传给上一层的激活梯度。</figcaption>
 </figure>
 
 注意这里的维度对称美学：
@@ -129,9 +145,13 @@ $$
 
 一旦算出了权重梯度矩阵 $\nabla_{\mathbf{W}} \mathcal{L}$，模型旋钮便沿着负梯度方向更新步进：
 
+
+
 $$
 \mathbf{W}_{t+1} = \mathbf{W}_t - \eta \nabla_{\mathbf{W}} \mathcal{L}_t
 $$
+
+
 
 其中 $\eta > 0$ 是**学习率（Learning Rate）**，决定了我们在迷雾山体上每一步下迈的尺度。
 
@@ -145,9 +165,13 @@ $$
 - **前向自动微分（切空间前推）**：从输入参数向前传播导数。因为每个输入参数都需要单独执行一次完整遍历，求解全部 $P$ 个参数的导数需要 **$\mathcal{O}(P)$ 次计算遍数**（整整 700 亿遍！）。
 - **反向自动微分（伴随空间回传，即反向传播）**：从单一标量损失 $\mathcal{L}$ 出发，逆向回传梯度。因为标量输出**只有唯一 1 个数值**，反向扫过一遍计算图，就能顺带获得全部 $P$ 个参数的偏导数，复杂度仅为 **$\mathcal{O}(1)$ 次反向遍数**！
 
+
+
 $$
 \frac{\text{反向模式计算代价}}{\text{前向模式计算代价}} = \frac{1}{P} \approx \frac{1}{70,000,000,000}
 $$
+
+
 
 没有反向模式自动微分，现代万亿参数大语言模型的预训练在物理世界上根本不可能实现。
 
@@ -155,15 +179,15 @@ $$
 
 ## 第 4 步：历史源流与思考演进（Linnainmaa、Rumelhart 与 Hinton） {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="1970">1970</time> &mdash; \lt strong>塞波·林纳因马（Seppo Linnainmaa）</strong></dt>
-  \lt dd>在赫尔辛基大学的硕士论文中首次提出了反向模式自动微分的通用算法，证明了嵌套代数函数的复合导数计算时间，与原始函数的前向计算时间严格成同阶正比。</dd>
+<dl>
+  <dt><time datetime="1970">1970</time> &mdash; <strong>塞波·林纳因马（Seppo Linnainmaa）</strong></dt>
+  <dd>在赫尔辛基大学的硕士论文中首次提出了反向模式自动微分的通用算法，证明了嵌套代数函数的复合导数计算时间，与原始函数的前向计算时间严格成同阶正比。</dd>
 
-  \lt dt>\lt time datetime="1986">1986</time> &mdash; \lt strong>戴维·鲁梅尔哈特、杰弗里·辛顿 与 罗纳德·威廉姆斯</strong></dt>
-  \lt dd>在顶级科学期刊 \lt em>Nature</em> 上发表了划时代论文 \lt cite>《Learning representations by back-propagating errors》</cite>。他们首次证明反向传播能够训练多层神经网络自发形成复杂的内部特征表征，一举击碎了明斯基当年针对感知机 XOR 问题的悲观论断，终结了第一次 AI 寒冬。</dd>
+  <dt><time datetime="1986">1986</time> &mdash; <strong>戴维·鲁梅尔哈特、杰弗里·辛顿 与 罗纳德·威廉姆斯</strong></dt>
+  <dd>在顶级科学期刊 <em>Nature</em> 上发表了划时代论文 <cite>《Learning representations by back-propagating errors》</cite>。他们首次证明反向传播能够训练多层神经网络自发形成复杂的内部特征表征，一举击碎了明斯基当年针对感知机 XOR 问题的悲观论断，终结了第一次 AI 寒冬。</dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>PyTorch 与动态自动求导机制</strong></dt>
-  \lt dd>由 Adam Paszke 等人开创的基于磁带记录（Tape-based Autograd）的动态计算图机制，让研究人员无需手写任何一行求导代码，即可对前沿 Transformer 的注意力掩码、因果循环和多分支动态控制流执行无缝自动微分。</dd>
+  <dt><time datetime="2017">2017</time> &mdash; <strong>PyTorch 与动态自动求导机制</strong></dt>
+  <dd>由 Adam Paszke 等人开创的基于磁带记录（Tape-based Autograd）的动态计算图机制，让研究人员无需手写任何一行求导代码，即可对前沿 Transformer 的注意力掩码、因果循环和多分支动态控制流执行无缝自动微分。</dd>
 </dl>
 
 ---
@@ -186,32 +210,44 @@ $$
 
 ### 2. 前向传播：做出预测并计算损失
 
-\lt fieldset>
-\lt legend>\lt strong>计算流程清单</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 A：</strong> 前向计算隐藏层 $h = x \cdot w_1$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 B：</strong> 前向计算模型输出 $\hat{y} = h \cdot w_2$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 C：</strong> 计算当前误差损失 $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 D：</strong> 反向求出 $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ 及第 2 层权重梯度 $\frac{\partial \mathcal{L}}{\partial w_2}$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 E：</strong> 误差梯度逆流传给 $h$，求出第 1 层权重梯度 $\frac{\partial \mathcal{L}}{\partial w_1}$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 F：</strong> 执行梯度下降参数更新，并验证新损失降低幅度。</p>
+<fieldset>
+<legend><strong>计算流程清单</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 A：</strong> 前向计算隐藏层 $h = x \cdot w_1$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 B：</strong> 前向计算模型输出 $\hat{y} = h \cdot w_2$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 C：</strong> 计算当前误差损失 $\mathcal{L} = \frac{1}{2}(\hat{y} - y)^2$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 D：</strong> 反向求出 $\frac{\partial \mathcal{L}}{\partial \hat{y}}$ 及第 2 层权重梯度 $\frac{\partial \mathcal{L}}{\partial w_2}$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 E：</strong> 误差梯度逆流传给 $h$，求出第 1 层权重梯度 $\frac{\partial \mathcal{L}}{\partial w_1}$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 F：</strong> 执行梯度下降参数更新，并验证新损失降低幅度。</p>
 </fieldset>
 
 #### 步骤 A：第 1 层前向
+
+
 $$
 h = x \cdot w_1 = 2.0 \times 3.0 = 6.0
 $$
 
+
+
 #### 步骤 B：第 2 层前向
+
+
 $$
 \hat{y} = h \cdot w_2 = 6.0 \times 2.0 = 12.0
 $$
 
+
+
 #### 步骤 C：损失计算
 真实答案是 $10.0$，而模型给出了 $12.0$：
+
+
 
 $$
 \mathcal{L} = \frac{1}{2}(12.0 - 10.0)^2 = \frac{1}{2}(2.0)^2 = 2.0000
 $$
+
+
 
 ---
 
@@ -220,28 +256,44 @@ $$
 #### 步骤 D：计算第 2 层的误差与权重梯度
 首先对输出预测 $\hat{y}$ 求偏导：
 
+
+
 $$
 \frac{\partial \mathcal{L}}{\partial \hat{y}} = \hat{y} - y = 12.0 - 10.0 = \mathbf{+2.0}
 $$
 
+
+
 对第 2 层的权重 $w_2$ 求偏导：
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial w_2} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial w_2} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot h = 2.0 \times 6.0 = \mathbf{+12.0}
 $$
 
+
+
 将梯度逆向传导回隐藏层状态 $h$（写给上一层向导的评语）：
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial h} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial h} = \frac{\partial \mathcal{L}}{\partial \hat{y}} \cdot w_2 = 2.0 \times 2.0 = \mathbf{+4.0}
 $$
 
+
+
 #### 步骤 E：计算第 1 层的权重梯度
 利用回传的 $\frac{\partial \mathcal{L}}{\partial h} = 4.0$，计算第 1 层权重 $w_1$ 的偏导：
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial w_1} = \frac{\partial \mathcal{L}}{\partial h} \cdot \frac{\partial h}{\partial w_1} = \frac{\partial \mathcal{L}}{\partial h} \cdot x = 4.0 \times 2.0 = \mathbf{+8.0}
 $$
+
+
 
 各层权重梯度归纳：
 - $\nabla_{w_2} \mathcal{L} = +12.0$（正梯度指示：立刻把 $w_2$ 调小！）
@@ -254,13 +306,21 @@ $$
 #### 步骤 F：应用梯度下降更新公式
 使用学习率 $\eta = 0.01$：
 
+
+
 $$
 w_{2,\text{新}} = w_2 - \eta \frac{\partial \mathcal{L}}{\partial w_2} = 2.0 - (0.01 \times 12.0) = 2.0 - 0.12 = \mathbf{1.88}
 $$
 
+
+
+
+
 $$
 w_{1,\text{新}} = w_1 - \eta \frac{\partial \mathcal{L}}{\partial w_1} = 3.0 - (0.01 \times 8.0) = 3.0 - 0.08 = \mathbf{2.92}
 $$
+
+
 
 #### 步骤 G：使用新权重执行一次全新的前向预测
 用微调后的新旋钮重新计算：
@@ -270,9 +330,13 @@ $$
 
 计算全新的误差损失：
 
+
+
 $$
 \mathcal{L}_{\text{新}} = \frac{1}{2}(10.9792 - 10.0)^2 = \frac{1}{2}(0.9792)^2 \approx \mathbf{0.4794}
 $$
+
+
 
 <mark>看：仅仅经历了一次微小的梯度修正，模型的误差损失就从 2.0000 暴跌至 0.4794——单步误差直降了整整 76.0%！</mark>
 

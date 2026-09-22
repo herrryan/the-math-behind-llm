@@ -281,9 +281,13 @@ Prior to 2003, computer scientists built language models entirely through **n-gr
     Bengio proposed a revolutionary paradigm shift: <strong>Replace discrete frequency counts with continuous, dense coordinate vectors (distributed representations)!</strong><br>
     Because in continuous geometric space:
     
+
+
 $$
 \mathbf{x}_{\text{cat}} \approx \mathbf{x}_{\text{dog}}, \quad \mathbf{x}_{\text{mat}} \approx \mathbf{x}_{\text{rug}}
 $$
+
+
 
     Even if the training set only contained <samp>"the cat sat on the mat"</samp>, when the network encountered <samp>"the dog sat on the rug"</samp> for the very first time, the cosine similarity of their embedding coordinates allowed the model to immediately recognize it as a valid, grammatical sentence. <cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>.
   </dd>

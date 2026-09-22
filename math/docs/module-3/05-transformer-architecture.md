@@ -258,9 +258,13 @@ In modern LLMs (GPT-4, LLaMA-3) using <strong>Byte-level BPE</strong>, the base 
 
 Given an input prompt consisting of $T$ discrete integer token IDs:
 
+
+
 $$
 \mathbf{w} = \begin{bmatrix} w_1 & w_2 & \dots & w_T \end{bmatrix}^\top \in \{1, \dots, |V|\}^T
 $$
+
+
 
 <fieldset>
 <legend><strong>Symbol Breakdown: $\mathbf{w}$ and $w_t$</strong></legend>
@@ -303,9 +307,13 @@ As established in Chapter 01, words must be mapped to continuous geometric coord
 
 To transform discrete integers into continuous geometric vectors suitable for linear algebra, each token indexes a row from the token embedding matrix $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ and combines with a positional encoding vector $\mathbf{p}_t$:
 
+
+
 $$
 \mathbf{x}_t^{(0)} = \mathbf{e}_{w_t}^\top \mathbf{E} + \mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}
 $$
+
+
 
 <fieldset>
 <legend><strong>Symbol Breakdown: Embedding Lookup and Position Injection</strong></legend>
@@ -322,6 +330,8 @@ $$
 
 Stacking all $T$ token row vectors creates the foundational **input tensor**:
 
+
+
 $$
 \mathbf{X}^{(0)} = \begin{bmatrix}
 \mathbf{x}_1^{(0)} \\
@@ -330,6 +340,8 @@ $$
 \mathbf{x}_T^{(0)}
 \end{bmatrix} \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
+
+
 
 Tensor $\mathbf{X}^{(0)}$ has clean dimensions: **$T$ rows (one for each time step) and $d_{\text{model}}$ columns (the feature channels per word)**.
 
@@ -344,9 +356,13 @@ Each block contains two fundamental sub-layers connected by a continuous **Resid
 #### Sub-Layer A: The Communication Chamber (Multi-Head Self-Attention)
 Words look across the sequence to discover who they need to talk to:
 
+
+
 $$
 \mathbf{H}^{(l)} = \mathbf{X}^{(l-1)} + \operatorname{SelfAttention}\left(\operatorname{RMSNorm}(\mathbf{X}^{(l-1)})\right)
 $$
+
+
 
 <fieldset>
 <legend><strong>Symbol Breakdown: Self-Attention Sub-Layer</strong></legend>
@@ -363,15 +379,23 @@ $$
 #### Sub-Layer B: The Thinking Chamber (Feed-Forward Network / SwiGLU)
 Having collected information from its neighbors, each token processes that information privately and independently:
 
+
+
 $$
 \mathbf{X}^{(l)} = \mathbf{H}^{(l)} + \operatorname{FFN}\left(\operatorname{RMSNorm}(\mathbf{H}^{(l)})\right)
 $$
 
+
+
 In modern architectures, $\operatorname{FFN}(\cdot)$ is a gated **SwiGLU** block (Chapter 04):
+
+
 
 $$
 \operatorname{FFN}(\mathbf{h}) = \left(\operatorname{Swish}(\mathbf{h}\mathbf{W}_{\text{gate}}) \odot (\mathbf{h}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}
 $$
+
+
 
 <fieldset>
 <legend><strong>Symbol Breakdown: SwiGLU Feed-Forward Sub-Layer</strong></legend>
@@ -416,15 +440,23 @@ Output to Next Block:    X^(l)_1                X^(l)_2               X^(l)_3
 
 After traversing all $L$ layers, the representation has been enriched by $L$ rounds of communication and thinking:
 
+
+
 $$
 \mathbf{X}_{\text{final}} = \operatorname{RMSNorm}(\mathbf{X}^{(L)}) \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
 
+
+
 To turn these high-dimensional abstract thoughts back into words, the final tensor is multiplied by the **Unembedding Matrix** $\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$:
+
+
 
 $$
 \mathbf{Z} = \mathbf{X}_{\text{final}} \mathbf{E}_U \in \mathbb{R}^{T \times |V|}
 $$
+
+
 
 <fieldset>
 <legend><strong>Symbol Breakdown: Unembedding Projection</strong></legend>
@@ -439,9 +471,13 @@ $$
 
 Passing the final row $\mathbf{z}_T$ through the **Softmax function** produces genuine probabilities:
 
+
+
 $$
 P(w_{T+1} = v_i \mid w_{\le T}) = \frac{\exp(z_{T, i})}{\sum_{j=1}^{|V|} \exp(z_{T, j})}
 $$
+
+
 
 <fieldset>
 <legend><strong>Symbol Breakdown: Softmax Probability Distribution</strong></legend>
@@ -479,15 +515,21 @@ These 70 billion dials pass through three distinct life stages:
 
 In elementary algebra:
 
+
+
 $$
 y = w \cdot x + b
 $$
+
+
 
 The multiplier $w$ (Weight) and addend $b$ (Bias) are the parameters.
 
 Modern LLMs eliminate the bias term entirely ($b = 0$, known as *Bias-free* architecture) to improve numerical stability and reduce memory bandwidth pressure. Consequently, **every single parameter in an LLM is simply one floating-point number stored in the cells of the weight matrices ($\mathbf{E}, \mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O, \mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}}, \mathbf{W}_{\text{down}}, \mathbf{E}_U$)!**
 
 For example, a tiny $3 \times 3$ attention projection matrix:
+
+
 
 $$
 \mathbf{W} = \begin{bmatrix}
@@ -496,6 +538,8 @@ $$
 0.914 & -0.117 & 0.638
 \end{bmatrix}
 $$
+
+
 
 Every individual grid cell contains one independent number. This tiny matrix contains exactly $3 \times 3 = 9$ parameters.
 
@@ -622,17 +666,25 @@ Examining this ledger reveals two foundational principles:
 Computer hardware measures memory in bytes:
 - In standard 16-bit half-precision (**FP16 or BF16**), **each floating-point parameter takes 2 bytes (16 bits)**.
 
+
+
 $$
 \text{Raw Model Footprint} = 70.55 \times 10^9 \text{ parameters} \times 2 \text{ Bytes} \approx 141.1 \times 10^9 \text{ Bytes} \approx \mathbf{141.1 \text{ GB}}
 $$
+
+
 
 This explains the physical hardware barriers:
 - **Full Precision Loading**: Merely fitting the weights of LLaMA-3-70B into GPU VRAM demands **141.1 GB of high-bandwidth memory**. A consumer flagship GPU like the NVIDIA RTX 4090 has 24 GB of VRAM, which cannot fit even one-fifth of the model. Running it requires at least two 80 GB enterprise GPUs (such as NVIDIA A100/H100) or an 8-GPU cluster running tensor parallelism.
 - **4-bit Quantization (INT4 / NF4)**:
   By compressing each parameter from 16 bits down to 4 bits (0.5 bytes), the memory footprint drops fourfold:
+
+
   $$
   70.55 \times 10^9 \times 0.5 \text{ Bytes} \approx \mathbf{35.3 \text{ GB}}
   $$
+
+
   At ~35 GB, a 70B model fits comfortably onto a personal Apple Mac with 48 GB or 64 GB of Unified Memory, or a dual-RTX 3090/4090 workstation, democratizing access to frontier-grade intelligence!
 
 ---
@@ -641,36 +693,36 @@ This explains the physical hardware barriers:
 
 The Transformer did not appear in a vacuum. It was the culmination of a 15-year battle against memory loss and sequential slowness:
 
-\lt dl>
-  \lt dt>\lt time datetime="2003">2003</time> &mdash; \lt strong>Yoshua Bengio et al.</strong>: Neural Probabilistic Language Models</dt>
-  \lt dd>
-    Proved that continuous word embeddings $\mathbf{E}$ allow neural networks to generalize across unseen word combinations. However, the model relied on a \lt strong>fixed context window</strong> (like our Lab 01), leaving it blind to distant paragraphs.\lt br>
-    \lt cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>
+<dl>
+  <dt><time datetime="2003">2003</time> &mdash; <strong>Yoshua Bengio et al.</strong>: Neural Probabilistic Language Models</dt>
+  <dd>
+    Proved that continuous word embeddings $\mathbf{E}$ allow neural networks to generalize across unseen word combinations. However, the model relied on a <strong>fixed context window</strong> (like our Lab 01), leaving it blind to distant paragraphs.<br>
+    <cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2014">2014</time> &mdash; \lt strong>Kyunghyun Cho et al. / Ilya Sutskever et al.</strong>: Sequence-to-Sequence RNNs</dt>
-  \lt dd>
-    Introduced Encoder-Decoder RNNs/LSTMs for translation. While capable of arbitrary-length inputs in theory, they hit the \lt strong>fixed vector bottleneck</strong>: forcing an entire 100-word sentence into a single vector $\mathbf{h} \in \mathbb{R}^d$ caused catastrophic forgetting on sentences longer than 20 words.\lt br>
-    \lt cite>《Sequence to Sequence Learning with Neural Networks》, NeurIPS 2014</cite>
+  <dt><time datetime="2014">2014</time> &mdash; <strong>Kyunghyun Cho et al. / Ilya Sutskever et al.</strong>: Sequence-to-Sequence RNNs</dt>
+  <dd>
+    Introduced Encoder-Decoder RNNs/LSTMs for translation. While capable of arbitrary-length inputs in theory, they hit the <strong>fixed vector bottleneck</strong>: forcing an entire 100-word sentence into a single vector $\mathbf{h} \in \mathbb{R}^d$ caused catastrophic forgetting on sentences longer than 20 words.<br>
+    <cite>《Sequence to Sequence Learning with Neural Networks》, NeurIPS 2014</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2015">2015</time> &mdash; \lt strong>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio</strong>: The Birth of Attention</dt>
-  \lt dd>
-    Proposed the breakthrough concept of \lt strong>Attention</strong>: instead of compressing the entire source text into one vector, allow the decoder to look back at \lt em>all intermediate encoder states</em> and compute a dynamic weighted average.\lt br>
-    \lt cite>《Neural Machine Translation by Jointly Learning to Align and Translate》, ICLR 2015</cite>
+  <dt><time datetime="2015">2015</time> &mdash; <strong>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio</strong>: The Birth of Attention</dt>
+  <dd>
+    Proposed the breakthrough concept of <strong>Attention</strong>: instead of compressing the entire source text into one vector, allow the decoder to look back at <em>all intermediate encoder states</em> and compute a dynamic weighted average.<br>
+    <cite>《Neural Machine Translation by Jointly Learning to Align and Translate》, ICLR 2015</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>Ashish Vaswani et al. (Google Brain / Research)</strong>: Attention Is All You Need</dt>
-  \lt dd>
-    Asked the radical question: \lt em>"If attention is so powerful, why do we still keep recurrence and convolutions around?"</em>\lt br>
-    They eliminated recurrent loops entirely, creating the \lt strong>Transformer</strong>. For the first time, every token could attend to every other token in $\mathcal{O}(1)$ sequential path length and train with massive GPU parallelism.\lt br>
-    \lt cite>《Attention Is All You Need》, NeurIPS 2017</cite>
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Ashish Vaswani et al. (Google Brain / Research)</strong>: Attention Is All You Need</dt>
+  <dd>
+    Asked the radical question: <em>"If attention is so powerful, why do we still keep recurrence and convolutions around?"</em><br>
+    They eliminated recurrent loops entirely, creating the <strong>Transformer</strong>. For the first time, every token could attend to every other token in $\mathcal{O}(1)$ sequential path length and train with massive GPU parallelism.<br>
+    <cite>《Attention Is All You Need》, NeurIPS 2017</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2018">2018&ndash;Present</time> &mdash; \lt strong>Alec Radford et al. (OpenAI) &amp; Modern Open-Source (Meta LLaMA)</strong>: The Decoder-Only Era</dt>
-  \lt dd>
-    OpenAI recognized that for generative language modeling, the complex two-sided Encoder-Decoder was unnecessary. A single stack of \lt strong>Causal Decoder Blocks</strong> (GPT-1, GPT-2, GPT-3, GPT-4) pretrained on next-token prediction could learn reasoning, coding, translation, and world knowledge. Modern open-weights titans like LLaMA-3, Mistral, and DeepSeek all refine this exact decoder-only architecture.\lt br>
-    \lt cite>《Improving Language Understanding by Generative Pre-Training》, OpenAI 2018</cite>
+  <dt><time datetime="2018">2018&ndash;Present</time> &mdash; <strong>Alec Radford et al. (OpenAI) &amp; Modern Open-Source (Meta LLaMA)</strong>: The Decoder-Only Era</dt>
+  <dd>
+    OpenAI recognized that for generative language modeling, the complex two-sided Encoder-Decoder was unnecessary. A single stack of <strong>Causal Decoder Blocks</strong> (GPT-1, GPT-2, GPT-3, GPT-4) pretrained on next-token prediction could learn reasoning, coding, translation, and world knowledge. Modern open-weights titans like LLaMA-3, Mistral, and DeepSeek all refine this exact decoder-only architecture.<br>
+    <cite>《Improving Language Understanding by Generative Pre-Training》, OpenAI 2018</cite>
   </dd>
 </dl>
 
@@ -682,21 +734,23 @@ Let's trace a tiny sentence through a single Transformer block by hand with tiny
 
 ### Setup
 - Vocabulary: $|V| = 4$ with words $\{\text{"the"}: 0, \text{"bank"}: 1, \text{"river"}: 2, \text{"flows"}: 3\}$.
-- Sequence length: $T = 3$ with tokens \lt samp>["the", "bank", "river"]</samp>.
+- Sequence length: $T = 3$ with tokens <samp>["the", "bank", "river"]</samp>.
 - Model dimension: $d_{\text{model}} = 2$.
-- Target word to predict: position 4 (\lt samp>"flows"</samp>).
+- Target word to predict: position 4 (<samp>"flows"</samp>).
 
-\lt fieldset>
-\lt legend>\lt strong>Execution Checklist</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step 1:</strong> Look up static embeddings $\mathbf{X}^{(0)} \in \mathbb{R}^{3 \times 2}$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step 2:</strong> Communication (Self-Attention) updates the ambiguous meaning of "bank".</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step 3:</strong> Residual connection preserves the original word identity.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step 4:</strong> Thinking (Feed-Forward Network) synthesizes the contextualized vector.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step 5:</strong> Unembedding projection predicts the next token "flows".</p>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step 1:</strong> Look up static embeddings $\mathbf{X}^{(0)} \in \mathbb{R}^{3 \times 2}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step 2:</strong> Communication (Self-Attention) updates the ambiguous meaning of "bank".</p>
+<p><input type="checkbox" checked disabled> <strong>Step 3:</strong> Residual connection preserves the original word identity.</p>
+<p><input type="checkbox" checked disabled> <strong>Step 4:</strong> Thinking (Feed-Forward Network) synthesizes the contextualized vector.</p>
+<p><input type="checkbox" checked disabled> <strong>Step 5:</strong> Unembedding projection predicts the next token "flows".</p>
 </fieldset>
 
 ### Step 1: Initial Static Embeddings
 Suppose our embedding table maps our 3 input tokens to 2D vectors:
+
+
 
 $$
 \mathbf{X}^{(0)} = \begin{bmatrix}
@@ -714,63 +768,77 @@ $$
 \end{matrix}
 $$
 
-Notice position 2 (\lt samp>"bank"</samp>): it starts as $[0.5, 0.5]$, completely undecided whether it refers to Wall Street or the edge of a water stream.
+
+
+Notice position 2 (<samp>"bank"</samp>): it starts as $[0.5, 0.5]$, completely undecided whether it refers to Wall Street or the edge of a water stream.
 
 ### Step 2: The Communication Phase (Self-Attention)
-Position 2 (\lt samp>"bank"</samp>) looks back at position 1 (\lt samp>"the"</samp>) and position 2 (\lt samp>"bank"</samp>). Position 3 (\lt samp>"river"</samp>) looks back at all three tokens.
+Position 2 (<samp>"bank"</samp>) looks back at position 1 (<samp>"the"</samp>) and position 2 (<samp>"bank"</samp>). Position 3 (<samp>"river"</samp>) looks back at all three tokens.
 
-When position 2 computes attention (which we will learn to calculate explicitly in Chapters 06–08), it discovers that position 3 (\lt samp>"river"</samp>) holds the critical clue! It assigns an attention weight of $0.8$ to \lt samp>"river"</samp> and $0.2$ to itself:
+When position 2 computes attention (which we will learn to calculate explicitly in Chapters 06–08), it discovers that position 3 (<samp>"river"</samp>) holds the critical clue! It assigns an attention weight of $0.8$ to <samp>"river"</samp> and $0.2$ to itself:
+
+
 
 $$
 \Delta \mathbf{x}_2 = 0.2 \times \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + 0.8 \times \begin{bmatrix} 0.1 & 0.9 \end{bmatrix} = \begin{bmatrix} 0.10 + 0.08 & 0.10 + 0.72 \end{bmatrix} = \begin{bmatrix} 0.18 & 0.82 \end{bmatrix}
 $$
 
-\lt fieldset>
-\lt legend>\lt strong>Core Clarification: How Does the Model Discover "river" and Cast an Overwhelming 0.8 Attention on It?</strong></legend>
-\lt p>
-Learners naturally ask at this step: \lt em>How does the network know that "river" holds the key clue? Where do the numbers 0.8 and 0.2 come from?</em>
+
+
+<fieldset>
+<legend><strong>Core Clarification: How Does the Model Discover "river" and Cast an Overwhelming 0.8 Attention on It?</strong></legend>
+<p>
+Learners naturally ask at this step: <em>How does the network know that "river" holds the key clue? Where do the numbers 0.8 and 0.2 come from?</em>
 </p>
-\lt p>
-This is the core mechanic of Self-Attention: \lt strong>the Dot-Product Resonance between Query and Key vectors</strong> (explored comprehensively in Chapter 06):
+<p>
+This is the core mechanic of Self-Attention: <strong>the Dot-Product Resonance between Query and Key vectors</strong> (explored comprehensively in Chapter 06):
 </p>
-\lt ol>
-  \lt li>\lt strong>Megaphones and Nametags (Q and K)</strong>:
+<ol>
+  <li><strong>Megaphones and Nametags (Q and K)</strong>:
     The model provides every token with a "Megaphone" ($\mathbf{q}$, announcing its needs) and a "Nametag" ($\mathbf{k}$, advertising its attributes).
-    \lt ul>
-      \lt li>\lt samp>"bank"</samp> raises its megaphone with query $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$ (declaring: \lt em>"I need water/nature clues to disambiguate my meaning!"</em>).</li>
-      \lt li>\lt samp>"river"</samp> wears the nametag $\mathbf{k}_{\text{river}} = [1.5, 0.1]$ (advertising strong natural water attributes).</li>
-      \lt li>\lt samp>"bank"</samp> wears its own preliminary nametag $\mathbf{k}_{\text{bank}} = [0.3, 0.3]$ (neutral and ambiguous).</li>
+    <ul>
+      <li><samp>"bank"</samp> raises its megaphone with query $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$ (declaring: <em>"I need water/nature clues to disambiguate my meaning!"</em>).</li>
+      <li><samp>"river"</samp> wears the nametag $\mathbf{k}_{\text{river}} = [1.5, 0.1]$ (advertising strong natural water attributes).</li>
+      <li><samp>"bank"</samp> wears its own preliminary nametag $\mathbf{k}_{\text{bank}} = [0.3, 0.3]$ (neutral and ambiguous).</li>
     </ul>
   </li>
-  \lt li>\lt strong>Dot Product Matching</strong>:
+  <li><strong>Dot Product Matching</strong>:
     As established in Chapter 02, vectors pointing in similar directions yield large positive dot products:
-    \lt ul>
-      \lt li>Resonance with \lt samp>"river"</samp>: $a_{\text{river}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{river}}^\top = (2.0 \times 1.5) + (0.0 \times 0.1) = \mathbf{3.0}$.</li>
-      \lt li>Resonance with itself: $a_{\text{bank}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{bank}}^\top = (2.0 \times 0.3) + (0.0 \times 0.3) = \mathbf{0.6}$.</li>
+    <ul>
+      <li>Resonance with <samp>"river"</samp>: $a_{\text{river}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{river}}^\top = (2.0 \times 1.5) + (0.0 \times 0.1) = \mathbf{3.0}$.</li>
+      <li>Resonance with itself: $a_{\text{bank}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{bank}}^\top = (2.0 \times 0.3) + (0.0 \times 0.3) = \mathbf{0.6}$.</li>
     </ul>
   </li>
-  \lt li>\lt strong>Softmax Amplification</strong>:
+  <li><strong>Softmax Amplification</strong>:
     Exponentiating the scores: $\exp(3.0) \approx 20.085$, while $\exp(0.6) \approx 1.822$. Normalizing:
+
+
     $$
     \alpha_{\text{river}} = \frac{20.085}{20.085 + 1.822} \approx 91.7\% \quad (\text{yielding } 0.8 \text{ when calibrated with distance/head scaling})
     $$
+
+
   </li>
-  \lt li>\lt strong>Why did the weights learn this?</strong>
+  <li><strong>Why did the weights learn this?</strong>
     During pretraining, backpropagation penalized incorrect predictions, training the projection matrices $\mathbf{W}_Q$ and $\mathbf{W}_K$ to align the Query of ambiguous words directly with the Key vectors of their clarifying context!
   </li>
 </ol>
 </fieldset>
 
-Look at what happened: $\Delta \mathbf{x}_2$ has absorbed the heavy water feature ($0.82$) from its neighbor \lt samp>"river"</samp>!
+Look at what happened: $\Delta \mathbf{x}_2$ has absorbed the heavy water feature ($0.82$) from its neighbor <samp>"river"</samp>!
 
 ### Step 3: The Residual Highway
 We add the communication update $\Delta \mathbf{x}_2$ back into the original embedding $\mathbf{x}_2^{(0)}$:
+
+
 
 $$
 \mathbf{h}_2 = \mathbf{x}_2^{(0)} + \Delta \mathbf{x}_2 = \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + \begin{bmatrix} 0.18 & 0.82 \end{bmatrix} = \begin{bmatrix} 0.68 & 1.32 \end{bmatrix}
 $$
 
-The residual highway ensures the model never forgets that the original token was \lt samp>"bank"</samp> ($0.68$), while now strongly infusing the hydrological context ($1.32$).
+
+
+The residual highway ensures the model never forgets that the original token was <samp>"bank"</samp> ($0.68$), while now strongly infusing the hydrological context ($1.32$).
 
 ### Step 4: The Thinking Phase (Feed-Forward Processing)
 Vector $\mathbf{h}_2 = [0.68, 1.32]$ now enters the private FFN chamber. 
@@ -779,14 +847,20 @@ The FFN acts like an encyclopedic lookup table. Its weights are trained to recog
 
 The FFN fires and outputs an updated thought vector:
 
+
+
 $$
 \mathbf{x}_2^{(1)} = \mathbf{h}_2 + \operatorname{FFN}(\mathbf{h}_2) = \begin{bmatrix} 0.68 & 1.32 \end{bmatrix} + \begin{bmatrix} -0.18 & 0.68 \end{bmatrix} = \begin{bmatrix} 0.50 & 2.00 \end{bmatrix}
 $$
+
+
 
 The representation has shifted from generic confusion into an intense, confident conceptual vector pointing directly toward flowing water.
 
 ### Step 5: Unembedding to Next-Token Probabilities
 At the end of the sentence, the model takes the final contextualized vector and multiplies it by the Unembedding Matrix $\mathbf{E}_U \in \mathbb{R}^{2 \times 4}$:
+
+
 
 $$
 \mathbf{E}_U = \begin{bmatrix}
@@ -798,7 +872,11 @@ $$
 \end{matrix}
 $$
 
+
+
 Multiplying our vector $[0.50, 2.00]$ by $\mathbf{E}_U$:
+
+
 
 $$
 \mathbf{z} = \begin{bmatrix} 0.50 & 2.00 \end{bmatrix} \begin{bmatrix}
@@ -806,6 +884,8 @@ $$
 -0.5 & -0.8 & -0.2 & 1.5
 \end{bmatrix}
 $$
+
+
 
 Let's compute each logit:
 - For token 0 (<samp>"the"</samp>): $0.50(-1.0) + 2.00(-0.5) = -0.5 - 1.0 = \mathbf{-1.50}$
@@ -845,9 +925,13 @@ Why then does modern deep learning insist on passing logits through Softmax to p
   <li><strong>Training Requires Smooth Derivatives (The Engine of Backpropagation)</strong>:
     The $\arg\max$ operation is a flat step function with zero derivatives everywhere &mdash; backpropagation stops dead in its tracks!
     In contrast, the <strong>Cross-Entropy Loss $\mathcal{L} = -\log P_{\text{target}}$</strong> produces one of the most celebrated gradients in all of machine learning:
+
+
     $$
     \frac{\partial \mathcal{L}}{\partial z_i} = P_i - y_i
     $$
+
+
     The gradient is simply the error between predicted probability and true target label! Without $P$, neural networks cannot learn.
   </li>
   <li><strong>Inference Sampling & Creativity (Temperature, Top-$p$, and Top-$k$)</strong>:

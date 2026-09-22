@@ -55,15 +55,23 @@ Input ────┴──► [ Sub-Layer: Attention / FFN ] ──► ( F(x) )
 
     In traditional deep feed-forward networks without shortcuts, the output of layer $l$ is a direct function composition of the previous layer:
 
+
+
     $$
     \mathbf{x}_{l} = \mathcal{F}_l(\mathbf{x}_{l-1})
     $$
 
+
+
     When training the model using Backpropagation, the error gradient $\frac{\partial \mathcal{L}}{\partial \mathbf{x}_0}$ must travel backward from layer $L$ to layer $0$ via the multivariable Chain Rule:
+
+
 
     $$
     \frac{\partial \mathcal{L}}{\partial \mathbf{x}_0} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \cdot \prod_{l=1}^L \mathbf{J}_l
     $$
+
+
 
     where $\mathbf{J}_l = \frac{\partial \mathcal{F}_l(\mathbf{x}_{l-1})}{\partial \mathbf{x}_{l-1}}$ is the Jacobian matrix of layer $l$.
 
@@ -79,13 +87,17 @@ Input ────┴──► [ Sub-Layer: Attention / FFN ] ──► ( F(x) )
 
 ### 1. The Residual Formulation
 
-First proposed by Kaiming He et al. (2015) in the Deep Residual Learning framework (\lt dfn id="def-resnet">ResNet</dfn>), a residual block reformulates the target mapping from learning an unconstrained function $\mathcal{H}(\mathbf{x})$ into learning a **residual mapping** $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$.
+First proposed by Kaiming He et al. (2015) in the Deep Residual Learning framework (<dfn id="def-resnet">ResNet</dfn>), a residual block reformulates the target mapping from learning an unconstrained function $\mathcal{H}(\mathbf{x})$ into learning a **residual mapping** $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$.
 
 The forward transformation is written as:
+
+
 
 $$
 \mathbf{x}_{l} = \mathbf{x}_{l-1} + \mathcal{F}_l(\mathbf{x}_{l-1}, \mathbf{W}_l)
 $$
+
+
 
 where:
 - $\mathbf{x}_{l-1} \in \mathbb{R}^{T \times d_{\text{model}}}$ is the input tensor entering the sub-layer.
@@ -100,30 +112,46 @@ To understand why this simple addition completely revolutionizes deep network tr
 
 By recursively expanding the forward formula:
 
+
+
 $$
 \mathbf{x}_L = \mathbf{x}_l + \sum_{i=l}^{L-1} \mathcal{F}_i(\mathbf{x}_i)
 $$
 
+
+
 Now apply the Chain Rule to compute the gradient of the scalar loss $\mathcal{L}$ with respect to the earlier layer representation $\mathbf{x}_l$:
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \frac{\partial \mathbf{x}_L}{\partial \mathbf{x}_l} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \left( \mathbf{I} + \frac{\partial}{\partial \mathbf{x}_l} \sum_{i=l}^{L-1} \mathcal{F}_i(\mathbf{x}_i) \right)
 $$
 
+
+
 Distributing the multiplication yields the **Fundamental Equation of Residual Gradient Flow**:
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}_l} = \underbrace{\frac{\partial \mathcal{L}}{\partial \mathbf{x}_L}}_{\text{Direct Gradient Highway}} + \underbrace{\frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \left( \sum_{i=l}^{L-1} \frac{\partial \mathcal{F}_i(\mathbf{x}_i)}{\partial \mathbf{x}_l} \right)}_{\text{Modulated Residual Feedback}}
 $$
 
-\lt details>
-\lt summary>\lt strong>Why the Identity Matrix $\mathbf{I}$ Guarantees Convergence</strong></summary>
+
+
+<details>
+<summary><strong>Why the Identity Matrix $\mathbf{I}$ Guarantees Convergence</strong></summary>
 Notice the breathtaking simplicity of this algebraic structure:
 1. The first term $\frac{\partial \mathcal{L}}{\partial \mathbf{x}_L}$ is **completely independent of any intermediate weights**! It flows backward directly from the final loss to layer $l$ with zero attenuation.
 2. Even if the weights of the learned layers $\mathcal{F}_i$ are initialized near zero, or if their gradients temporarily vanish such that $\sum \frac{\partial \mathcal{F}_i}{\partial \mathbf{x}_l} \approx \mathbf{0}$, the total gradient simplifies to:
+
+
    $$
    \frac{\partial \mathcal{L}}{\partial \mathbf{x}_l} \approx \frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \cdot \mathbf{I} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_L} \neq \mathbf{0}
    $$
+
+
 3. The gradient cannot vanish across the entire sequence of layers unless the term $\left(\mathbf{I} + \sum \frac{\partial \mathcal{F}_i}{\partial \mathbf{x}_l}\right)$ evaluates to zero, which is exceptionally rare in practice.
 </details>
 
@@ -133,8 +161,8 @@ Notice the breathtaking simplicity of this algebraic structure:
 
 While the original Transformer (Vaswani et al., 2017) used residual connections, where you place the Normalization layer relative to the residual addition determines whether the gradient highway remains 100% clean.
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 Post-LN Architecture (Vaswani et al., 2017):
   x_{l} ──┬──► [ Sub-Layer F ] ──► ( + ) ──► [ LayerNorm ] ──► x_{l+1}
           │                         ▲
@@ -150,14 +178,18 @@ Pre-LN Architecture (Modern Standard: LLaMA, Mistral, GPT-NeoX):
   x_{l+1} = x_l + F(LayerNorm(x_l)).
   Gradients flow cleanly through the identity path without any divisor!
 </pre>
-\lt figcaption>\lt strong>Figure 12.2:</strong> Post-LN (historical) places LayerNorm on the main branch, obstructing the gradient highway. Pre-LN (modern) keeps the identity stream completely uninhibited.</figcaption>
+<figcaption><strong>Figure 12.2:</strong> Post-LN (historical) places LayerNorm on the main branch, obstructing the gradient highway. Pre-LN (modern) keeps the identity stream completely uninhibited.</figcaption>
 </figure>
 
 In the modern **Pre-LN** Transformer block:
 
+
+
 $$
 \mathbf{x}_{l+1} = \mathbf{x}_l + \mathcal{F}\left(\operatorname{LayerNorm}(\mathbf{x}_l)\right)
 $$
+
+
 
 The identity skip connection $\mathbf{x}_{l+1} = \mathbf{x}_l + \dots$ is completely unobstructed, allowing deep models with 80+ layers to be trained stably from step 1 without gradient explosion or decay.
 
@@ -165,8 +197,8 @@ The identity skip connection $\mathbf{x}_{l+1} = \mathbf{x}_l + \dots$ is comple
 
 ## Step 4: Where Did It Come From? {: #step-4 }
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 Evolution of Gradient Highways in Deep Learning:
 
 1997: Hochreiter & Schmidhuber (LSTM) ──► Constant Error Carousel (CEC)
@@ -189,7 +221,7 @@ Dec 2015: Kaiming He et al. (ResNet) ────► Pure Identity Shortcut: y =
                                            Removed normalization from the shortcut path, establishing the
                                            unshakable backbone of all modern LLMs (GPT-3, LLaMA, DeepSeek).
 </pre>
-\lt figcaption>\lt strong>Figure 12.3:</strong> From LSTM cell memory to the modern Pre-LN residual highway.</figcaption>
+<figcaption><strong>Figure 12.3:</strong> From LSTM cell memory to the modern Pre-LN residual highway.</figcaption>
 </figure>
 
 ### 1. The Degradation Problem
@@ -205,42 +237,42 @@ By setting the output to $\mathbf{x} + \mathcal{F}(\mathbf{x})$, learning an ide
 
 ### 2. Architectural Comparison: Shortcut Paradigms
 
-\lt fieldset>
-\lt legend>\lt strong>Comparison of Layer Interconnection Paradigms</strong></legend>
+<fieldset>
+<legend><strong>Comparison of Layer Interconnection Paradigms</strong></legend>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>Table 12.1:</strong> Evolution of shortcut architectures.</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0eee6">
-      \lt th align="left">Architecture</th>
-      \lt th align="center">Mathematical Formulation</th>
-      \lt th align="center">Extra Parameters</th>
-      \lt th align="left">Gradient Flow Property</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 12.1:</strong> Evolution of shortcut architectures.</caption>
+  <thead>
+    <tr bgcolor="#f0eee6">
+      <th align="left">Architecture</th>
+      <th align="center">Mathematical Formulation</th>
+      <th align="center">Extra Parameters</th>
+      <th align="left">Gradient Flow Property</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>\lt strong>Plain Deep Network</strong></td>
-      \lt td align="center">$\mathbf{x}_{l} = \mathcal{F}(\mathbf{x}_{l-1})$</td>
-      \lt td align="center">$0$</td>
-      \lt td>
-        \lt del>Vanishing / Exploding gradient catastrophe.</del> Gradients attenuate through multiplicative Jacobian products $\prod \mathbf{J}_l$. Cannot train beyond ~20 layers.
+  <tbody>
+    <tr>
+      <td><strong>Plain Deep Network</strong></td>
+      <td align="center">$\mathbf{x}_{l} = \mathcal{F}(\mathbf{x}_{l-1})$</td>
+      <td align="center">$0$</td>
+      <td>
+        <del>Vanishing / Exploding gradient catastrophe.</del> Gradients attenuate through multiplicative Jacobian products $\prod \mathbf{J}_l$. Cannot train beyond ~20 layers.
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>Highway Network (2015)</strong></td>
-      \lt td align="center">$\mathbf{x}_l = \mathcal{F}(\mathbf{x}) \odot \mathbf{T} + \mathbf{x} \odot (1 - \mathbf{T})$</td>
-      \lt td align="center">Requires gate matrix $\mathbf{W}_T$</td>
-      \lt td>
-        \lt del>Partial gradient bottleneck.</del> Gradients must pass through the gating function $(1 - \mathbf{T})$.
+    <tr>
+      <td><strong>Highway Network (2015)</strong></td>
+      <td align="center">$\mathbf{x}_l = \mathcal{F}(\mathbf{x}) \odot \mathbf{T} + \mathbf{x} \odot (1 - \mathbf{T})$</td>
+      <td align="center">Requires gate matrix $\mathbf{W}_T$</td>
+      <td>
+        <del>Partial gradient bottleneck.</del> Gradients must pass through the gating function $(1 - \mathbf{T})$.
       </td>
     </tr>
-    \lt tr bgcolor="#fdfdf0">
-      \lt td>\lt strong>Pre-LN Residual Connection (Modern LLM)</strong></td>
-      \lt td align="center">$\mathbf{x}_l = \mathbf{x}_{l-1} + \mathcal{F}(\operatorname{LN}(\mathbf{x}_{l-1}))$</td>
-      \lt td align="center">\lt ins>\lt strong>0 extra parameters!</strong></ins></td>
-      \lt td>
-        \lt ins>\lt strong>Pure Unobstructed Gradient Highway.</strong></ins> Direct $+ \mathbf{I}$ term routes error gradients across 100+ layers without resistance.
+    <tr bgcolor="#fdfdf0">
+      <td><strong>Pre-LN Residual Connection (Modern LLM)</strong></td>
+      <td align="center">$\mathbf{x}_l = \mathbf{x}_{l-1} + \mathcal{F}(\operatorname{LN}(\mathbf{x}_{l-1}))$</td>
+      <td align="center"><ins><strong>0 extra parameters!</strong></ins></td>
+      <td>
+        <ins><strong>Pure Unobstructed Gradient Highway.</strong></ins> Direct $+ \mathbf{I}$ term routes error gradients across 100+ layers without resistance.
       </td>
     </tr>
   </tbody>
@@ -257,29 +289,45 @@ Let us trace a step-by-step numerical example showing both the forward addition 
 
 Consider a 2D input vector entering a residual block:
 
+
+
 $$
 \mathbf{x}_{\text{in}} = \begin{bmatrix} 2.0 \\ -1.0 \end{bmatrix}
 $$
 
+
+
 Suppose the sub-layer transformation is a simple linear layer with weight matrix $\mathbf{W}$ (omitting bias for clarity):
+
+
 
 $$
 \mathbf{W} = \begin{bmatrix} 0.1 & 0.2 \\ -0.1 & 0.3 \end{bmatrix}
 $$
 
+
+
 Compute the sub-layer output $\mathcal{F}(\mathbf{x}_{\text{in}}) = \mathbf{W}\mathbf{x}_{\text{in}}$:
+
+
 
 $$
 \mathcal{F}(\mathbf{x}_{\text{in}}) = \begin{bmatrix} 0.1(2.0) + 0.2(-1.0) \\ -0.1(2.0) + 0.3(-1.0) \end{bmatrix} = \begin{bmatrix} 0.2 - 0.2 \\ -0.2 - 0.3 \end{bmatrix} = \begin{bmatrix} 0.0 \\ -0.5 \end{bmatrix}
 $$
 
+
+
 Now compute the residual block output $\mathbf{x}_{\text{out}} = \mathbf{x}_{\text{in}} + \mathcal{F}(\mathbf{x}_{\text{in}})$:
+
+
 
 $$
 \mathbf{x}_{\text{out}} = \begin{bmatrix} 2.0 \\ -1.0 \end{bmatrix} + \begin{bmatrix} 0.0 \\ -0.5 \end{bmatrix} = \begin{bmatrix} 2.0 \\ -1.5 \end{bmatrix}
 $$
 
-\lt mark>The original input $[2.0, -1.0]^\top$ forms the backbone of the signal, lightly adjusted by $[-0.0, -0.5]^\top$!</mark>
+
+
+<mark>The original input $[2.0, -1.0]^\top$ forms the backbone of the signal, lightly adjusted by $[-0.0, -0.5]^\top$!</mark>
 
 ---
 
@@ -287,41 +335,65 @@ $$
 
 Now suppose the subsequent layers produce a gradient from the loss $\mathcal{L}$ arriving at $\mathbf{x}_{\text{out}}$:
 
+
+
 $$
 \mathbf{g}_{\text{out}} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{out}}} = \begin{bmatrix} 1.0 \\ 2.0 \end{bmatrix}
 $$
 
+
+
 We compute the gradient arriving at the input $\mathbf{x}_{\text{in}}$:
+
+
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{in}}} = \frac{\partial \mathcal{L}}{\partial \mathbf{x}_{\text{out}}} \left( \mathbf{I} + \frac{\partial \mathcal{F}}{\partial \mathbf{x}_{\text{in}}} \right) = \mathbf{g}_{\text{out}}^\top (\mathbf{I} + \mathbf{W})
 $$
 
+
+
 Writing out the matrices:
+
+
 
 $$
 \mathbf{I} + \mathbf{W} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} + \begin{bmatrix} 0.1 & 0.2 \\ -0.1 & 0.3 \end{bmatrix} = \begin{bmatrix} 1.1 & 0.2 \\ -0.1 & 1.3 \end{bmatrix}
 $$
 
+
+
 Now calculate the incoming gradient $\mathbf{g}_{\text{in}}$:
+
+
 
 $$
 \mathbf{g}_{\text{in}} = (\mathbf{I} + \mathbf{W})^\top \mathbf{g}_{\text{out}} = \begin{bmatrix} 1.1 & -0.1 \\ 0.2 & 1.3 \end{bmatrix} \begin{bmatrix} 1.0 \\ 2.0 \end{bmatrix}
 $$
 
+
+
 Performing the matrix-vector multiplication:
 - Coordinate 1: $1.1(1.0) + (-0.1)(2.0) = 1.1 - 0.2 = 0.9$
 - Coordinate 2: $0.2(1.0) + 1.3(2.0) = 0.2 + 2.6 = 2.8$
+
+
 
 $$
 \mathbf{g}_{\text{in}} = \begin{bmatrix} 0.9 \\ 2.8 \end{bmatrix}
 $$
 
-\lt mark>Notice the direct breakdown:</mark>
+
+
+<mark>Notice the direct breakdown:</mark>
+
+
 
 $$
 \mathbf{g}_{\text{in}} = \underbrace{\begin{bmatrix} 1.0 \\ 2.0 \end{bmatrix}}_{\text{Direct Identity Conduit}} + \underbrace{\begin{bmatrix} -0.1 \\ 0.8 \end{bmatrix}}_{\text{Transform Feedback}} = \begin{bmatrix} 0.9 \\ 2.8 \end{bmatrix}
 $$
+
+
 
 Even if the sub-layer weights $\mathbf{W}$ were completely zero, the input would receive the full, pristine gradient $\begin{bmatrix} 1.0 \\ 2.0 \end{bmatrix}$!
 

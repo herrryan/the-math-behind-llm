@@ -42,9 +42,13 @@ In language, meaning is about **direction**, not physical stick length. An LLM n
 
 In Chapter 01, we discovered that words are represented as coordinate arrows (vectors) in multi-dimensional space:
 
+
+
 $$
 \mathbf{u}, \mathbf{v} \in \mathbb{R}^d
 $$
+
+
 
 When an LLM generates text or compares two words, how does the computer measure whether these two arrows point in the same direction?
 
@@ -62,21 +66,33 @@ To measure geometric alignment between two vectors, Large Language Models rely o
 
 For two $d$-dimensional column vectors $\mathbf{u}, \mathbf{v} \in \mathbb{R}^{d \times 1}$:
 
+
+
 $$
 \mathbf{u} = \begin{bmatrix} u_1 \\ u_2 \\ \vdots \\ u_d \end{bmatrix}, \quad \mathbf{v} = \begin{bmatrix} v_1 \\ v_2 \\ \vdots \\ v_d \end{bmatrix}
 $$
 
+
+
 The **Dot Product** (written as $\mathbf{u} \cdot \mathbf{v}$ or $\langle \mathbf{u}, \mathbf{v} \rangle$) multiplies matching coordinates and sums them up:
+
+
 
 $$
 \mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^d u_i v_i = u_1 v_1 + u_2 v_2 + \dots + u_d v_d
 $$
 
+
+
 Using matrix multiplication notation, the dot product is the matrix product of the transposed row vector $\mathbf{u}^\top \in \mathbb{R}^{1 \times d}$ and the column vector $\mathbf{v} \in \mathbb{R}^{d \times 1}$:
+
+
 
 $$
 \mathbf{u} \cdot \mathbf{v} = \mathbf{u}^\top \mathbf{v} \in \mathbb{R}
 $$
+
+
 
 ---
 
@@ -84,9 +100,13 @@ $$
 
 How long is an arrow $\mathbf{u}$? Its length, called the **Euclidean Norm** or **$L_2$ Norm** (written as $\|\mathbf{u}\|$ or $\|\mathbf{u}\|_2$), is the square root of the dot product of the vector with itself:
 
+
+
 $$
 \|\mathbf{u}\| = \sqrt{\mathbf{u} \cdot \mathbf{u}} = \sqrt{\sum_{i=1}^d u_i^2} = \sqrt{u_1^2 + u_2^2 + \dots + u_d^2}
 $$
+
+
 
 ---
 
@@ -94,9 +114,13 @@ $$
 
 In Euclidean geometry, the dot product has an equivalent geometric definition relating vector lengths to the cosine of the angle $\theta$ between them:
 
+
+
 $$
 \mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\| \|\mathbf{v}\| \cos(\theta)
 $$
+
+
 
 Notice what this formula says:
 The dot product combines **two completely different things**:
@@ -109,15 +133,23 @@ The dot product combines **two completely different things**:
 
 To isolate **pure direction** and completely strip away the influence of vector lengths, researchers divide the dot product by the product of the two magnitudes. This yields **Cosine Similarity**:
 
+
+
 $$
 \text{Cosine Similarity}(\mathbf{u}, \mathbf{v}) = \cos(\theta) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|}
 $$
 
+
+
 Expanding both numerator and denominator into raw scalar coordinates:
+
+
 
 $$
 \cos(\theta) = \frac{\sum_{i=1}^d u_i v_i}{\sqrt{\sum_{i=1}^d u_i^2} \sqrt{\sum_{i=1}^d v_i^2}}
 $$
+
+
 
 ---
 
@@ -125,15 +157,23 @@ $$
 
 If we normalize each vector to unit length ($1.0$) by dividing each vector by its own magnitude:
 
+
+
 $$
 \hat{\mathbf{u}} = \frac{\mathbf{u}}{\|\mathbf{u}\|}, \quad \hat{\mathbf{v}} = \frac{\mathbf{v}}{\|\mathbf{v}\|}
 $$
 
+
+
 Then the cosine similarity simplifies to a plain, clean dot product of the normalized arrows:
+
+
 
 $$
 \cos(\theta) = \hat{\mathbf{u}} \cdot \hat{\mathbf{v}} = \hat{\mathbf{u}}^\top \hat{\mathbf{v}}
 $$
+
+
 
 ---
 
@@ -284,17 +324,25 @@ However, because Document B has 5,000 words, its word counts and activation valu
 
 If you compute their **Euclidean Distance**:
 
+
+
 $$
 \text{Distance}(\mathbf{u}_A, \mathbf{u}_B) = \sqrt{(1 - 100)^2 + (2 - 200)^2} = \sqrt{99^2 + 198^2} \approx \mathbf{221.36}
 $$
+
+
 
 Euclidean distance declares these two documents to be radically far apart! It confuses **length (frequency)** with **meaning (topic)**.
 
 Now compute their **Cosine Similarity**:
 
+
+
 $$
 \cos(\theta) = \frac{(1 \times 100) + (2 \times 200)}{\sqrt{1^2 + 2^2} \sqrt{100^2 + 200^2}} = \frac{100 + 400}{\sqrt{5} \sqrt{50000}} = \frac{500}{\sqrt{250000}} = \frac{500}{500} = \mathbf{1.0}
 $$
+
+
 
 Cosine similarity instantly reveals the truth: **they are pointing in the exact same direction ($\cos(\theta) = 1.0$)**!
 
@@ -313,17 +361,25 @@ Why is the dot product the heartbeat of modern deep learning?
 
 Because computing the dot product of two vectors is simply a series of **Multiply-Accumulate (MAC)** operations:
 
+
+
 $$
 \text{Output} = \text{Output} + (u_i \times v_i)
 $$
+
+
 
 Silicon chips (GPUs and TPUs) contain specialized hardware blocks called **Tensor Cores**. Tensor Cores are physically wired to perform millions of simultaneous multiply-accumulate operations in a single clock cycle!
 
 When an LLM compares thousands of words at once, it packs them into matrices $\mathbf{Q}$ and $\mathbf{K}$. Computing all pairwise dot products between tokens is executed as a single massive matrix multiplication:
 
+
+
 $$
 \mathbf{S} = \mathbf{Q}\mathbf{K}^\top
 $$
+
+
 
 Every single entry $S_{i, j}$ in this matrix is the dot product between token $i$ and token $j$. Modern GPUs execute this operation at hundreds of trillions of floating-point operations per second (FLOPS).
 
@@ -367,19 +423,31 @@ We have three words in our vocabulary:
 Using the Euclidean $L_2$ norm formula $\|\mathbf{x}\| = \sqrt{x_1^2 + x_2^2}$:
 
 1. **Length of "cat" ($\mathbf{u}$)**:
+
+
    $$
    \|\mathbf{u}\| = \sqrt{3^2 + 4^2} = \sqrt{9 + 16} = \sqrt{25} = \mathbf{5}
    $$
 
+
+
 2. **Length of "kitten" ($\mathbf{v}$)**:
+
+
    $$
    \|\mathbf{v}\| = \sqrt{6^2 + 8^2} = \sqrt{36 + 64} = \sqrt{100} = \mathbf{10}
    $$
 
+
+
 3. **Length of "apple" ($\mathbf{w}$)**:
+
+
    $$
    \|\mathbf{w}\| = \sqrt{(-4)^2 + 3^2} = \sqrt{16 + 9} = \sqrt{25} = \mathbf{5}
    $$
+
+
 
 ---
 
@@ -388,6 +456,8 @@ Using the Euclidean $L_2$ norm formula $\|\mathbf{x}\| = \sqrt{x_1^2 + x_2^2}$:
 Multiply matching coordinates and add:
 
 1. **"cat" $\cdot$ "kitten"**:
+
+
    $$
    \begin{aligned}
    \mathbf{u} \cdot \mathbf{v} &= (u_1 \times v_1) + (u_2 \times v_2) \\
@@ -397,7 +467,11 @@ Multiply matching coordinates and add:
    \end{aligned}
    $$
 
+
+
 2. **"cat" $\cdot$ "apple"**:
+
+
    $$
    \begin{aligned}
    \mathbf{u} \cdot \mathbf{w} &= (u_1 \times w_1) + (u_2 \times w_2) \\
@@ -407,7 +481,9 @@ Multiply matching coordinates and add:
    \end{aligned}
    $$
 
-The dot product between \lt kbd>"cat"</kbd> and \lt kbd>"apple"</kbd> is exactly **$0$**! They are completely orthogonal.
+
+
+The dot product between <kbd>"cat"</kbd> and <kbd>"apple"</kbd> is exactly **$0$**! They are completely orthogonal.
 
 ---
 
@@ -416,25 +492,33 @@ The dot product between \lt kbd>"cat"</kbd> and \lt kbd>"apple"</kbd> is exactly
 Now divide the dot product by the product of the lengths:
 
 1. **Similarity between "cat" and "kitten"**:
+
+
    $$
    \cos(\theta_{\text{cat, kitten}}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\| \|\mathbf{v}\|} = \frac{50}{5 \times 10} = \frac{50}{50} = \mathbf{1.0}
    $$
 
-   \lt p>
-     \lt strong>Alignment Score:</strong> \lt meter min="-1" max="1" value="1.0">1.0</meter>
-     \lt mark>\lt strong>1.0 (Perfect 100% Alignment!)</strong></mark>
+
+
+   <p>
+     <strong>Alignment Score:</strong> <meter min="-1" max="1" value="1.0">1.0</meter>
+     <mark><strong>1.0 (Perfect 100% Alignment!)</strong></mark>
    </p>
 
-   Even though \lt kbd>"kitten"</kbd> is twice as long as \lt kbd>"cat"</kbd> ($10$ vs $5$), their cosine similarity is **$1.0$**! They point in the exact same direction.
+   Even though <kbd>"kitten"</kbd> is twice as long as <kbd>"cat"</kbd> ($10$ vs $5$), their cosine similarity is **$1.0$**! They point in the exact same direction.
 
 2. **Similarity between "cat" and "apple"**:
+
+
    $$
    \cos(\theta_{\text{cat, apple}}) = \frac{\mathbf{u} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{w}\|} = \frac{0}{5 \times 5} = \frac{0}{25} = \mathbf{0.0}
    $$
 
-   \lt p>
-     \lt strong>Alignment Score:</strong> \lt meter min="-1" max="1" value="0.0">0.0</meter>
-     \lt mark>\lt strong>0.0 (Completely Orthogonal / Unrelated)</strong></mark>
+
+
+   <p>
+     <strong>Alignment Score:</strong> <meter min="-1" max="1" value="0.0">0.0</meter>
+     <mark><strong>0.0 (Completely Orthogonal / Unrelated)</strong></mark>
    </p>
 
 ---
@@ -443,29 +527,49 @@ Now divide the dot product by the product of the lengths:
 
 Let's convert each vector into a unit vector $\hat{\mathbf{x}} = \frac{\mathbf{x}}{\|\mathbf{x}\|}$:
 
+
+
 $$
 \hat{\mathbf{u}}_{\text{cat}} = \frac{1}{5} \begin{bmatrix} 3 \\ 4 \end{bmatrix} = \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix}
 $$
+
+
+
+
 
 $$
 \hat{\mathbf{v}}_{\text{kitten}} = \frac{1}{10} \begin{bmatrix} 6 \\ 8 \end{bmatrix} = \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix}
 $$
 
+
+
+
+
 $$
 \hat{\mathbf{w}}_{\text{apple}} = \frac{1}{5} \begin{bmatrix} -4 \\ 3 \end{bmatrix} = \begin{bmatrix} -0.8 \\ 0.6 \end{bmatrix}
 $$
+
+
 
 Notice that $\hat{\mathbf{u}}_{\text{cat}}$ and $\hat{\mathbf{v}}_{\text{kitten}}$ are **the exact same unit vector**!
 
 Now compute the unit dot product directly:
 
+
+
 $$
 \hat{\mathbf{u}} \cdot \hat{\mathbf{v}} = (0.6 \times 0.6) + (0.8 \times 0.8) = 0.36 + 0.64 = \mathbf{1.0}
 $$
 
+
+
+
+
 $$
 \hat{\mathbf{u}} \cdot \hat{\mathbf{w}} = (0.6 \times -0.8) + (0.8 \times 0.6) = -0.48 + 0.48 = \mathbf{0.0}
 $$
+
+
 
 The math is completely consistent and crystal clear.
 

@@ -108,9 +108,13 @@ Before writing the linear equation, let's establish the fundamental distinction 
 In Chapter 01, we introduced the <strong>Embedding Matrix</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$. 
 Notice something profound: $\mathbf{E}$ was actually our very first matrix of weights! It stored $|V|$ vectors, translating a discrete word ID (a one-hot vector) into continuous coordinates:
 
+
+
 $$
 \mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E}
 $$
+
+
 
 Now, a layer's <strong>Weight Matrix</strong> $\mathbf{W}$ continues that journey: it takes an existing word embedding $\mathbf{x}$ and translates it into an entirely new concept space. 
 
@@ -123,15 +127,23 @@ If the embedding matrix $\mathbf{E}$ is the <strong>dictionary</strong> that giv
 
 For an input embedding vector $\mathbf{x} \in \mathbb{R}^{k \times 1}$, a weight matrix $\mathbf{W} \in \mathbb{R}^{m \times k}$, and a bias vector $\mathbf{b} \in \mathbb{R}^{m \times 1}$, the transformed output vector $\mathbf{y} \in \mathbb{R}^{m \times 1}$ is:
 
+
+
 $$
 \mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}
 $$
 
+
+
 Let's inspect every piece of this equation:
+
+
 
 $$
 \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_m \end{bmatrix} = \begin{bmatrix} W_{1,1} & W_{1,2} & \cdots & W_{1,k} \\ W_{2,1} & W_{2,2} & \cdots & W_{2,k} \\ \vdots & \vdots & \ddots & \vdots \\ W_{m,1} & W_{m,2} & \cdots & W_{m,k} \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_k \end{bmatrix} + \begin{bmatrix} b_1 \\ b_2 \\ \vdots \\ b_m \end{bmatrix}
 $$
+
+
 
 - $\mathbf{W}\mathbf{x}$ performs the **rubber-sheet transformation**: stretching, rotating, shearing, or changing the dimension of the embedding space.
 - $+\, \mathbf{b}$ performs a **rigid translation**: sliding the entire transformed coordinate system across space without changing its shape.
@@ -160,15 +172,23 @@ Two matrices can be multiplied **if and only if** the number of columns in the f
 
 Written formally:
 
+
+
 $$
 (m \times k) \times (k \times n) \longrightarrow (m \times n)
 $$
 
+
+
 If matrix $\mathbf{A} \in \mathbb{R}^{m \times k}$ and matrix $\mathbf{B} \in \mathbb{R}^{k \times n}$, each entry $C_{i, j}$ in the resulting matrix $\mathbf{C} \in \mathbb{R}^{m \times n}$ is computed by taking the **dot product** between row $i$ of matrix $\mathbf{A}$ and column $j$ of matrix $\mathbf{B}$:
+
+
 
 $$
 C_{i, j} = \sum_{r=1}^k A_{i, r} B_{r, j} = A_{i, 1} B_{1, j} + A_{i, 2} B_{2, j} + \dots + A_{i, k} B_{k, j}
 $$
+
+
 
 <fieldset>
 <legend><strong>Matrix Multiplication Is Just a Grid of Dot Products!</strong></legend>
@@ -186,9 +206,13 @@ Why should someone studying neural language models care about "where basis vecto
 
 When developers first learn matrix multiplication, they are taught the row-by-column dot product formula:
 
+
+
 $$
 y_i = (\text{Row } i \text{ of } \mathbf{W}) \cdot \mathbf{x}
 $$
+
+
 
 While this explains how silicon hardware computes numbers, it leaves our mental model of the neural network completely blind. It makes a linear layer look like a dry, disconnected grid of arithmetic.
 
@@ -208,13 +232,21 @@ Every real word embedding is just a recipe of these pure ingredients: $\mathbf{x
 
 Now, watch what happens when our weight matrix lens $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ acts on these pure basis embeddings:
 
+
+
 $$
 \mathbf{W} \hat{\mathbf{i}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} W_{1,1} \\ W_{2,1} \end{bmatrix} = \text{Column 1 of } \mathbf{W}
 $$
 
+
+
+
+
 $$
 \mathbf{W} \hat{\mathbf{j}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} W_{1,2} \\ W_{2,2} \end{bmatrix} = \text{Column 2 of } \mathbf{W}
 $$
+
+
 
 This reveals the foundational insight of neural transformations:
 
@@ -228,9 +260,13 @@ Each column of $\mathbf{W}$ acts as a **semantic dictionary entry**:
 
 When a real word embedding $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$ (such as $\text{"cat"} = [2, 1]^\top$) enters the neural network layer, the matrix multiplication computes:
 
+
+
 $$
 \mathbf{W}\mathbf{x} = x_1 (\text{Column 1 of } \mathbf{W}) + x_2 (\text{Column 2 of } \mathbf{W})
 $$
+
+
 
 The embedding vector $\mathbf{x}$ is not an abstract math puzzle—it is a **blender recipe**:
 > *"Take $x_1$ scoops of Column 1's concept, and $x_2$ scoops of Column 2's concept, and blend them together into the output representation!"*
@@ -260,15 +296,23 @@ For a sequence of $T$ tokens, each with dimension $d_{\text{in}}$:
 
 The forward pass is written with the input on the left:
 
+
+
 $$
 \mathbf{Y} = \mathbf{X}\mathbf{W} + \mathbf{b}
 $$
 
+
+
 Dimension check:
+
+
 
 $$
 (T \times d_{\text{in}}) \times (d_{\text{in}} \times d_{\text{out}}) \longrightarrow (T \times d_{\text{out}})
 $$
+
+
 
 Both representations are mathematically equivalent under the transpose identity: $(\mathbf{W}\mathbf{x})^\top = \mathbf{x}^\top \mathbf{W}^\top$.
 
@@ -376,24 +420,36 @@ When training an <abbr title="Large Language Model">LLM</abbr> with billions of 
 
 Because matrix multiplication is purely linear additions and multiplications, its derivative is astonishingly simple:
 
+
+
 $$
 y_i = \sum_{r=1}^k W_{i, r} x_r + b_i \implies \frac{\partial y_i}{\partial W_{i, j}} = x_j
 $$
+
+
 
 The rate of change with respect to weight $W_{i, j}$ is simply the input activation $x_j$! This enables the **Backpropagation algorithm** to update billions of parameters simultaneously without solving complex equations.
 
 #### Superpower 2: Preserving Geometric Structure
 Linear transformations preserve collinearity and parallel lines. If three word vectors form an analogy in input space:
 
+
+
 $$
 \mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}} \approx \mathbf{x}_{\text{queen}}
 $$
 
+
+
 Applying a linear transformation $\mathbf{W}$ preserves this exact relationship:
+
+
 
 $$
 \mathbf{W}(\mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}}) = \mathbf{W}\mathbf{x}_{\text{king}} - \mathbf{W}\mathbf{x}_{\text{man}} + \mathbf{W}\mathbf{x}_{\text{woman}} \approx \mathbf{W}\mathbf{x}_{\text{queen}}
 $$
+
+
 
 The model can rotate, project, and stretch concepts into new sub-spaces without tearing apart semantic analogies.
 
@@ -412,9 +468,13 @@ The model can rotate, project, and stretch concepts into new sub-spaces without 
 
 <p>Notice the ratio:</p>
 
+
+
 $$
 \frac{\text{Operations}}{\text{Memory Transfers}} = \frac{O(N^3)}{O(N^2)} = O(N)
 $$
+
+
 
 <p>This is the holy grail of computer architecture, known as <strong>high arithmetic intensity</strong>! For large matrices, a <abbr title="Graphics Processing Unit">GPU</abbr> loads a number from memory once and reuses it hundreds of times across different dot products.</p>
 
@@ -439,15 +499,23 @@ We have an input word vector for <kbd>"cat"</kbd> in 2-dimensional space:
 - Axis 1: **Furriness** $= 2$
 - Axis 2: **Playfulness** $= 1$
 
+
+
 $$
 \mathbf{x}_{\text{cat}} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}
 $$
 
+
+
 We want to project this word through a weight matrix $\mathbf{W}$ that stretches furriness and shears playfulness, followed by a bias shift $\mathbf{b}$:
+
+
 
 $$
 \mathbf{W} = \begin{bmatrix} 2 & 1 \\ 0 & 3 \end{bmatrix}, \quad \mathbf{b} = \begin{bmatrix} 1 \\ -1 \end{bmatrix}
 $$
+
+
 
 Let's compute the output vector $\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}$ step by step.
 
@@ -469,6 +537,8 @@ Dimensions are 100% compatible.
 
 Compute each row coordinate using the dot product formula:
 
+
+
 $$
 \begin{aligned}
 y_1^{\text{raw}} &= (\text{Row 1 of } \mathbf{W}) \cdot \mathbf{x} \\
@@ -478,6 +548,10 @@ y_1^{\text{raw}} &= (\text{Row 1 of } \mathbf{W}) \cdot \mathbf{x} \\
 &= \mathbf{5}
 \end{aligned}
 $$
+
+
+
+
 
 $$
 \begin{aligned}
@@ -489,11 +563,17 @@ y_2^{\text{raw}} &= (\text{Row 2 of } \mathbf{W}) \cdot \mathbf{x} \\
 \end{aligned}
 $$
 
+
+
 So the raw linear projection is:
+
+
 
 $$
 \mathbf{W}\mathbf{x} = \begin{bmatrix} 5 \\ 3 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -501,15 +581,23 @@ $$
 
 Now add the constant translation vector $\mathbf{b} = \begin{bmatrix} 1 \\ -1 \end{bmatrix}$:
 
+
+
 $$
 \mathbf{y} = \begin{bmatrix} 5 \\ 3 \end{bmatrix} + \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 5 + 1 \\ 3 + (-1) \end{bmatrix} = \begin{bmatrix} \mathbf{6} \\ \mathbf{2} \end{bmatrix}
 $$
 
+
+
 Our final transformed vector is:
+
+
 
 $$
 \mathbf{y}_{\text{cat}} = \begin{bmatrix} \mathbf{6} \\ \mathbf{2} \end{bmatrix}
 $$
+
+
 
 <p>
   <strong>Transformed Coordinates:</strong>
@@ -524,19 +612,27 @@ $$
 Let's verify where our standard basis axes landed during this transformation:
 
 1. **Horizontal Basis Vector $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$**:
+
+
    $$
    \mathbf{W}\hat{\mathbf{i}} = \begin{bmatrix} 2 & 1 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 2 \\ 0 \end{bmatrix}
    $$
+
+
    The unit horizontal axis was stretched by a factor of $2\times$ along the horizontal direction!
 
 2. **Vertical Basis Vector $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$**:
+
+
    $$
    \mathbf{W}\hat{\mathbf{j}} = \begin{bmatrix} 2 & 1 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 1 \\ 3 \end{bmatrix}
    $$
+
+
    The unit vertical axis was tilted rightward by $+1$ unit and stretched vertically by a factor of $3\times$!
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
        Original Basis Vectors                   Transformed Basis Vectors
             ▲                                        ▲
             │                                    3.00│       • W(j) = (1, 3)
@@ -546,14 +642,18 @@ Let's verify where our standard basis axes landed during this transformation:
         0.00└───────┴────────►                   0.00└───┴───► W(i) = (2, 0)
           0.00    1.00                             0.00 1.00 2.00
 </pre>
-\lt figcaption>\lt strong>Figure 3.3:</strong> The transformation reshaped the original unit square into a tilted, stretched parallelogram whose edges are defined by the columns of matrix W.</figcaption>
+<figcaption><strong>Figure 3.3:</strong> The transformation reshaped the original unit square into a tilted, stretched parallelogram whose edges are defined by the columns of matrix W.</figcaption>
 </figure>
 
 Reconstructing $\mathbf{W}\mathbf{x}$ directly using our basis arrows:
 
+
+
 $$
 \mathbf{W}\mathbf{x} = 2 \begin{bmatrix} 2 \\ 0 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ 3 \end{bmatrix} = \begin{bmatrix} 4 \\ 0 \end{bmatrix} + \begin{bmatrix} 1 \\ 3 \end{bmatrix} = \begin{bmatrix} 5 \\ 3 \end{bmatrix}
 $$
+
+
 
 The basis vector perspective yields the exact same answer as the row-column dot product!
 

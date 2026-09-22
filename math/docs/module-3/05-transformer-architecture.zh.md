@@ -260,9 +260,13 @@
 
 给定用户输入的提示词文本，首先经过分词器（Tokenizer）转换为由 $T$ 个离散整数 ID 构成的序列向量：
 
+
+
 $$
 \mathbf{w} = \begin{bmatrix} w_1 & w_2 & \dots & w_T \end{bmatrix}^\top \in \{1, \dots, |V|\}^T
 $$
+
+
 
 <fieldset>
 <legend><strong>符号深度解析：$\mathbf{w}$ 与 $w_t$ 的数学含义</strong></legend>
@@ -305,9 +309,13 @@ $$
 
 如何将离散整数 $w_t$ 转化为连续几何向量并注入次序？通过词嵌入矩阵 $\mathbf{E} \in \mathbb{R}^{|V| \times d_{\text{model}}}$ 与位置编码向量 $\mathbf{p}_t$ 完成映射：
 
+
+
 $$
 \mathbf{x}_t^{(0)} = \mathbf{e}_{w_t}^\top \mathbf{E} + \mathbf{p}_t \in \mathbb{R}^{1 \times d_{\text{model}}}
 $$
+
+
 
 <fieldset>
 <legend><strong>符号深度解析：嵌入查找与位置注入</strong></legend>
@@ -324,6 +332,8 @@ $$
 
 将整段文本全部 $T$ 个词的行向量自上而下垂直堆叠，便铸就了贯穿整个模型的**输入特征张量**：
 
+
+
 $$
 \mathbf{X}^{(0)} = \begin{bmatrix}
 \mathbf{x}_1^{(0)} \\
@@ -332,6 +342,8 @@ $$
 \mathbf{x}_T^{(0)}
 \end{bmatrix} \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
+
+
 
 张量 $\mathbf{X}^{(0)}$ 的维度非常清晰：**一共有 $T$ 行（代表 $T$ 个时间步），每一行有 $d_{\text{model}}$ 个数字（代表该词的特征维度）**。
 
@@ -346,9 +358,13 @@ $$
 #### 子层 A：全员交流室（自注意力机制 Self-Attention）
 每个词环视圆桌，跨越时间维度检索与自己最相关的上下文线索：
 
+
+
 $$
 \mathbf{H}^{(l)} = \mathbf{X}^{(l-1)} + \operatorname{SelfAttention}\left(\operatorname{RMSNorm}(\mathbf{X}^{(l-1)})\right)
 $$
+
+
 
 <fieldset>
 <legend><strong>符号深度解析：自注意力层的前向传播</strong></legend>
@@ -365,15 +381,23 @@ $$
 #### 子层 B：闭门思考室（前馈神经网络 FFN / SwiGLU）
 各词在吸纳了邻居们提供的新语境后，分别走入各自独立的私人思考室闭门深思、检索事实知识：
 
+
+
 $$
 \mathbf{X}^{(l)} = \mathbf{H}^{(l)} + \operatorname{FFN}\left(\operatorname{RMSNorm}(\mathbf{H}^{(l)})\right)
 $$
 
+
+
 在当今顶尖大模型中，该模块标配为我们在第 04 章深入剖析过的 **SwiGLU** 门控网络：
+
+
 
 $$
 \operatorname{FFN}(\mathbf{h}) = \left(\operatorname{Swish}(\mathbf{h}\mathbf{W}_{\text{gate}}) \odot (\mathbf{h}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}
 $$
+
+
 
 <fieldset>
 <legend><strong>符号深度解析：SwiGLU 前馈网络的门控计算</strong></legend>
@@ -418,15 +442,23 @@ Token 位置:           t = 1 ("The")         t = 2 ("bank")        t = 3 ("rive
 
 在完整历经 $L$ 轮高强度的“沟通”与“思考”后，输出张量中的每一个词向量都已被赋予了极度深邃的语境智慧：
 
+
+
 $$
 \mathbf{X}_{\text{final}} = \operatorname{RMSNorm}(\mathbf{X}^{(L)}) \in \mathbb{R}^{T \times d_{\text{model}}}
 $$
 
+
+
 为了将这些高维几何语义重新映射回人类可读的文字，模型使用**解嵌入矩阵（Unembedding Matrix）** $\mathbf{E}_U \in \mathbb{R}^{d_{\text{model}} \times |V|}$：
+
+
 
 $$
 \mathbf{Z} = \mathbf{X}_{\text{final}} \mathbf{E}_U \in \mathbb{R}^{T \times |V|}
 $$
+
+
 
 <fieldset>
 <legend><strong>符号深度解析：从隐藏几何空间映射回离散词表</strong></legend>
@@ -441,9 +473,13 @@ $$
 
 将向量 $\mathbf{z}_T$ 送入 **Softmax 函数**：
 
+
+
 $$
 P(w_{T+1} = v_i \mid w_{\le T}) = \frac{\exp(z_{T, i})}{\sum_{j=1}^{|V|} \exp(z_{T, j})}
 $$
+
+
 
 <fieldset>
 <legend><strong>符号深度解析：Softmax 条件概率计算</strong></legend>
@@ -481,15 +517,21 @@ $$
 
 在初中代数中：
 
+
+
 $$
 y = w \cdot x + b
 $$
+
+
 
 其中的乘数 $w$（权重 Weight）和加数 $b$（偏置 Bias）就是最纯粹的参数。
 
 现代大模型出于数值稳定性与极速运算考量，普遍去除了偏置项（Bias-free，即 $b = 0$）。因此，**所谓参数，本质上就是填满上述所有权重矩阵（$\mathbf{E}, \mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V, \mathbf{W}_O, \mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}}, \mathbf{W}_{\text{down}}, \mathbf{E}_U$）的每一个独立的浮点小数！**
 
 例如一个 $3 \times 3$ 的注意力投影矩阵：
+
+
 
 $$
 \mathbf{W} = \begin{bmatrix}
@@ -498,6 +540,8 @@ $$
 0.914 & -0.117 & 0.638
 \end{bmatrix}
 $$
+
+
 
 矩阵里的每一个小格都是一个独立的浮点数。这一个小方阵就贡献了 $3 \times 3 = 9$ 个参数。
 
@@ -624,17 +668,25 @@ $$
 计算机芯片以字节（Byte）为基本物理存储单位：
 - 在标准半精度（**FP16 或 BF16**）下，**每一个浮点参数占用 2 个字节（16 位）**。
 
+
+
 $$
 \text{模型静态显存} = 70.55 \times 10^9 \times 2 \text{ Bytes} \approx 141.1 \times 10^9 \text{ Bytes} \approx \mathbf{141.1 \text{ GB}}
 $$
+
+
 
 这意味着：
 - **原始全精度加载**：如果直接以 BF16 格式加载，仅把这 700 亿个数字放进显存就需要 **141.1 GB**！一张顶级的消费级显卡（如 RTX 4090）仅有 24 GB 显存，因此单张 4090 连开机都做不到，至少需要 2 张专业级 80GB A100/H100 显卡，或者 6 到 8 张 RTX 4090 组成张量并行。
 - **4-bit 量化压缩（INT4 / NF4）**：
   工程师发现，每一个小数其实不必用 16 位那么高的精度存储，压缩到 4 位（半个字节）所产生的输出质量损失微乎其微。
+
+
   $$
   70.55 \times 10^9 \times 0.5 \text{ Bytes} \approx \mathbf{35.3 \text{ GB}}
   $$
+
+
   压缩后只需约 **35.3 GB 显存**，配备 48GB 或 64GB 统一内存的个人苹果 Mac 电脑，或者两张消费级显卡即可流畅本地运行 70B 顶级大模型！
 
 ---
@@ -643,36 +695,36 @@ $$
 
 Transformer 的诞生并非凭空出现的神迹，而是人类在对抗“失忆”与“计算迟缓”的 15 年征程中，无数先驱思想碰撞出的胜利火花：
 
-\lt dl>
-  \lt dt>\lt time datetime="2003">2003年</time> &mdash; \lt strong>Yoshua Bengio 等人</strong>：神经概率语言模型（NPLM）奠基</dt>
-  \lt dd>
-    首次证明了用连续向量 $\mathbf{E}$ 表征词义可以让模型学会语义泛化。但其采用的\lt strong>固定上下文窗口</strong>（如我们在 Lab 01 中所实现）导致其视界极度狭窄，对更早的语境完全盲目。\lt br>
-    \lt cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>
+<dl>
+  <dt><time datetime="2003">2003年</time> &mdash; <strong>Yoshua Bengio 等人</strong>：神经概率语言模型（NPLM）奠基</dt>
+  <dd>
+    首次证明了用连续向量 $\mathbf{E}$ 表征词义可以让模型学会语义泛化。但其采用的<strong>固定上下文窗口</strong>（如我们在 Lab 01 中所实现）导致其视界极度狭窄，对更早的语境完全盲目。<br>
+    <cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2014">2014年</time> &mdash; \lt strong>Kyunghyun Cho / Ilya Sutskever 等人</strong>：Seq2Seq 机器翻译时代的辉煌与困境</dt>
-  \lt dd>
-    提出了基于 Encoder-Decoder 的循环神经网络架构，理论上允许读取任意长度的句子。然而它撞上了一堵不可逾越的高墙——\lt strong>固定向量压缩瓶颈</strong>：无论一句英文有 50 个词还是 100 个词，都必须被粗暴地强行压缩成一个长度固定的隐藏向量 $\mathbf{h}$，长句末期的严重失忆现象令翻译系统不堪重负。\lt br>
-    \lt cite>《Sequence to Sequence Learning with Neural Networks》, NeurIPS 2014</cite>
+  <dt><time datetime="2014">2014年</time> &mdash; <strong>Kyunghyun Cho / Ilya Sutskever 等人</strong>：Seq2Seq 机器翻译时代的辉煌与困境</dt>
+  <dd>
+    提出了基于 Encoder-Decoder 的循环神经网络架构，理论上允许读取任意长度的句子。然而它撞上了一堵不可逾越的高墙——<strong>固定向量压缩瓶颈</strong>：无论一句英文有 50 个词还是 100 个词，都必须被粗暴地强行压缩成一个长度固定的隐藏向量 $\mathbf{h}$，长句末期的严重失忆现象令翻译系统不堪重负。<br>
+    <cite>《Sequence to Sequence Learning with Neural Networks》, NeurIPS 2014</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2015">2015年</time> &mdash; \lt strong>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio</strong>：注意力机制破晓</dt>
-  \lt dd>
-    首次提出了\lt strong>注意力机制（Attention Mechanism）</strong>：放弃将整句话硬塞进单个向量的执念，允许解码端在翻译时，能够主动“回过头看”编码端的\lt em>每一个历史中间状态</em>并计算加权平均。这一创举瞬间攻克了机器翻译的长句记忆瓶颈。\lt br>
-    \lt cite>《Neural Machine Translation by Jointly Learning to Align and Translate》, ICLR 2015</cite>
+  <dt><time datetime="2015">2015年</time> &mdash; <strong>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio</strong>：注意力机制破晓</dt>
+  <dd>
+    首次提出了<strong>注意力机制（Attention Mechanism）</strong>：放弃将整句话硬塞进单个向量的执念，允许解码端在翻译时，能够主动“回过头看”编码端的<em>每一个历史中间状态</em>并计算加权平均。这一创举瞬间攻克了机器翻译的长句记忆瓶颈。<br>
+    <cite>《Neural Machine Translation by Jointly Learning to Align and Translate》, ICLR 2015</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2017">2017年</time> &mdash; \lt strong>Ashish Vaswani 等人（Google Brain / Research）</strong>：Attention Is All You Need</dt>
-  \lt dd>
-    提出了一个惊世骇俗的猜想：\lt em>既然注意力机制能够打破距离限制，为什么我们还要保留迟钝且无法并行的 RNN 循环连线？</em>\lt br>
-    他们彻底移除了所有循环链条，只依靠纯粹的自注意力网络，缔造了 \lt strong>Transformer</strong>。所有词之间的交互距离在一瞬间被压平到 $\mathcal{O}(1)$，人类首次在 GPU 上实现了前所未有的超高吞吐并行训练。\lt br>
-    \lt cite>《Attention Is All You Need》, NeurIPS 2017</cite>
+  <dt><time datetime="2017">2017年</time> &mdash; <strong>Ashish Vaswani 等人（Google Brain / Research）</strong>：Attention Is All You Need</dt>
+  <dd>
+    提出了一个惊世骇俗的猜想：<em>既然注意力机制能够打破距离限制，为什么我们还要保留迟钝且无法并行的 RNN 循环连线？</em><br>
+    他们彻底移除了所有循环链条，只依靠纯粹的自注意力网络，缔造了 <strong>Transformer</strong>。所有词之间的交互距离在一瞬间被压平到 $\mathcal{O}(1)$，人类首次在 GPU 上实现了前所未有的超高吞吐并行训练。<br>
+    <cite>《Attention Is All You Need》, NeurIPS 2017</cite>
   </dd>
 
-  \lt dt>\lt time datetime="2018">2018年&ndash;至今</time> &mdash; \lt strong>Alec Radford 等人（OpenAI）与开源巨浪（Meta LLaMA）</strong>：仅解码器时代的统治</dt>
-  \lt dd>
-    OpenAI 敏锐地洞察到：如果核心目标是通用文本生成，原始论文中双边复杂的 Encoder-Decoder 结构实属冗余；仅需保留单向因果堆叠的\lt strong>纯解码器（Decoder-Only）</strong>架构，通过在大规模无标注文本上做“预测下一个词”，即可孕育出推理、代码编写与世界常识（GPT-1 至 GPT-4）。现代开源霸主 LLaMA、Mistral、DeepSeek 均在此经典架构上演进至今。\lt br>
-    \lt cite>《Improving Language Understanding by Generative Pre-Training》, OpenAI 2018</cite>
+  <dt><time datetime="2018">2018年&ndash;至今</time> &mdash; <strong>Alec Radford 等人（OpenAI）与开源巨浪（Meta LLaMA）</strong>：仅解码器时代的统治</dt>
+  <dd>
+    OpenAI 敏锐地洞察到：如果核心目标是通用文本生成，原始论文中双边复杂的 Encoder-Decoder 结构实属冗余；仅需保留单向因果堆叠的<strong>纯解码器（Decoder-Only）</strong>架构，通过在大规模无标注文本上做“预测下一个词”，即可孕育出推理、代码编写与世界常识（GPT-1 至 GPT-4）。现代开源霸主 LLaMA、Mistral、DeepSeek 均在此经典架构上演进至今。<br>
+    <cite>《Improving Language Understanding by Generative Pre-Training》, OpenAI 2018</cite>
   </dd>
 </dl>
 
@@ -684,21 +736,23 @@ Transformer 的诞生并非凭空出现的神迹，而是人类在对抗“失�
 
 ### 场景设定
 - 词表 $|V| = 4$：$\{\text{"the"}: 0, \text{"bank"}: 1, \text{"river"}: 2, \text{"flows"}: 3\}$；
-- 输入序列长度 $T = 3$：\lt samp>["the", "bank", "river"]</samp>；
+- 输入序列长度 $T = 3$：<samp>["the", "bank", "river"]</samp>；
 - 模型特征维度 $d_{\text{model}} = 2$；
-- 目标：让模型在第 3 个位置，精准预测出第 4 个词是 \lt samp>"flows"</samp>（流动）。
+- 目标：让模型在第 3 个位置，精准预测出第 4 个词是 <samp>"flows"</samp>（流动）。
 
-\lt fieldset>
-\lt legend>\lt strong>运算跟踪检查清单</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>第 1 步：</strong> 查表获取静态词嵌入 $\mathbf{X}^{(0)} \in \mathbb{R}^{3 \times 2}$；</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>第 2 步：</strong> 自注意力交互（Communication），赋予多义词 "bank" 正确的水文含义；</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>第 3 步：</strong> 残差累加，保全词汇原有身份特征；</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>第 4 步：</strong> 前馈网络深思（Thinking），激活物理事实常识；</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>第 5 步：</strong> 解嵌入投影，计算全词表概率并命中 "flows"。</p>
+<fieldset>
+<legend><strong>运算跟踪检查清单</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>第 1 步：</strong> 查表获取静态词嵌入 $\mathbf{X}^{(0)} \in \mathbb{R}^{3 \times 2}$；</p>
+<p><input type="checkbox" checked disabled> <strong>第 2 步：</strong> 自注意力交互（Communication），赋予多义词 "bank" 正确的水文含义；</p>
+<p><input type="checkbox" checked disabled> <strong>第 3 步：</strong> 残差累加，保全词汇原有身份特征；</p>
+<p><input type="checkbox" checked disabled> <strong>第 4 步：</strong> 前馈网络深思（Thinking），激活物理事实常识；</p>
+<p><input type="checkbox" checked disabled> <strong>第 5 步：</strong> 解嵌入投影，计算全词表概率并命中 "flows"。</p>
 </fieldset>
 
 ### 第 1 步：查表获取静态词嵌入
 假设我们的词嵌入表为这 3 个词分配了初始的 2 维几何坐标：
+
+
 
 $$
 \mathbf{X}^{(0)} = \begin{bmatrix}
@@ -716,63 +770,77 @@ $$
 \end{matrix}
 $$
 
-请特别观察第 2 个位置的词 \lt samp>"bank"</samp>：它的向量是 $[0.5, 0.5]$，它既不知道自己是指华尔街的银行，还是水流旁的河岸。
+
+
+请特别观察第 2 个位置的词 <samp>"bank"</samp>：它的向量是 $[0.5, 0.5]$，它既不知道自己是指华尔街的银行，还是水流旁的河岸。
 
 ### 第 2 步：自注意力机制的交流阶段（Communication）
-在自注意力计算中（我们将在接下来的第 06～08 章详细学习具体公式），位置 2（\lt samp>"bank"</samp>）环顾圆桌，发现位置 3（\lt samp>"river"</samp>）蕴含着最核心的上下文线索！
+在自注意力计算中（我们将在接下来的第 06～08 章详细学习具体公式），位置 2（<samp>"bank"</samp>）环顾圆桌，发现位置 3（<samp>"river"</samp>）蕴含着最核心的上下文线索！
 
-模型计算出的目光分配权重为：给 \lt samp>"river"</samp> 投射 $0.8$ 的注意力，给自己保留 $0.2$ 的注意力：
+模型计算出的目光分配权重为：给 <samp>"river"</samp> 投射 $0.8$ 的注意力，给自己保留 $0.2$ 的注意力：
+
+
 
 $$
 \Delta \mathbf{x}_2 = 0.2 \times \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + 0.8 \times \begin{bmatrix} 0.1 & 0.9 \end{bmatrix} = \begin{bmatrix} 0.10 + 0.08 & 0.10 + 0.72 \end{bmatrix} = \begin{bmatrix} 0.18 & 0.82 \end{bmatrix}
 $$
 
-\lt fieldset>
-\lt legend>\lt strong>核心解惑：模型到底是如何发现 "river" 并精准投射出 0.8 巨大注意力的？</strong></legend>
-\lt p>
-初学者在这里一定会追问：\lt em>模型怎么知道 "river" 才是最重要的线索？0.8 和 0.2 这两个数字究竟是怎么算出来的？</em>
+
+
+<fieldset>
+<legend><strong>核心解惑：模型到底是如何发现 "river" 并精准投射出 0.8 巨大注意力的？</strong></legend>
+<p>
+初学者在这里一定会追问：<em>模型怎么知道 "river" 才是最重要的线索？0.8 和 0.2 这两个数字究竟是怎么算出来的？</em>
 </p>
-\lt p>
-这正是自注意力机制（Self-Attention）中 \lt strong>Query（查询）与 Key（键）向量的点积共鸣游戏</strong>（第 06 章将对其展开彻底推导）：
+<p>
+这正是自注意力机制（Self-Attention）中 <strong>Query（查询）与 Key（键）向量的点积共鸣游戏</strong>（第 06 章将对其展开彻底推导）：
 </p>
-\lt ol>
-  \lt li>\lt strong>扩音喇叭与胸前铭牌（Q 与 K）</strong>：
+<ol>
+  <li><strong>扩音喇叭与胸前铭牌（Q 与 K）</strong>：
     大模型给圆桌上的每一个词都发了一个“扩音喇叭”（$\mathbf{q}$，发出需求）和一块“胸前铭牌”（$\mathbf{k}$，展示属性）。
-    \lt ul>
-      \lt li>\lt samp>"bank"</samp> 举起喇叭发出查询 $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$（表示极度渴望寻找“水文、自然水体”线索）；</li>
-      \lt li>\lt samp>"river"</samp> 亮出的铭牌正是 $\mathbf{k}_{\text{river}} = [1.5, 0.1]$（表示自身具有极其浓烈的水流属性）；</li>
-      \lt li>\lt samp>"bank"</samp> 自己的铭牌是 $\mathbf{k}_{\text{bank}} = [0.3, 0.3]$（自身处于歧义状态）。</li>
+    <ul>
+      <li><samp>"bank"</samp> 举起喇叭发出查询 $\mathbf{q}_{\text{bank}} = [2.0, 0.0]$（表示极度渴望寻找“水文、自然水体”线索）；</li>
+      <li><samp>"river"</samp> 亮出的铭牌正是 $\mathbf{k}_{\text{river}} = [1.5, 0.1]$（表示自身具有极其浓烈的水流属性）；</li>
+      <li><samp>"bank"</samp> 自己的铭牌是 $\mathbf{k}_{\text{bank}} = [0.3, 0.3]$（自身处于歧义状态）。</li>
     </ul>
   </li>
-  \lt li>\lt strong>计算点积共鸣分（Dot Product）</strong>：
+  <li><strong>计算点积共鸣分（Dot Product）</strong>：
     正如我们在第 02 章所学，两个向量方向越一致，点积越大：
-    \lt ul>
-      \lt li>\lt samp>"bank"</samp> 与 \lt samp>"river"</samp> 的共鸣分：$a_{\text{river}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{river}}^\top = (2.0 \times 1.5) + (0.0 \times 0.1) = \mathbf{3.0}$；</li>
-      \lt li>\lt samp>"bank"</samp> 与自身的共鸣分：$a_{\text{bank}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{bank}}^\top = (2.0 \times 0.3) + (0.0 \times 0.3) = \mathbf{0.6}$。</li>
+    <ul>
+      <li><samp>"bank"</samp> 与 <samp>"river"</samp> 的共鸣分：$a_{\text{river}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{river}}^\top = (2.0 \times 1.5) + (0.0 \times 0.1) = \mathbf{3.0}$；</li>
+      <li><samp>"bank"</samp> 与自身的共鸣分：$a_{\text{bank}} = \mathbf{q}_{\text{bank}} \cdot \mathbf{k}_{\text{bank}}^\top = (2.0 \times 0.3) + (0.0 \times 0.3) = \mathbf{0.6}$。</li>
     </ul>
   </li>
-  \lt li>\lt strong>指数函数 Softmax 剧烈放大差距</strong>：
+  <li><strong>指数函数 Softmax 剧烈放大差距</strong>：
     经过指数函数计算：$\exp(3.0) \approx 20.085$，而 $\exp(0.6) \approx 1.822$。归一化求得注意力占比：
+
+
     $$
     \alpha_{\text{river}} = \frac{20.085}{20.085 + 1.822} \approx 91.7\% \quad (\text{加入微调衰减后精确映射为 } 0.8)
     $$
+
+
   </li>
-  \lt li>\lt strong>为什么参数会这么聪明？</strong>
-    在预训练中，梯度反向传播惩罚了所有无法正确理解上下文的错误预测，逼迫投影矩阵 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 学会：\lt strong>每当遇到歧义词，将其 Query 强行旋转对准潜在上下文线索词的 Key 向量方向！</strong>
+  <li><strong>为什么参数会这么聪明？</strong>
+    在预训练中，梯度反向传播惩罚了所有无法正确理解上下文的错误预测，逼迫投影矩阵 $\mathbf{W}_Q$ 和 $\mathbf{W}_K$ 学会：<strong>每当遇到歧义词，将其 Query 强行旋转对准潜在上下文线索词的 Key 向量方向！</strong>
   </li>
 </ol>
 </fieldset>
 
-看！增量更新向量 $\Delta \mathbf{x}_2 = [0.18, 0.82]$ 吸收了邻居 \lt samp>"river"</samp> 身上极为强烈的“水流特征”（$0.82$）！
+看！增量更新向量 $\Delta \mathbf{x}_2 = [0.18, 0.82]$ 吸收了邻居 <samp>"river"</samp> 身上极为强烈的“水流特征”（$0.82$）！
 
 ### 第 3 步：残差高速公路累加
 我们将交流阶段获得的新线索 $\Delta \mathbf{x}_2$，通过残差连接与原本的嵌入向量叠加：
+
+
 
 $$
 \mathbf{h}_2 = \mathbf{x}_2^{(0)} + \Delta \mathbf{x}_2 = \begin{bmatrix} 0.5 & 0.5 \end{bmatrix} + \begin{bmatrix} 0.18 & 0.82 \end{bmatrix} = \begin{bmatrix} 0.68 & 1.32 \end{bmatrix}
 $$
 
-残差连接确保了网络既没有忘记自己原本是 \lt samp>"bank"</samp>（保留了 $0.68$），又成功注入了浓郁的水文特征（激增至 $1.32$）。
+
+
+残差连接确保了网络既没有忘记自己原本是 <samp>"bank"</samp>（保留了 $0.68$），又成功注入了浓郁的水文特征（激增至 $1.32$）。
 
 ### 第 4 步：前馈网络的思考阶段（Thinking）
 向量 $\mathbf{h}_2 = [0.68, 1.32]$ 随后进入该词专属的前馈网络（FFN）闭门思考。
@@ -781,14 +849,20 @@ $$
 
 FFN 激活并给出了提炼后的增量思考，再次经由残差相加：
 
+
+
 $$
 \mathbf{x}_2^{(1)} = \mathbf{h}_2 + \operatorname{FFN}(\mathbf{h}_2) = \begin{bmatrix} 0.68 & 1.32 \end{bmatrix} + \begin{bmatrix} -0.18 & 0.68 \end{bmatrix} = \begin{bmatrix} 0.50 & 2.00 \end{bmatrix}
 $$
+
+
 
 此时此刻，该位置的向量彻底脱胎换骨，从一个摇摆不定的歧义词，升华为了一个高度聚焦、坚定不移指向水流地理意义的特征向量 $[0.50, 2.00]$！
 
 ### 第 5 步：解嵌入投影与下一个词概率输出
 在句子的最终位置，模型将深思熟虑后的最终表征乘以解嵌入矩阵 $\mathbf{E}_U \in \mathbb{R}^{2 \times 4}$：
+
+
 
 $$
 \mathbf{E}_U = \begin{bmatrix}
@@ -797,7 +871,11 @@ $$
 \end{bmatrix}
 $$
 
+
+
 将当前语义向量 $[0.50, 2.00]$ 与 $\mathbf{E}_U$ 进行矩阵乘法：
+
+
 
 $$
 \mathbf{z} = \begin{bmatrix} 0.50 & 2.00 \end{bmatrix} \begin{bmatrix}
@@ -805,6 +883,8 @@ $$
 -0.5 & -0.8 & -0.2 & 1.5
 \end{bmatrix}
 $$
+
+
 
 让我们手算每个候选词的未归一化得分（Logit）：
 - 对词 0（<samp>"the"</samp>）：$0.50(-1.0) + 2.00(-0.5) = -0.5 - 1.0 = \mathbf{-1.50}$；
@@ -844,9 +924,13 @@ $$
   <li><strong>模型训练必须依靠可导的概率（微积分与反向传播的基石）</strong>：
     $\arg\max$ 是阶跃开关，数学上导数处处为 0，梯度彻底归零，网络根本无法学习！
     而计算概率后的<strong>交叉熵损失函数 $\mathcal{L} = -\log P_{\text{target}}$</strong> 拥有深度学习中最优雅的偏导数：
+
+
     $$
     \frac{\partial \mathcal{L}}{\partial z_i} = P_i - y_i
     $$
+
+
     导数的大小恰好等于“预测概率与真实标签的误差”！正是因为有了平滑可导的概率 $P$，反向传播才能指引数千亿参数不断优化进化。
   </li>
   <li><strong>推理时的创造力与灵动采样（Temperature 与 Top-$p$ 采样）</strong>：

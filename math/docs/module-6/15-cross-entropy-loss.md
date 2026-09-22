@@ -50,9 +50,13 @@ Probability P(w*):  0.00 ──► Loss: +Infinity  (Fatal error, catastrophic!)
 !!! question "The Bridging Question: How Do We Convert "Surprise" into a Differentiable Error Signal?"
     In Chapter 00 and Chapter 07, we saw that the Transformer projects its final hidden vector $\mathbf{x}_L \in \mathbb{R}^{d_{\text{model}}}$ through an unembedding matrix $\mathbf{W}_U$ to produce raw score logits $\mathbf{z} \in \mathbb{R}^{|V|}$, which Softmax converts into a probability distribution:
 
+
+
     $$
     \hat{y}_i = P(w_{t+1} = i \mid w_{\le t}) = \frac{e^{z_i}}{\sum_{j=1}^{|V|} e^{z_j}}
     $$
+
+
 
     The training corpus provides the true next word $w^* \in \{1, \dots, |V|\}$, which can be represented as a **one-hot target vector** $\mathbf{y} \in \{0, 1\}^{|V|}$ where $y_{w^*} = 1$ and $y_{i \ne w^*} = 0$.
 
@@ -66,17 +70,25 @@ Probability P(w*):  0.00 ──► Loss: +Infinity  (Fatal error, catastrophic!)
 
 ### 1. Cross-Entropy Loss Formula
 
-The \lt dfn id="def-ce-math">Cross-Entropy Loss</dfn> between the true discrete distribution $\mathbf{y}$ and the predicted distribution $\hat{\mathbf{y}}$ is:
+The <dfn id="def-ce-math">Cross-Entropy Loss</dfn> between the true discrete distribution $\mathbf{y}$ and the predicted distribution $\hat{\mathbf{y}}$ is:
+
+
 
 $$
 \mathcal{L}_{\text{CE}}(\mathbf{y}, \hat{\mathbf{y}}) = -\sum_{i=1}^{|V|} y_i \log(\hat{y}_i)
 $$
 
+
+
 Because the target distribution is one-hot ($y_{w^*} = 1$ for the ground truth token $w^*$, and $y_i = 0$ for all other tokens $i \ne w^*$), the massive sum over 128,000 vocabulary words collapses down to **a single scalar term**:
+
+
 
 $$
 \mathcal{L}_{\text{CE}} = -\log(\hat{y}_{w^*})
 $$
+
+
 
 where:
 - $w^*$ is the index of the true ground-truth token.
@@ -91,20 +103,30 @@ Why is Cross-Entropy paired universally with Softmax? Because of a breathtaking 
 
 When we take the partial derivative of the Cross-Entropy loss $\mathcal{L}_{\text{CE}}$ with respect to the pre-softmax logit $z_i$:
 
+
+
 $$
 \frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_i} = \hat{y}_i - y_i
 $$
 
+
+
 In vector notation:
+
+
 
 $$
 \nabla_{\mathbf{z}} \mathcal{L}_{\text{CE}} = \hat{\mathbf{y}} - \mathbf{y}
 $$
 
-\lt details>
-\lt summary>\lt strong>Proof: Why Does the Softmax-CE Derivative Cancel Out So Cleanly?</strong></summary>
+
+
+<details>
+<summary><strong>Proof: Why Does the Softmax-CE Derivative Cancel Out So Cleanly?</strong></summary>
 
 Recall from Chapter 07 that the derivative of Softmax is:
+
+
 
 $$
 \frac{\partial \hat{y}_k}{\partial z_i} = \begin{cases}
@@ -113,7 +135,11 @@ $$
 \end{cases}
 $$
 
+
+
 Now apply the multivariate Chain Rule to $\mathcal{L}_{\text{CE}} = -\sum_{k} y_k \log \hat{y}_k$:
+
+
 
 $$
 \begin{aligned}
@@ -126,6 +152,8 @@ $$
 \end{aligned}
 $$
 
+
+
 The non-linear sigmoid-like saturation completely vanishes! The gradient is literally **the predicted probability minus the true probability**.
 - If the true token had $y_{w^*} = 1$ and the model gave $\hat{y}_{w^*} = 0.20$, the gradient is $0.20 - 1.0 = -0.80$ (push logit $z_{w^*}$ UP strongly!).
 - If an incorrect token had $y_j = 0$ and the model gave $\hat{y}_j = 0.35$, the gradient is $0.35 - 0 = +0.35$ (push logit $z_j$ DOWN!).
@@ -135,11 +163,15 @@ The non-linear sigmoid-like saturation completely vanishes! The gradient is lite
 
 ### 3. Perplexity: The Physical Meaning of Loss
 
-In academic papers and LLM benchmarks, model quality is rarely reported in raw cross-entropy nats. Instead, it is reported as \lt dfn id="def-ppl-math">Perplexity (PPL)</dfn>:
+In academic papers and LLM benchmarks, model quality is rarely reported in raw cross-entropy nats. Instead, it is reported as <dfn id="def-ppl-math">Perplexity (PPL)</dfn>:
+
+
 
 $$
-\operatorname{PPL} = \exp\left(\mathcal{L}_{\text{CE}}\right) = e^{-\frac{1}{N}\sum_{t=1}^N \log P(w_t \mid w_{<t})}
+\operatorname{PPL} = \exp\left(\mathcal{L}_{\text{CE}}\right) = e^{-\frac{1}{N}\sum_{t=1}^N \log P(w_t \mid w_{\lt t})}
 $$
+
+
 
 What does a perplexity number actually mean?
 - **$\operatorname{PPL} = 1.0$**: Absolute perfection. The model predicts every single word with 100% certainty ($P = 1.0$).
@@ -158,8 +190,8 @@ The answer: **In Pre-training and Supervised Fine-Tuning (SFT)—which consume o
 
 However, across the full lifecycle of an LLM, the loss function evolves through three distinct stages:
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 ┌────────────────────────────────────────────────────────────────────────┐
 │           The Three-Stage Loss Function Landscape of Modern LLMs       │
 └────────────────────────────────────────────────────────────────────────┘
@@ -179,7 +211,7 @@ However, across the full lifecycle of an LLM, the loss function evolves through 
              - DPO Loss: Widens probability gap between preferred & rejected responses (Chapter 19)
              - RL Loss: Reward-driven policy gradients based on outcome correctness (PPO / GRPO)
 </pre>
-\lt figcaption>\lt strong>Figure 15.2:</strong> The evolution of LLM loss functions from raw text ingestion to human preference alignment and deep reasoning.</figcaption>
+<figcaption><strong>Figure 15.2:</strong> The evolution of LLM loss functions from raw text ingestion to human preference alignment and deep reasoning.</figcaption>
 </figure>
 
 Additionally, in modern Mixture-of-Experts (MoE) architectures, a **Load Balancing Auxiliary Loss** is added to prevent all tokens from routing to the same popular experts.
@@ -197,8 +229,8 @@ Therefore, **Cross-Entropy loss remains the foundational bedrock of LLM intellig
 
 Where does the $-\sum y_i \log \hat{y}_i$ formula come from?
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 1948: Claude Shannon (Bell Labs) ──► Information Entropy:
                                      H(P) = - sum_i p_i * log_2(p_i)
                                      (The minimum bits needed to encode a message)
@@ -214,7 +246,7 @@ Modern Machine Learning ──────────► Cross-Entropy Decompos
                                      Since human language P is fixed,
                                      minimizing Cross-Entropy minimizes KL divergence!
 </pre>
-\lt figcaption>\lt strong>Figure 15.3:</strong> From Shannon's telecommunication theory to the universal training loss of LLMs.</figcaption>
+<figcaption><strong>Figure 15.3:</strong> From Shannon's telecommunication theory to the universal training loss of LLMs.</figcaption>
 </figure>
 
 In Information Theory:
@@ -222,9 +254,13 @@ In Information Theory:
 2. $D_{\text{KL}}(P \parallel Q) = \sum P(x) \log \frac{P(x)}{Q(x)} \ge 0$ measures the **information divergence** (waste) when using the model's approximation $Q$ to model real text $P$.
 3. Cross-entropy is their exact sum:
 
+
+
 $$
 H(P, Q) = \underbrace{H(P)}_{\text{Constant}} + \underbrace{D_{\text{KL}}(P \parallel Q)}_{\ge 0}
 $$
+
+
 
 Because $H(P)$ cannot be changed by model training, **minimizing Cross-Entropy Loss is mathematically identical to driving the KL Divergence between the AI and human reality to zero!**
 
@@ -244,27 +280,35 @@ Suppose the training sentence says: *"The pet is a ..."* and the true ground-tru
 
 The one-hot ground-truth target vector is:
 
+
+
 $$
 \mathbf{y} = \begin{bmatrix} 0.0 & 0.0 & 1.0 \end{bmatrix}
 $$
 
+
+
 Suppose the model outputs the following raw unnormalized logits from its final layer:
+
+
 
 $$
 \mathbf{z} = \begin{bmatrix} z_1 \\ z_2 \\ z_3 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 1.0 \\ 0.1 \end{bmatrix}
 $$
 
+
+
 ---
 
 ### 2. Forward Pass: Compute Softmax Probabilities
 
-\lt fieldset>
-\lt legend>\lt strong>Execution Checklist</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step A:</strong> Exponentiate logits $e^{z_i}$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step B:</strong> Sum exponentials and normalize to $\hat{\mathbf{y}}$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step C:</strong> Calculate Cross-Entropy Loss $\mathcal{L}_{\text{CE}} = -\log(\hat{y}_3)$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step D:</strong> Compute Perplexity $\operatorname{PPL} = \exp(\mathcal{L}_{\text{CE}})$.</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>Step E:</strong> Calculate error gradient vector $\nabla_{\mathbf{z}}\mathcal{L} = \hat{\mathbf{y}} - \mathbf{y}$.</p>
+<fieldset>
+<legend><strong>Execution Checklist</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>Step A:</strong> Exponentiate logits $e^{z_i}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step B:</strong> Sum exponentials and normalize to $\hat{\mathbf{y}}$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step C:</strong> Calculate Cross-Entropy Loss $\mathcal{L}_{\text{CE}} = -\log(\hat{y}_3)$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step D:</strong> Compute Perplexity $\operatorname{PPL} = \exp(\mathcal{L}_{\text{CE}})$.</p>
+<p><input type="checkbox" checked disabled> <strong>Step E:</strong> Calculate error gradient vector $\nabla_{\mathbf{z}}\mathcal{L} = \hat{\mathbf{y}} - \mathbf{y}$.</p>
 </fieldset>
 
 #### Step A: Exponentiate Logits
@@ -274,18 +318,26 @@ $$
 
 Sum of exponentials:
 
+
+
 $$
 \sum_{j=1}^3 e^{z_j} = 7.3891 + 2.7183 + 1.1052 = 11.2126
 $$
+
+
 
 #### Step B: Softmax Normalization
 - $\hat{y}_1 = P(\text{"apple"}) = \frac{7.3891}{11.2126} \approx 0.6590$
 - $\hat{y}_2 = P(\text{"banana"}) = \frac{2.7183}{11.2126} \approx 0.2424$
 - $\hat{y}_3 = P(\text{"cat"}) = \frac{1.1052}{11.2126} \approx 0.0986$
 
+
+
 $$
 \hat{\mathbf{y}} = \begin{bmatrix} 0.6590 & 0.2424 & 0.0986 \end{bmatrix}
 $$
+
+
 
 The model mistakenly placed 65.9% probability on `"apple"` and only 9.86% on the true word `"cat"`.
 
@@ -296,16 +348,24 @@ The model mistakenly placed 65.9% probability on `"apple"` and only 9.86% on the
 #### Step C: Cross-Entropy Loss
 Because $y_3 = 1$ and $y_1 = y_2 = 0$:
 
+
+
 $$
 \mathcal{L}_{\text{CE}} = -\log(\hat{y}_3) = -\ln(0.0986) \approx 2.3167 \text{ nats}
 $$
 
+
+
 #### Step D: Perplexity
+
+
 $$
 \operatorname{PPL} = e^{\mathcal{L}_{\text{CE}}} = e^{2.3167} \approx 10.14
 $$
 
-\lt mark>Interpretation: Even though the vocabulary only has 3 words, the model was so confident in the wrong answers that its surprise level is equivalent to picking randomly among 10 options!</mark>
+
+
+<mark>Interpretation: Even though the vocabulary only has 3 words, the model was so confident in the wrong answers that its surprise level is equivalent to picking randomly among 10 options!</mark>
 
 ---
 
@@ -317,9 +377,13 @@ Now calculate the gradient vector $\frac{\partial \mathcal{L}}{\partial \mathbf{
 - $\frac{\partial \mathcal{L}}{\partial z_2} = \hat{y}_2 - y_2 = 0.2424 - 0.0 = \mathbf{+0.2424}$
 - $\frac{\partial \mathcal{L}}{\partial z_3} = \hat{y}_3 - y_3 = 0.0986 - 1.0 = \mathbf{-0.9014}$
 
+
+
 $$
 \nabla_{\mathbf{z}} \mathcal{L}_{\text{CE}} = \begin{bmatrix} +0.6590 \\ +0.2424 \\ -0.9014 \end{bmatrix}
 $$
+
+
 
 Notice how intuitive this gradient vector is:
 1. $z_1$ (for `"apple"`) gets a positive gradient $+0.6590$, telling gradient descent: *"Decrease this logit!"*

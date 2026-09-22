@@ -63,9 +63,13 @@
 !!! question "计算连接问题: 单一子空间的“表达力压缩瓶颈”"
     在第 08 章中，我们推导了标准的缩放点积注意力公式：
 
+
+
     $$
     \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
     $$
+
+
 
     对于任意一对词元 $i$ 和 $j$，内积项 $\mathbf{q}_i^\top \mathbf{k}_j$ 最终仅仅产生**一个单一标量**。
 
@@ -90,19 +94,27 @@
 
 ### 1. 多头注意力架构公式
 
-在《Attention Is All You Need》（Vaswani 等人，2017）的开创性设计中，\lt dfn id="def-mha-zh">多头注意力机制（Multi-Head Attention）</dfn>通过 $h$ 组互不相同的投影矩阵，将查询、键、值投影到低维子空间中分别计算注意力。
+在《Attention Is All You Need》（Vaswani 等人，2017）的开创性设计中，<dfn id="def-mha-zh">多头注意力机制（Multi-Head Attention）</dfn>通过 $h$ 组互不相同的投影矩阵，将查询、键、值投影到低维子空间中分别计算注意力。
 
 对于输入的词元表示序列 $\mathbf{Q}, \mathbf{K}, \mathbf{V} \in \mathbb{R}^{T \times d_{\text{model}}}$：
+
+
 
 $$
 \operatorname{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{Concat}(\operatorname{head}_1, \operatorname{head}_2, \dots, \operatorname{head}_h)\mathbf{W}^O
 $$
 
+
+
 其中，每个独立的注意力头 $\operatorname{head}_i$（$i \in \{1, 2, \dots, h\}$）独立计算：
+
+
 
 $$
 \operatorname{head}_i = \operatorname{Attention}\left(\mathbf{Q}\mathbf{W}_i^Q, \, \mathbf{K}\mathbf{W}_i^K, \, \mathbf{V}\mathbf{W}_i^V\right) = \operatorname{softmax}\left(\frac{(\mathbf{Q}\mathbf{W}_i^Q)(\mathbf{K}\mathbf{W}_i^K)^\top}{\sqrt{d_k}}\right)(\mathbf{V}\mathbf{W}_i^V)
 $$
+
+
 
 ---
 
@@ -110,25 +122,25 @@ $$
 
 多头注意力内部的每一个维度都经过了严格的代数设计：
 
-\lt details>
-\lt summary>\lt strong>数学符号全景清单与维度映射</strong></summary>
-\lt dl>
-  \lt dt>\lt strong>$d_{\text{model}}$（模型隐层主维度）</strong></dt>
-  \lt dd>残差连接主干上的向量宽度（例如标准 Transformer 中为 $512$，LLaMA-7B 中为 $4096$，LLaMA-70B 中为 $8192$）。</dd>
-  \lt dt>\lt strong>$h$（注意力头数量）</strong></dt>
-  \lt dd>并行子空间的数量（例如标准 Transformer 中 $h = 8$，LLaMA-7B 中 $h = 32$，LLaMA-70B 中 $h = 64$）。</dd>
-  \lt dt>\lt strong>$d_k$（键与查询的头子空间维度）</strong></dt>
-  \lt dd>每个头内部的向量维度，定义为：$d_k = \frac{d_{\text{model}}}{h}$（业界通常固定为 $64$ 或 $128$）。</dd>
-  \lt dt>\lt strong>$d_v$（值的头子空间维度）</strong></dt>
-  \lt dd>每个头内部的值向量维度，通常取 $d_v = d_k = \frac{d_{\text{model}}}{h}$。</dd>
-  \lt dt>\lt strong>$\mathbf{W}_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
-  \lt dd>第 $i$ 个注意力头的查询投影权重矩阵。</dd>
-  \lt dt>\lt strong>$\mathbf{W}_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
-  \lt dd>第 $i$ 个注意力头的键投影权重矩阵。</dd>
-  \lt dt>\lt strong>$\mathbf{W}_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$</strong></dt>
-  \lt dd>第 $i$ 个注意力头的值投影权重矩阵。</dd>
-  \lt dt>\lt strong>$\mathbf{W}^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$</strong></dt>
-  \lt dd>多头拼接后的最终输出线性投影矩阵，负责将所有头的视角融合还原回 $d_{\text{model}}$ 维度。</dd>
+<details>
+<summary><strong>数学符号全景清单与维度映射</strong></summary>
+<dl>
+  <dt><strong>$d_{\text{model}}$（模型隐层主维度）</strong></dt>
+  <dd>残差连接主干上的向量宽度（例如标准 Transformer 中为 $512$，LLaMA-7B 中为 $4096$，LLaMA-70B 中为 $8192$）。</dd>
+  <dt><strong>$h$（注意力头数量）</strong></dt>
+  <dd>并行子空间的数量（例如标准 Transformer 中 $h = 8$，LLaMA-7B 中 $h = 32$，LLaMA-70B 中 $h = 64$）。</dd>
+  <dt><strong>$d_k$（键与查询的头子空间维度）</strong></dt>
+  <dd>每个头内部的向量维度，定义为：$d_k = \frac{d_{\text{model}}}{h}$（业界通常固定为 $64$ 或 $128$）。</dd>
+  <dt><strong>$d_v$（值的头子空间维度）</strong></dt>
+  <dd>每个头内部的值向量维度，通常取 $d_v = d_k = \frac{d_{\text{model}}}{h}$。</dd>
+  <dt><strong>$\mathbf{W}_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
+  <dd>第 $i$ 个注意力头的查询投影权重矩阵。</dd>
+  <dt><strong>$\mathbf{W}_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$</strong></dt>
+  <dd>第 $i$ 个注意力头的键投影权重矩阵。</dd>
+  <dt><strong>$\mathbf{W}_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$</strong></dt>
+  <dd>第 $i$ 个注意力头的值投影权重矩阵。</dd>
+  <dt><strong>$\mathbf{W}^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$</strong></dt>
+  <dd>多头拼接后的最终输出线性投影矩阵，负责将所有头的视角融合还原回 $d_{\text{model}}$ 维度。</dd>
 </dl>
 </details>
 
@@ -147,26 +159,38 @@ $$
 
 现在计算 $h$ 个独立子空间头的总参数量，由于每个子空间维度缩小为 $d_k = \frac{d_{\text{model}}}{h}$：
 
+
+
 $$
 \sum_{i=1}^h \operatorname{size}(\mathbf{W}_i^Q) = h \times \left(d_{\text{model}} \times d_k\right) = h \times \left(d_{\text{model}} \times \frac{d_{\text{model}}}{h}\right) = d_{\text{model}}^2
 $$
+
+
 
 头数 $h$ 与子空间收缩比例 $\frac{1}{h}$ 在乘法中被精确抵消了！
 
 同样，对于输出投影矩阵 $\mathbf{W}^O$：
 
+
+
 $$
 \operatorname{size}(\mathbf{W}^O) = (h \cdot d_v) \times d_{\text{model}} = \left(h \cdot \frac{d_{\text{model}}}{h}\right) \times d_{\text{model}} = d_{\text{model}}^2
 $$
+
+
 
 #### B. 注意力核心计算量（FLOPs）守恒
 
 每个子头计算点积 $\mathbf{Q}_i \mathbf{K}_i^\top$ 需要 $T^2 d_k$ 次乘加运算。
 将所有 $h$ 个头累加：
 
+
+
 $$
 \text{总点积运算量} = h \times (T^2 d_k) = h \times \left(T^2 \frac{d_{\text{model}}}{h}\right) = T^2 d_{\text{model}}
 $$
+
+
 
 这意味着：**多头注意力在数学上是将一个高维空间无损正交投影到了 $h$ 个平行的低维子流形上，没有多花一分钱的算力，却获得了 $h$ 倍的观察视角！**
 
@@ -174,12 +198,12 @@ $$
 
 ### 4. 显存墙的破局演进：MHA、MQA 与 GQA
 
-在长文本大模型推理（Inference）过程中，系统必须将所有历史词元的 Key 和 Value 矩阵驻留在显存中（即 \lt abbr title="Key-Value Cache">KV Cache</abbr>）。随着上下文长度跨入 32k、128k 甚至 1M，存储 $h$ 组 KV 矩阵所带来的显存压力成为了大模型落地的最大瓶颈。
+在长文本大模型推理（Inference）过程中，系统必须将所有历史词元的 Key 和 Value 矩阵驻留在显存中（即 <abbr title="Key-Value Cache">KV Cache</abbr>）。随着上下文长度跨入 32k、128k 甚至 1M，存储 $h$ 组 KV 矩阵所带来的显存压力成为了大模型落地的最大瓶颈。
 
 为了击碎这一瓶颈，学术界和工业界经历了三次重大架构跃迁：
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 三种注意力架构的 KV 结构对比：
 
 1. 多头注意力 (Multi-Head Attention, MHA) ── Vaswani 等人 (2017)
@@ -197,7 +221,7 @@ $$
    Keys:    [   K_1     ] [   K_2     ] [   K_3     ] [   K_4     ]        ◄── 显存中保存 4 组 KV 头
    Values:  [   V_1     ] [   V_2     ] [   V_3     ] [   V_4     ]          （精度与吞吐的最佳黄金分割点）
 </pre>
-\lt figcaption>\lt strong>图 11.2：</strong> MHA、MQA 与现代工业标配 GQA 的结构对比示意图。</figcaption>
+<figcaption><strong>图 11.2：</strong> MHA、MQA 与现代工业标配 GQA 的结构对比示意图。</figcaption>
 </figure>
 
 1. **多查询注意力（Multi-Query Attention, MQA, Shazeer 2019）**：
@@ -212,8 +236,8 @@ $$
 
 ## 第 4 步：历史源流与思考演进 {: #step-4 }
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 多视角注意力的演进脉络：
 
 1990s-2015: 集成学习 (Ensemble) ──► 独立训练 N 个模型并对输出取平均。
@@ -237,7 +261,7 @@ $$
                                     兼顾表征精度与长上下文极速推理；
                                     成为 LLaMA-2/3、Mistral、DeepSeek 的工业标配。
 </pre>
-\lt figcaption>\lt strong>图 11.3：</strong> 从传统模型集成到现代分组查询注意力机制的演进历程。</figcaption>
+<figcaption><strong>图 11.3：</strong> 从传统模型集成到现代分组查询注意力机制的演进历程。</figcaption>
 </figure>
 
 ### 1. 历史触发点：单头注意力的“平均化灾难”
@@ -252,46 +276,46 @@ Vaswani 等人敏锐地发现：**不需要增加整体维度，只需把空间�
 
 ### 2. 现代生产力架构横向评测
 
-\lt fieldset>
-\lt legend>\lt strong>架构取舍权衡对比：MHA vs. MQA vs. GQA</strong></legend>
+<fieldset>
+<legend><strong>架构取舍权衡对比：MHA vs. MQA vs. GQA</strong></legend>
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 11.1：</strong> 注意力头架构核心特性横向对比。</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0eee6">
-      \lt th align="left">架构方案</th>
-      \lt th align="center">Query 头数</th>
-      \lt th align="center">KV 头数</th>
-      \lt th align="center">KV Cache 显存比例</th>
-      \lt th align="left">工业权衡分析与核心结论</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 11.1：</strong> 注意力头架构核心特性横向对比。</caption>
+  <thead>
+    <tr bgcolor="#f0eee6">
+      <th align="left">架构方案</th>
+      <th align="center">Query 头数</th>
+      <th align="center">KV 头数</th>
+      <th align="center">KV Cache 显存比例</th>
+      <th align="left">工业权衡分析与核心结论</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>\lt strong>多头注意力 (MHA)</strong></td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$1.0\times$ (基准线)</td>
-      \lt td>
-        \lt del>显存负担沉重！</del> 训练阶段特征表达能力极佳，但推理长文本时 KV 缓存轻松吞噬数十 GB 显存。
+  <tbody>
+    <tr>
+      <td><strong>多头注意力 (MHA)</strong></td>
+      <td align="center">$h$</td>
+      <td align="center">$h$</td>
+      <td align="center">$1.0\times$ (基准线)</td>
+      <td>
+        <del>显存负担沉重！</del> 训练阶段特征表达能力极佳，但推理长文本时 KV 缓存轻松吞噬数十 GB 显存。
       </td>
     </tr>
-    \lt tr>
-      \lt td>\lt strong>多查询注意力 (MQA)</strong></td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$1$</td>
-      \lt td align="center">$\frac{1}{h}\times$ (最高缩减 32 倍)</td>
-      \lt td>
-        \lt del>微弱精度回落。</del> 推理速度极快，并发 Batch 吞吐惊人，但在高难度多步复杂推理任务上偶有性能轻微下降。
+    <tr>
+      <td><strong>多查询注意力 (MQA)</strong></td>
+      <td align="center">$h$</td>
+      <td align="center">$1$</td>
+      <td align="center">$\frac{1}{h}\times$ (最高缩减 32 倍)</td>
+      <td>
+        <del>微弱精度回落。</del> 推理速度极快，并发 Batch 吞吐惊人，但在高难度多步复杂推理任务上偶有性能轻微下降。
       </td>
     </tr>
-    \lt tr bgcolor="#fdfdf0">
-      \lt td>\lt strong>分组查询注意力 (GQA)</strong></td>
-      \lt td align="center">$h$</td>
-      \lt td align="center">$g$ ($1 \lt g \lt h$)</td>
-      \lt td align="center">$\frac{g}{h}\times$ (通常缩减 8 倍)</td>
-      \lt td>
-        \lt ins>\lt strong>现代大模型无可争议的行业标准！</strong></ins> 几乎无损复现 MHA 的全部学术榜单精度，同时斩获接近 MQA 的极速推理体验与显存削减。
+    <tr bgcolor="#fdfdf0">
+      <td><strong>分组查询注意力 (GQA)</strong></td>
+      <td align="center">$h$</td>
+      <td align="center">$g$ ($1 \lt g \lt h$)</td>
+      <td align="center">$\frac{g}{h}\times$ (通常缩减 8 倍)</td>
+      <td>
+        <ins><strong>现代大模型无可争议的行业标准！</strong></ins> 几乎无损复现 MHA 的全部学术榜单精度，同时斩获接近 MQA 的极速推理体验与显存削减。
       </td>
     </tr>
   </tbody>
@@ -306,16 +330,22 @@ Vaswani 等人敏锐地发现：**不需要增加整体维度，只需把空间�
 
 ### 1. 参数设定
 
-设句子长度 $T = 2$（包含词元：\lt kbd>"The"</kbd> 和 \lt kbd>"cat"</kbd>）。
+设句子长度 $T = 2$（包含词元：<kbd>"The"</kbd> 和 <kbd>"cat"</kbd>）。
 设模型隐层总维度 $d_{\text{model}} = 4$。
 设注意力头数 $h = 2$。
 则每个子头的空间维度为：
+
+
 
 $$
 d_k = d_v = \frac{d_{\text{model}}}{h} = \frac{4}{2} = 2
 $$
 
+
+
 假设经过词嵌入后，输入的词元序列特征矩阵为：
+
+
 
 $$
 \mathbf{X} = \begin{bmatrix}
@@ -327,6 +357,8 @@ $$
 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
 
+
+
 为让推导最清晰直观，我们设 $\mathbf{Q} = \mathbf{K} = \mathbf{V} = \mathbf{X}$。
 
 ---
@@ -335,13 +367,19 @@ $$
 
 设头 1 的投影矩阵专门提取前两个维度：
 
+
+
 $$
 \mathbf{W}_1^Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix}, \quad
 \mathbf{W}_1^K = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix}, \quad
 \mathbf{W}_1^V = \begin{bmatrix} 1 & 0 \\ 0 & 2 \\ 0 & 0 \\ 0 & 0 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
 $$
 
+
+
 执行投影相乘，得到头 1 的子空间张量：
+
+
 
 $$
 \mathbf{Q}_1 = \mathbf{X}\mathbf{W}_1^Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
@@ -349,32 +387,50 @@ $$
 \mathbf{V}_1 = \mathbf{X}\mathbf{W}_1^V = \begin{bmatrix} 1 & 0 \\ 0 & 2 \end{bmatrix}
 $$
 
+
+
 计算头 1 的未缩放内积点阵（缩放系数 $\sqrt{d_k} = \sqrt{2} \approx 1.414$）：
+
+
 
 $$
 \mathbf{Q}_1 \mathbf{K}_1^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 1.0 & 0.0 \\ 0.0 & 1.0 \end{bmatrix}
 $$
 
+
+
 除以 $\sqrt{2}$ 后的缩放得分 $\mathbf{S}_1$：
+
+
 
 $$
 \mathbf{S}_1 = \begin{bmatrix} \frac{1}{\sqrt{2}} & 0 \\ 0 & \frac{1}{\sqrt{2}} \end{bmatrix} \approx \begin{bmatrix} 0.7071 & 0.0000 \\ 0.0000 & 0.7071 \end{bmatrix}
 $$
+
+
 
 逐行应用 Softmax 归一化：
 - 第 1 行：$e^{0.7071} \approx 2.0281$，$e^{0} = 1.0000$，分母和为 $3.0281$。
   $A_{11} = \frac{2.0281}{3.0281} \approx 0.67$，$A_{12} = \frac{1.0}{3.0281} \approx 0.33$。
 - 第 2 行根据对称性：$A_{21} \approx 0.33$，$A_{22} \approx 0.67$。
 
+
+
 $$
 \mathbf{A}_1 \approx \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
 $$
 
+
+
 与值矩阵 $\mathbf{V}_1$ 相乘，得出头 1 的输出结果：
+
+
 
 $$
 \operatorname{head}_1 = \mathbf{A}_1 \mathbf{V}_1 = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 2 \end{bmatrix} = \begin{bmatrix} 0.67 & 0.66 \\ 0.33 & 1.34 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
 $$
+
+
 
 ---
 
@@ -382,13 +438,19 @@ $$
 
 现在观察头 2，其投影矩阵专门提取后两维并进行交叉重组：
 
+
+
 $$
 \mathbf{W}_2^Q = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
 \mathbf{W}_2^K = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}, \quad
 \mathbf{W}_2^V = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 3 & 0 \\ 0 & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
 $$
 
+
+
 执行线性变换：
+
+
 
 $$
 \mathbf{Q}_2 = \mathbf{X}\mathbf{W}_2^Q = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad
@@ -396,31 +458,49 @@ $$
 \mathbf{V}_2 = \mathbf{X}\mathbf{W}_2^V = \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix}
 $$
 
+
+
 计算点积矩阵：
+
+
 
 $$
 \mathbf{Q}_2 \mathbf{K}_2^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0.0 & 1.0 \\ 1.0 & 0.0 \end{bmatrix}
 $$
 
+
+
 除以 $\sqrt{2}$ 后的得分矩阵 $\mathbf{S}_2$：
+
+
 
 $$
 \mathbf{S}_2 \approx \begin{bmatrix} 0.0000 & 0.7071 \\ 0.7071 & 0.0000 \end{bmatrix}
 $$
 
+
+
 Softmax 权重矩阵 $\mathbf{A}_2$：
+
+
 
 $$
 \mathbf{A}_2 \approx \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix}
 $$
 
-\lt mark>看，惊人的差异出现了：头 1 主要聚焦自身（主对角线 0.67），而头 2 在另一个子空间中精准地捕获了对侧词元（反对角线 0.67）！</mark>
+
+
+<mark>看，惊人的差异出现了：头 1 主要聚焦自身（主对角线 0.67），而头 2 在另一个子空间中精准地捕获了对侧词元（反对角线 0.67）！</mark>
 
 计算头 2 的加权输出：
+
+
 
 $$
 \operatorname{head}_2 = \mathbf{A}_2 \mathbf{V}_2 = \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix} \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.99 & 0.67 \\ 2.01 & 0.33 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
 $$
+
+
 
 ---
 
@@ -428,12 +508,16 @@ $$
 
 将两个 2 维子头的输出在特征维度上水平拼合：
 
+
+
 $$
 \mathbf{H}_{\text{cat}} = \operatorname{Concat}(\operatorname{head}_1, \operatorname{head}_2) = \begin{bmatrix}
 0.67 & 0.66 & 0.99 & 0.67 \\
 0.33 & 1.34 & 2.01 & 0.33
 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
+
+
 
 现在，每个词元对应的行向量中，前两列承载了头 1 的自我专注见解，后两列承载了头 2 的跨词交互洞察！
 
@@ -443,12 +527,16 @@ $$
 
 最后，将拼合矩阵乘以上层输出投影矩阵 $\mathbf{W}^O \in \mathbb{R}^{4 \times 4}$。为简化计算，取 $\mathbf{W}^O = \mathbf{I}_4$（单位矩阵）：
 
+
+
 $$
 \operatorname{MultiHead}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \mathbf{H}_{\text{cat}} \mathbf{W}^O = \begin{bmatrix}
 0.67 & 0.66 & 0.99 & 0.67 \\
 0.33 & 1.34 & 2.01 & 0.33
 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
+
+
 
 两个词元在此刻同时吸收了多个正交子空间的特征信息，而且整个过程在硬件上没有产生任何额外的参数暴涨！
 

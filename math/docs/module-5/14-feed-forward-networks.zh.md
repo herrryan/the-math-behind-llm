@@ -48,9 +48,13 @@
 !!! question "计算连接问题: 为什么光靠注意力机制远远不够？"
     自注意力机制在本质上是一种**线性加权平均混合算子**：
 
+
+
     $$
     \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
     $$
+
+
 
     尽管 Softmax 归一化权重本身具有非线性，但每个词元最终得到的输出向量，严格只是现有值向量 $\mathbf{v}_1, \dots, \mathbf{v}_n$ 的一种**凸组合（加权平均）**。
 
@@ -68,9 +72,13 @@
 
 在原始 Transformer 架构中，前馈网络以完全相同、逐词元独立的方式应用到每一个位置的词元向量 $\mathbf{x} \in \mathbb{R}^{d_{\text{model}}}$ 上：
 
+
+
 $$
 \operatorname{FFN}(\mathbf{x}) = \sigma\left(\mathbf{x}\mathbf{W}_1 + \mathbf{b}_1\right)\mathbf{W}_2 + \mathbf{b}_2
 $$
+
+
 
 其中：
 - $\mathbf{x} \in \mathbb{R}^{1 \times d_{\text{model}}}$ 是单个词元的输入行向量。
@@ -92,23 +100,31 @@ SwiGLU 不再使用单一一套升维矩阵 $\mathbf{W}_1$，而是并行设计�
 
 两个分支通过逐元素乘法（哈达玛积 $\odot$）结合后，再经由 $\mathbf{W}_{\text{down}}$ 压缩回原维度：
 
+
+
 $$
 \operatorname{SwiGLU}(\mathbf{x}) = \left(\operatorname{SiLU}\left(\mathbf{x}\mathbf{W}_{\text{gate}}\right) \odot \left(\mathbf{x}\mathbf{W}_{\text{up}}\right)\right) \mathbf{W}_{\text{down}}
 $$
+
+
 
 其中：
 - $\operatorname{SiLU}(z) = z \cdot \operatorname{sigmoid}(z) = \frac{z}{1 + e^{-z}}$。
 - $\odot$ 表示逐元素对应相乘。
 - 为了让参数总量与传统 $4d$ 的 FFN 完全对齐（传统结构参数量为 $2 \times d \times 4d = 8d^2$），SwiGLU 将中间隐藏层维度设定为大约：
 
+
+
 $$
 d_{\text{ff}} \approx \frac{8}{3} d_{\text{model}}
 $$
 
+
+
 由于 $3 \times d \times \left(\frac{8}{3}d\right) = 8d^2$，这三块矩阵（$\mathbf{W}_{\text{gate}}, \mathbf{W}_{\text{up}}, \mathbf{W}_{\text{down}}$）在丝毫不增加参数预算的前提下，极大增强了模型对事实记忆的动态过滤与推理表现力！
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 现代 SwiGLU 门控前馈网络计算数据流：
 
                      输入词元向量 x  [ 1 x d ]
@@ -132,7 +148,7 @@ $$
                                 ▼
                      输出向量 y  [ 1 x d ]
 </pre>
-\lt figcaption>\lt strong>图 14.2：</strong> SwiGLU 将升维空间解耦为连续门控分支与数值升维分支，通过逐元素相乘实现对高维特征的精细调节。</figcaption>
+<figcaption><strong>图 14.2：</strong> SwiGLU 将升维空间解耦为连续门控分支与数值升维分支，通过逐元素相乘实现对高维特征的精细调节。</figcaption>
 </figure>
 
 ---
@@ -143,8 +159,8 @@ $$
 
 2021 年，特拉维夫大学的 Mor Geva 等人在发表的开创性论文《Transformer Feed-Forward Layers Are Key-Value Memories》中，揭开了 FFN 惊人的数学本质：
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 FFN 即联想式键值记忆存储库 (Key-Value Memory Bank)：
 
 输入向量 x
@@ -162,14 +178,18 @@ FFN 即联想式键值记忆存储库 (Key-Value Memory Bank)：
                          就会被直接注入叠加到词元的输出中：
                          y = sum_i  a_i * v_i
 </pre>
-\lt figcaption>\lt strong>图 14.3：</strong> 第一层矩阵充当成千上万个记忆键（Key），用于探测词元特征；第二层矩阵充当记忆值（Value），用于注入实体事实。</figcaption>
+<figcaption><strong>图 14.3：</strong> 第一层矩阵充当成千上万个记忆键（Key），用于探测词元特征；第二层矩阵充当记忆值（Value），用于注入实体事实。</figcaption>
 </figure>
 
 在数学表达上，FFN 的输出本质上就是成千上万个记忆向量的线性加权叠加：
 
+
+
 $$
 \operatorname{FFN}(\mathbf{x}) = \sum_{m=1}^{d_{\text{ff}}} \underbrace{\sigma\left(\mathbf{x}\mathbf{k}_m\right)}_{\text{模式匹配得分 } a_m} \cdot \underbrace{\mathbf{v}_m}_{\text{记忆值向量}}
 $$
+
+
 
 1. $\mathbf{k}_m$（$\mathbf{W}_1$ 的第 $m$ 列）：百科全书中的**检索键（Key）**，负责感知某种特定的上下文模式。
 2. $a_m \in [0, \infty)$：该记忆条目的**触发激活强度**。
@@ -191,11 +211,17 @@ $$
 
 假设进入前馈网络的词元行向量为：
 
+
+
 $$
 \mathbf{x} = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix} \in \mathbb{R}^{1 \times 2}
 $$
 
+
+
 设定第一层升维矩阵（记忆检索键 $\mathbf{W}_1 \in \mathbb{R}^{2 \times 4}$）：
+
+
 
 $$
 \mathbf{W}_1 = \begin{bmatrix}
@@ -204,26 +230,32 @@ $$
 \end{bmatrix}
 $$
 
+
+
 设定第二层降维矩阵（记忆事实值 $\mathbf{W}_2 \in \mathbb{R}^{4 \times 2}$）：
+
+
 
 $$
 \mathbf{W}_2 = \begin{bmatrix}
- 1.0 &  0.0 \\
- 0.0 &  1.0 \\
- 2.0 & -1.0 \\
+1.0 &  0.0 \\
+0.0 &  1.0 \\
+2.0 & -1.0 \\
 -1.0 &  1.0
 \end{bmatrix}
 $$
+
+
 
 ---
 
 ### 2. 逐步前向手算演示
 
-\lt fieldset>
-\lt legend>\lt strong>计算流程清单</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 A：</strong> 向量与键匹配投影 $\mathbf{z} = \mathbf{x}\mathbf{W}_1$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 B：</strong> 执行非线性激活门控 $\mathbf{a} = \operatorname{ReLU}(\mathbf{z})$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 C：</strong> 事实向量加权累加降维 $\mathbf{y} = \mathbf{a}\mathbf{W}_2$。</p>
+<fieldset>
+<legend><strong>计算流程清单</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 A：</strong> 向量与键匹配投影 $\mathbf{z} = \mathbf{x}\mathbf{W}_1$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 B：</strong> 执行非线性激活门控 $\mathbf{a} = \operatorname{ReLU}(\mathbf{z})$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 C：</strong> 事实向量加权累加降维 $\mathbf{y} = \mathbf{a}\mathbf{W}_2$。</p>
 </fieldset>
 
 #### 步骤 A：矩阵乘法 $\mathbf{z} = \mathbf{x}\mathbf{W}_1$
@@ -234,9 +266,13 @@ $$
 - $z_3 = (1.0 \times 0.0) + (2.0 \times -2.0) = 0.0 - 4.0 = -4.0$
 - $z_4 = (1.0 \times 1.0) + (2.0 \times -1.0) = 1.0 - 2.0 = -1.0$
 
+
+
 $$
 \mathbf{z} = \begin{bmatrix} 4.0 & 5.0 & -4.0 & -1.0 \end{bmatrix}
 $$
+
+
 
 #### 步骤 B：非线性激活筛选 $\mathbf{a} = \operatorname{ReLU}(\mathbf{z})$
 逐分量应用 $\max(0, z)$：
@@ -245,30 +281,50 @@ $$
 - $a_3 = \max(0, -4.0) = 0.0$（第 3 条记忆未命中，被完全屏蔽！）
 - $a_4 = \max(0, -1.0) = 0.0$（第 4 条记忆未命中，被完全屏蔽！）
 
+
+
 $$
 \mathbf{a} = \begin{bmatrix} 4.0 & 5.0 & 0.0 & 0.0 \end{bmatrix}
 $$
 
-\lt mark>看：前馈网络自动触发了稀疏性！第 3 和第 4 号知识点由于不契合当前上下文，被果断静音为 0！</mark>
+
+
+<mark>看：前馈网络自动触发了稀疏性！第 3 和第 4 号知识点由于不契合当前上下文，被果断静音为 0！</mark>
 
 #### 步骤 C：事实值加权组合 $\mathbf{y} = \mathbf{a}\mathbf{W}_2$
 将激活强度乘上对应的知识行向量：
+
+
 
 $$
 \mathbf{y} = 4.0 \times \begin{bmatrix} 1.0 & 0.0 \end{bmatrix} + 5.0 \times \begin{bmatrix} 0.0 & 1.0 \end{bmatrix} + 0.0 \times \mathbf{v}_3 + 0.0 \times \mathbf{v}_4
 $$
 
+
+
+
+
 $$
 y_1 = (4.0 \times 1.0) + (5.0 \times 0.0) + 0.0 + 0.0 = 4.0
 $$
+
+
+
+
 
 $$
 y_2 = (4.0 \times 0.0) + (5.0 \times 1.0) + 0.0 + 0.0 = 5.0
 $$
 
+
+
+
+
 $$
 \mathbf{y} = \begin{bmatrix} 4.0 & 5.0 \end{bmatrix} \in \mathbb{R}^{1 \times 2}
 $$
+
+
 
 这个词元最初带着 $[1.0, 2.0]$ 进入沉思工坊，在独立自习桌上翻阅了大百科全书后，带回了满载新常识的 $[4.0, 5.0]$ 特征增量，准备通过残差连接叠加回主干通道！
 

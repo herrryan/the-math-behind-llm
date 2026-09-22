@@ -75,16 +75,17 @@ progress {
   vertical-align: middle;
 }
 
-/* MathJax Spacing & Overflow */
+/* KaTeX & Arithmatex Spacing & Overflow */
 .arithmatex {
   overflow-x: auto;
   overflow-y: hidden;
 }
 
-mjx-container[jax="CHTML"][display="true"] {
-  margin: 0.85rem 0 !important;
+.katex-display {
   overflow-x: auto;
   overflow-y: hidden;
+  margin: 0.85rem 0 !important;
+  padding: 4px 0;
 }
 
 /* Definition Terms */

@@ -43,9 +43,13 @@
 !!! question "计算连接问题: 从无边界的点积得分迈向合法的概率分布"
     在第 06 章中，歧义词 <kbd>"bank"</kbd>（河岸/银行）射出了自己的查询探针 $\mathbf{q}_3$，与句子中的三个词 <kbd>"The"</kbd>、<kbd>"river"</kbd>、<kbd>"bank"</kbd> 的招牌向量 $\mathbf{k}_j$ 分别进行点积碰撞，得到了原始匹配得分：
 
+
+
     $$
     \mathbf{z} = [4.0, 7.0, 6.0]
     $$
+
+
 
     但在线性代数的世界中，这些未加约束的原始点积（在深度学习中统称为 **Logits**）存在三个数学隐患：
 
@@ -63,53 +67,57 @@
 
 ### 1. Softmax 函数的标准数学定义
 
-设 $\mathbf{z} = [z_1, z_2, \dots, z_N]^\top \in \mathbb{R}^N$ 为一个包含 $N$ 个候选打分的未归一化实数向量（即 \lt dfn id="def-logit">Logits</dfn>）。
+设 $\mathbf{z} = [z_1, z_2, \dots, z_N]^\top \in \mathbb{R}^N$ 为一个包含 $N$ 个候选打分的未归一化实数向量（即 <dfn id="def-logit">Logits</dfn>）。
 
-\lt dfn id="def-softmax">Softmax 函数</dfn> 将该向量映射为一个概率分布向量 $\mathbf{s} = \operatorname{softmax}(\mathbf{z}) \in \mathbb{R}^N$：
+<dfn id="def-softmax">Softmax 函数</dfn> 将该向量映射为一个概率分布向量 $\mathbf{s} = \operatorname{softmax}(\mathbf{z}) \in \mathbb{R}^N$：
+
+
 
 $$
 \operatorname{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
 $$
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 7.1：</strong> Softmax 函数的核心数学符号与物理内涵清单</caption>
-  \lt thead>
-    \lt tr bgcolor="#eae9e1">
-      \lt th scope="col" align="left" width="22%">数学符号</th>
-      \lt th scope="col" align="left" width="22%">类型与定义域</th>
-      \lt th scope="col" align="left" width="56%">严格数学含义与大模型中的物理作用</th>
+
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 7.1：</strong> Softmax 函数的核心数学符号与物理内涵清单</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">数学符号</th>
+      <th scope="col" align="left" width="22%">类型与定义域</th>
+      <th scope="col" align="left" width="56%">严格数学含义与大模型中的物理作用</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt th scope="row" align="left">$\mathbf{z}$</th>
-      \lt td align="left">向量 $\in \mathbb{R}^N$</td>
-      \lt td>输入的未归一化得分向量（Logits）。在注意力机制中，$z_j = \mathbf{q}_i^\top \mathbf{k}_j$。</td>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">$\mathbf{z}$</th>
+      <td align="left">向量 $\in \mathbb{R}^N$</td>
+      <td>输入的未归一化得分向量（Logits）。在注意力机制中，$z_j = \mathbf{q}_i^\top \mathbf{k}_j$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$z_i$</th>
-      \lt td align="left">标量 $\in (-\infty, +\infty)$</td>
-      \lt td>第 $i$ 个候选对象的原始得分。可正、可负、可为零。</td>
+    <tr>
+      <th scope="row" align="left">$z_i$</th>
+      <td align="left">标量 $\in (-\infty, +\infty)$</td>
+      <td>第 $i$ 个候选对象的原始得分。可正、可负、可为零。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$e$</th>
-      \lt td align="left">数学常数 $\approx 2.71828$</td>
-      \lt td>自然底数（欧拉常数），自然指数函数的底。</td>
+    <tr>
+      <th scope="row" align="left">$e$</th>
+      <td align="left">数学常数 $\approx 2.71828$</td>
+      <td>自然底数（欧拉常数），自然指数函数的底。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$e^{z_i}$</th>
-      \lt td align="left">标量 $\in (0, +\infty)$</td>
-      \lt td>指数化后的得分。由于指数函数的特性，对任意实数 $z_i$，恒有 $e^{z_i} > 0$。</td>
+    <tr>
+      <th scope="row" align="left">$e^{z_i}$</th>
+      <td align="left">标量 $\in (0, +\infty)$</td>
+      <td>指数化后的得分。由于指数函数的特性，对任意实数 $z_i$，恒有 $e^{z_i} > 0$。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\sum_{j=1}^N e^{z_j}$</th>
-      \lt td align="left">标量 $\in (0, +\infty)$</td>
-      \lt td>\lt strong>归一化分母</strong>。在统计物理学中被称为\lt em>配分函数（Partition Function $Z$）</em>。</td>
+    <tr>
+      <th scope="row" align="left">$\sum_{j=1}^N e^{z_j}$</th>
+      <td align="left">标量 $\in (0, +\infty)$</td>
+      <td><strong>归一化分母</strong>。在统计物理学中被称为<em>配分函数（Partition Function $Z$）</em>。</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">$\operatorname{softmax}(\mathbf{z})_i$</th>
-      \lt td align="left">标量 $\in (0, 1)$</td>
-      \lt td>分配给第 $i$ 个选项的归一化概率，严格满足 $\sum_{i=1}^N \operatorname{softmax}(\mathbf{z})_i = 1.0$。</td>
+    <tr>
+      <th scope="row" align="left">$\operatorname{softmax}(\mathbf{z})_i$</th>
+      <td align="left">标量 $\in (0, 1)$</td>
+      <td>分配给第 $i$ 个选项的归一化概率，严格满足 $\sum_{i=1}^N \operatorname{softmax}(\mathbf{z})_i = 1.0$。</td>
     </tr>
   </tbody>
 </table>
@@ -128,105 +136,137 @@ $$
 
 最朴素的直觉是将每个得分除以所有得分之和：
 
+
+
 $$
 p_i = \frac{z_i}{\sum_{j=1}^N z_j}
 $$
 
+
+
 实践中的致命缺陷：
 - **致命缺陷 1（除零崩溃）**：若原始得分加和恰好为零，分母直接消失。例如当得分向量为 $\mathbf{z} = [2.0, -3.0, 1.0]^\top$ 时：
+
+
   $$
   \sum_{j=1}^3 z_j = 2.0 + (-3.0) + 1.0 = 0
   $$
+
+
   计算 $p_i = \frac{z_i}{0}$ 会直接触发浮点除以零错误（`ZeroDivisionError` / `inf`），导致训练程序瞬间崩盘。
 - **致命缺陷 2（负数概率）**：当存在负数得分且分母为正时，会产生负概率。例如当 $\mathbf{z} = [2.0, -1.0, 3.0]^\top$ 时，总和为 $\sum z_j = 4.0$，计算得：
+
+
   $$
   p_2 = \frac{-1.0}{4.0} = -0.25 = -25\%
   $$
+
+
   负概率在现实世界中没有任何物理意义，彻底违背概率公理。
 
 #### 尝试 2：绝对值归一化（Absolute Value Normalization）
 
 为了消除负数，很自然的尝试是先取绝对值 $|z_i|$ 再进行加和：
 
+
+
 $$
 p_i = \frac{|z_i|}{\sum_{j=1}^N |z_j|}
 $$
 
+
+
 实践中的致命缺陷：
 - **致命缺陷（破坏排序与对称性混淆）**：绝对值彻底摧毁了得分的方向性意义。假设候选词 1 的得分为 $z_1 = -10.0$（极度不匹配），而候选词 2 的得分为 $z_2 = +10.0$（天作之合）。绝对值操作将两者都映射为 $10.0$：
+
+
   $$
   |-10.0| = |+10.0| = 10.0 \implies p_1 = p_2
   $$
+
+
   模型将给表现最差的词与表现最好的词分配完全相同的概率，完全颠倒非黑即白！
 
 #### 尝试 3：线性整流截断归一化（ReLU Normalization）
 
 为了消除负数且不翻转正负，尝试使用 ReLU 函数 $\max(0, z_i)$ 将负数统一截断为 0：
 
+
+
 $$
 p_i = \frac{\max(0, z_i)}{\sum_{j=1}^N \max(0, z_j)}
 $$
 
+
+
 实践中的致命缺陷：
 - **致命缺陷 1（全负数崩溃）**：如果某一层的输出全为负数（例如 $\mathbf{z} = [-2.0, -5.0, -1.0]^\top$），则对所有 $j$ 均有 $\max(0, z_j) = 0$，分母为 0 导致 $\frac{0}{0} = \text{NaN}$。
 - **致命缺陷 2（梯度死绝 / 丧失学习信号）**：对于所有被截断为 0 的负得分候选者，其局部导数严格为 0：
+
+
   $$
   \frac{\partial \max(0, z_i)}{\partial z_i} = 0
   $$
+
+
   在反向传播时，没有任何梯度能回传给这些被拒绝的词元。神经网络无法得知自己“错得有多离谱”，彻底丧失改进参数的学习通道。
 
 #### 终极解法：自然指数函数 $e^z$
 
 自然指数函数 $f(z) = e^z$ 完美解决了上述所有难题：
 
+
+
 $$
 p_i = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
 $$
+
+
 
 - **严格全域非负**：对实数轴上的任意数值 $z \in (-\infty, +\infty)$，恒有 $e^z > 0$。分母 $\sum e^{z_j} > 0$ 恒大于零，彻底杜绝除零崩溃，且保证每个概率 $p_i \in (0, 1)$。
 - **严格单调递增（保持排序）**：由于 $\frac{d}{dz} e^z = e^z > 0$，函数严格单调上升（$z_a > z_b \iff e^{z_a} > e^{z_b} \iff p_a > p_b$）。高分候选者永远获得更高的概率，排序秩序秋毫无犯。
 - **处处平滑可微**：指数函数为无穷阶光滑函数（$C^\infty$），导数处处不为零，为梯度反向传播提供无阻碍的绿色通道。
 - **赢家通吃效应（Softmax 放大）**：指数曲线的非线性陡峭特性，能平滑地放大微小得分差距，使最有信心的词元脱颖而出，同时温和保留微小的长尾探索概率。
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 7.2：</strong> 各类归一化备选方案数学特性横向对比</caption>
-  \lt thead>
-    \lt tr bgcolor="#eae9e1">
-      \lt th scope="col" align="left" width="22%">方案名称</th>
-      \lt th scope="col" align="left" width="24%">归一化公式</th>
-      \lt th scope="col" align="center" width="18%">全域非负？</th>
-      \lt th scope="col" align="center" width="18%">保持排序？</th>
-      \lt th scope="col" align="left" width="18%">反向传播梯度特性</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 7.2：</strong> 各类归一化备选方案数学特性横向对比</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">方案名称</th>
+      <th scope="col" align="left" width="24%">归一化公式</th>
+      <th scope="col" align="center" width="18%">全域非负？</th>
+      <th scope="col" align="center" width="18%">保持排序？</th>
+      <th scope="col" align="left" width="18%">反向传播梯度特性</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt th scope="row" align="left">线性归一化</th>
-      \lt td align="left">$p_i = \frac{z_i}{\sum z_j}$</td>
-      \lt td align="center">\lt del>否（可能产生负数）</del></td>
-      \lt td align="center">是</td>
-      \lt td align="left">若 $\sum z_j = 0$ 则未定义</td>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">线性归一化</th>
+      <td align="left">$p_i = \frac{z_i}{\sum z_j}$</td>
+      <td align="center"><del>否（可能产生负数）</del></td>
+      <td align="center">是</td>
+      <td align="left">若 $\sum z_j = 0$ 则未定义</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">绝对值归一化</th>
-      \lt td align="left">$p_i = \frac{|z_i|}{\sum |z_j|}$</td>
-      \lt td align="center">是</td>
-      \lt td align="center">\lt del>否（负数对称翻转）</del></td>
-      \lt td align="left">在 $z=0$ 处不可微</td>
+    <tr>
+      <th scope="row" align="left">绝对值归一化</th>
+      <td align="left">$p_i = \frac{|z_i|}{\sum |z_j|}$</td>
+      <td align="center">是</td>
+      <td align="center"><del>否（负数对称翻转）</del></td>
+      <td align="left">在 $z=0$ 处不可微</td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">ReLU 截断归一化</th>
-      \lt td align="left">$p_i = \frac{\max(0, z_i)}{\sum \max(0, z_j)}$</td>
-      \lt td align="center">是</td>
-      \lt td align="center">部分保持</td>
-      \lt td align="left">负数区域梯度全死（为 0）</td>
+    <tr>
+      <th scope="row" align="left">ReLU 截断归一化</th>
+      <td align="left">$p_i = \frac{\max(0, z_i)}{\sum \max(0, z_j)}$</td>
+      <td align="center">是</td>
+      <td align="center">部分保持</td>
+      <td align="left">负数区域梯度全死（为 0）</td>
     </tr>
-    \lt tr bgcolor="#f0f7f0">
-      \lt th scope="row" align="left">\lt strong>Softmax（$e^z$）</strong></th>
-      \lt td align="left">\lt strong>$p_i = \frac{e^{z_i}}{\sum e^{z_j}}$</strong></td>
-      \lt td align="center">\lt strong>是（严格 &gt; 0）</strong></td>
-      \lt td align="center">\lt strong>是（严格单调递增）</strong></td>
-      \lt td align="left">\lt strong>处处光滑连续且非零</strong></td>
+    <tr bgcolor="#f0f7f0">
+      <th scope="row" align="left"><strong>Softmax（$e^z$）</strong></th>
+      <td align="left"><strong>$p_i = \frac{e^{z_i}}{\sum e^{z_j}}$</strong></td>
+      <td align="center"><strong>是（严格 &gt; 0）</strong></td>
+      <td align="center"><strong>是（严格单调递增）</strong></td>
+      <td align="left"><strong>处处光滑连续且非零</strong></td>
     </tr>
   </tbody>
 </table>
@@ -235,7 +275,7 @@ $$
 
 ### 3. 工程防溢出防线：平移不变性（Shift Invariance）
 
-在现代计算机体系中，32 位单精度浮点数（\lt abbr title="IEEE 754 32-bit Single-Precision Float">FP32</abbr>）能表示的最大数值约为 $e^{88.7} \approx 3.4 \times 10^{38}$。如果大模型的未训练权重导致某一层输出了较大的点积（例如 $z_i = 1000$），计算机在计算 $e^{1000}$ 时会瞬间触发浮点上溢，输出无穷大 `inf`。而计算 `inf / inf` 会直接产生 `NaN`（Not a Number），导致整场训练海啸式崩溃！
+在现代计算机体系中，32 位单精度浮点数（<abbr title="IEEE 754 32-bit Single-Precision Float">FP32</abbr>）能表示的最大数值约为 $e^{88.7} \approx 3.4 \times 10^{38}$。如果大模型的未训练权重导致某一层输出了较大的点积（例如 $z_i = 1000$），计算机在计算 $e^{1000}$ 时会瞬间触发浮点上溢，输出无穷大 `inf`。而计算 `inf / inf` 会直接产生 `NaN`（Not a Number），导致整场训练海啸式崩溃！
 
 幸运的是，Softmax 函数拥有一个近乎神圣的数学性质：**平移不变性**。
 
@@ -243,9 +283,13 @@ $$
 
 设 $c \in \mathbb{R}$ 为任意实数常数。我们将输入的每一个分量 $z_i$ 同时减去 $c$：
 
+
+
 $$
 \frac{e^{z_i - c}}{\sum_{j=1}^N e^{z_j - c}} = \frac{e^{z_i} \cdot e^{-c}}{\sum_{j=1}^N \left(e^{z_j} \cdot e^{-c}\right)} = \frac{e^{-c} \cdot e^{z_i}}{e^{-c} \cdot \sum_{j=1}^N e^{z_j}} = \frac{e^{z_i}}{\sum_{j=1}^N e^{z_j}}
 $$
+
+
 
 分子和分母中提取出的常数因子 $e^{-c}$ 在约分中**完全对消**！
 
@@ -253,15 +297,23 @@ $$
 
 在 PyTorch、TensorFlow 和 FlashAttention 的底层实现中，系统会强制取常数 $c = \max_{j}(z_j)$：
 
+
+
 $$
 z'_i = z_i - \max_{j}(z_j)
 $$
 
+
+
 此时，整个向量中的最大值变成了 $0$（因为 $\max(z) - \max(z) = 0$），而其余所有元素均被平移为负数或零。因此：
+
+
 
 $$
 e^{z'_i} \in (0, 1] \quad (\forall i)
 $$
+
+
 
 指数运算的最大可能输出被死死锁死在 $e^0 = 1.0$，浮点数上溢在数学上被永久免疫！
 
@@ -271,12 +323,16 @@ $$
 
 在大语言模型的推理与解码阶段，开发者常调节一个大于 0 的超参数——**温度（Temperature $T > 0$）**：
 
+
+
 $$
 \operatorname{softmax}\left(\frac{\mathbf{z}}{T}\right)_i = \frac{e^{z_i / T}}{\sum_{j=1}^N e^{z_j / T}}
 $$
 
-\lt figure>
-\lt pre>
+
+
+<figure>
+<pre>
    T -&gt; 0（冰冻绝对零度）           T = 1.0（标准适温）           T -&gt; inf（沸腾高温）
    [极度确信：近似 Argmax]         [模型真实原生分布]            [完全均匀分布：彻底混沌]
            |                               │                            │
@@ -285,7 +341,7 @@ $$
            └─────┴──────                   └─────┴──────                └──┴───┴───┴──
             z1   z2   z3                    z1   z2   z3                 z1  z2  z3
 </pre>
-\lt figcaption>\lt strong>图 7.3：</strong> 温度系数 $T$ 对候选词概率地形图的重构效应。</figcaption>
+<figcaption><strong>图 7.3：</strong> 温度系数 $T$ 对候选词概率地形图的重构效应。</figcaption>
 </figure>
 
 - **低温模式（$T \to 0$，例如 $T = 0.2$）**：
@@ -303,9 +359,13 @@ $$
 
 令输出概率为 $s_i = \frac{e^{z_i}}{\sum_{k=1}^N e^{z_k}}$。记分子 $u = e^{z_i}$，分母 $v = \sum_{k=1}^N e^{z_k}$。根据微积分的除法求导法则（商法则）：
 
+
+
 $$
 \frac{\partial s_i}{\partial z_j} = \frac{\frac{\partial u}{\partial z_j} v - u \frac{\partial v}{\partial z_j}}{v^2}
 $$
+
+
 
 注意到分母对任意 $z_j$ 的导数为 $\frac{\partial v}{\partial z_j} = \frac{\partial}{\partial z_j}\left(e^{z_1} + \dots + e^{z_j} + \dots\right) = e^{z_j}$。
 
@@ -314,6 +374,8 @@ $$
 #### 情形 1：对角线元素（当 $i = j$ 时）
 
 此时分子 $u = e^{z_i}$ 对自身变量 $z_i$ 求导，$\frac{\partial u}{\partial z_i} = e^{z_i}$：
+
+
 
 $$
 \begin{aligned}
@@ -324,9 +386,13 @@ $$
 \end{aligned}
 $$
 
+
+
 #### 情形 2：非对角线元素（当 $i \neq j$ 时）
 
 此时分子 $u = e^{z_i}$ 与自变量 $z_j$ 完全无关，$\frac{\partial u}{\partial z_j} = 0$：
+
+
 
 $$
 \begin{aligned}
@@ -336,13 +402,19 @@ $$
 \end{aligned}
 $$
 
+
+
 #### 统一的雅可比矩阵表达式
 
 引入克罗内克函数（Kronecker Delta）$\delta_{ij}$（当 $i=j$ 时为 1，其余情况为 0）：
 
+
+
 $$
 \frac{\partial s_i}{\partial z_j} = s_i (\delta_{ij} - s_j)
 $$
+
+
 
 这个导数公式惊人地优美：**Softmax 的梯度仅取决于它自身的输出概率！**在 GPU 上反向传播时，无需保留昂贵的中间激活，直接用前向输出相乘即可完成求导。
 
@@ -350,35 +422,43 @@ $$
 
 ## 第 4 步：历史渊源与技术演进 {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="1868">1868</time> &mdash; \lt strong>路德维希·玻尔兹曼与统计热力学（Ludwig Boltzmann）</strong></dt>
-  \lt dd>
+<dl>
+  <dt><time datetime="1868">1868</time> &mdash; <strong>路德维希·玻尔兹曼与统计热力学（Ludwig Boltzmann）</strong></dt>
+  <dd>
     奥地利物理学家玻尔兹曼在研究封闭容器内气体分子碰撞时发现：在温度为 $T$ 的热平衡系统中，物理系统处于能量为 $E_i$ 的微观状态的概率服从正规系综分布（麦克斯韦-玻尔兹曼分布）：
+
+
 
 $$
 P(i) = \frac{e^{-E_i / (k_B T)}}{\sum_j e^{-E_j / (k_B T)}}
 $$
 
+
+
     物理系统更倾向于落入能量更低的微观态。将负能量 $-E_i$ 替换为算法效用得分 $z_i$，便诞生了现代概率归一化函数。
   </dd>
 
-  \lt dt>\lt time datetime="1959">1959</time> &mdash; \lt strong>R. Duncan Luce 与选择公理（Luce's Choice Axiom）</strong></dt>
-  \lt dd>
+  <dt><time datetime="1959">1959</time> &mdash; <strong>R. Duncan Luce 与选择公理（Luce's Choice Axiom）</strong></dt>
+  <dd>
     在数理心理学领域，Luce 提出了人类在多个候选项目中做决策的选择公理：选择某一选项的概率正比于该选项的主观效用比。采用指数效用函数 $u(z) = e^z$ 时，即推导出了心理测量学中的 Softmax 选择模型。
   </dd>
 
-  \lt dt>\lt time datetime="1989">1989</time> &mdash; \lt strong>John S. Bridle 与神经网络 Softmax</strong></dt>
-  \lt dd>
-    英国学者 John S. Bridle 在里程碑式论文 \lt em>"Probabilistic Interpretation of Feedforward Classification Network Outputs"</em> 中正式将该公式引入前馈神经网络。他将其命名为 \lt samp>"Softmax"</samp>，意在强调它是不可导的“硬最大值”（Hardmax / $\operatorname{argmax}$）的连续平滑可导替代品。
+  <dt><time datetime="1989">1989</time> &mdash; <strong>John S. Bridle 与神经网络 Softmax</strong></dt>
+  <dd>
+    英国学者 John S. Bridle 在里程碑式论文 <em>"Probabilistic Interpretation of Feedforward Classification Network Outputs"</em> 中正式将该公式引入前馈神经网络。他将其命名为 <samp>"Softmax"</samp>，意在强调它是不可导的“硬最大值”（Hardmax / $\operatorname{argmax}$）的连续平滑可导替代品。
   </dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>Vaswani 等人与注意力机制路由</strong></dt>
-  \lt dd>
-    在现代 Transformer 开山论文 \lt em>"Attention Is All You Need"</em> 中，Softmax 被置于缩放点积注意力的数学心脏：
+  <dt><time datetime="2017">2017</time> &mdash; <strong>Vaswani 等人与注意力机制路由</strong></dt>
+  <dd>
+    在现代 Transformer 开山论文 <em>"Attention Is All You Need"</em> 中，Softmax 被置于缩放点积注意力的数学心脏：
+
+
 
 $$
 \operatorname{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
 $$
+
+
 
     Softmax 赋予了模型动态调节上下文聚焦权重的非线性中枢能力。
   </dd>
@@ -390,11 +470,15 @@ $$
 
 现在，让我们完整接续 **第 06 章第 5 步** 的数值篇章。
 
-歧义词 \lt kbd>"bank"</kbd> 与三个词 \lt kbd>"The"</kbd>、\lt kbd>"river"</kbd>、\lt kbd>"bank"</kbd> 计算出了未归一化的原始点积匹配得分：
+歧义词 <kbd>"bank"</kbd> 与三个词 <kbd>"The"</kbd>、<kbd>"river"</kbd>、<kbd>"bank"</kbd> 计算出了未归一化的原始点积匹配得分：
+
+
 
 $$
 \mathbf{z} = [z_1, z_2, z_3] = [4.0, 7.0, 6.0]
 $$
+
+
 
 让我们一步一步，通过纯手工运算将其转化为注意力权重，并最终加权合成出新的上下文向量！
 
@@ -402,12 +486,12 @@ $$
 
 ### 计算执行核对清单
 
-\lt fieldset>
-\lt legend>\lt strong>计算执行核对清单</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 5.1：</strong> 纯手工计算标准 Softmax 指数与概率分配</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 5.2：</strong> 验证工业级数值防溢出平移法（$c = \max$）</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 5.3：</strong> 对比不同温度旋钮（$T = 0.5$ 与 $T = 2.0$）的概率形变</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 5.4：</strong> 结合 Value 向量完成注意力上下文融合加权</p>
+<fieldset>
+<legend><strong>计算执行核对清单</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.1：</strong> 纯手工计算标准 Softmax 指数与概率分配</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.2：</strong> 验证工业级数值防溢出平移法（$c = \max$）</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.3：</strong> 对比不同温度旋钮（$T = 0.5$ 与 $T = 2.0$）的概率形变</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 5.4：</strong> 结合 Value 向量完成注意力上下文融合加权</p>
 </fieldset>
 
 ---
@@ -420,9 +504,13 @@ $$
   - $e^{z_3} = e^6 \approx 403.4288$
 
 - **子步骤 B：累加归一化分母（$\sum_{j=1}^3 e^{z_j}$）**：
+
+
   $$
   \sum = 54.5982 + 1096.6332 + 403.4288 = 1554.6602
   $$
+
+
 
 - **子步骤 C：计算归一化注意力权重（$s_i = e^{z_i} / \sum$）**：
   - $s_1 (\text{"The"}) = \frac{54.5982}{1554.6602} \approx \mathbf{0.0351} \quad (3.51\%)$
@@ -430,9 +518,13 @@ $$
   - $s_3 (\text{"bank"}) = \frac{403.4288}{1554.6602} \approx \mathbf{0.2595} \quad (25.95\%)$
 
 - **子步骤 D：校验加和完整性**：
+
+
   $$
   0.0351 + 0.7054 + 0.2595 = \mathbf{1.0000} \quad (100.00\%)
   $$
+
+
 
 ---
 
@@ -444,9 +536,13 @@ $$
   $c = \max([4, 7, 6]) = 7.0$。
 
 - **子步骤 B：中心化平移**：
+
+
   $$
   \mathbf{z}' = [4 - 7, 7 - 7, 6 - 7] = [-3.0, 0.0, -1.0]
   $$
+
+
 
 - **子步骤 C：计算平移后的指数**：
   - $e^{-3.0} \approx 0.04979$
@@ -454,9 +550,13 @@ $$
   - $e^{-1.0} \approx 0.36788$
 
 - **子步骤 D：累加新分母**：
+
+
   $$
   \sum = 0.04979 + 1.00000 + 0.36788 = 1.41767
   $$
+
+
 
 - **子步骤 E：计算最终概率**：
   - $s'_1 = \frac{0.04979}{1.41767} \approx \mathbf{0.0351}$
@@ -471,39 +571,39 @@ $$
 
 调动温度旋钮时，注意力权重的直观变化如下：
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 7.2：</strong> 不同温度设定下词元注意力权重的分布对比</caption>
-  \lt thead>
-    \lt tr bgcolor="#eae9e1">
-      \lt th scope="col" align="left" width="20%">候选词元</th>
-      \lt th scope="col" align="center" width="25%">低温专注 ($T = 0.5$)</th>
-      \lt th scope="col" align="center" width="25%">标准原生 ($T = 1.0$)</th>
-      \lt th scope="col" align="center" width="30%">高温扩散 ($T = 2.0$)</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 7.2：</strong> 不同温度设定下词元注意力权重的分布对比</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="20%">候选词元</th>
+      <th scope="col" align="center" width="25%">低温专注 ($T = 0.5$)</th>
+      <th scope="col" align="center" width="25%">标准原生 ($T = 1.0$)</th>
+      <th scope="col" align="center" width="30%">高温扩散 ($T = 2.0$)</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt th scope="row" align="left">\lt kbd>"The"</kbd></th>
-      \lt td align="center">0.15% \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0015">0.15%</meter></td>
-      \lt td align="center">3.51% \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0351">3.51%</meter></td>
-      \lt td align="center">12.86% \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1286">12.86%</meter></td>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><kbd>"The"</kbd></th>
+      <td align="center">0.15% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0015">0.15%</meter></td>
+      <td align="center">3.51% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.0351">3.51%</meter></td>
+      <td align="center">12.86% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1286">12.86%</meter></td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">\lt kbd>"river"</kbd> (核心线索)</th>
-      \lt td align="center">\lt mark>\lt strong>87.99%</strong></mark> \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.8799">87.99%</meter></td>
-      \lt td align="center">\lt strong>70.54%</strong> \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.7054">70.54%</meter></td>
-      \lt td align="center">\lt strong>52.79%</strong> \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.5279">52.79%</meter></td>
+    <tr>
+      <th scope="row" align="left"><kbd>"river"</kbd> (核心线索)</th>
+      <td align="center"><mark><strong>87.99%</strong></mark> <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.8799">87.99%</meter></td>
+      <td align="center"><strong>70.54%</strong> <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.7054">70.54%</meter></td>
+      <td align="center"><strong>52.79%</strong> <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.5279">52.79%</meter></td>
     </tr>
-    \lt tr>
-      \lt th scope="row" align="left">\lt kbd>"bank"</kbd> (自身参照)</th>
-      \lt td align="center">11.86% \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1186">11.86%</meter></td>
-      \lt td align="center">25.95% \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.2595">25.95%</meter></td>
-      \lt td align="center">34.35% \lt br>\lt meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.3435">34.35%</meter></td>
+    <tr>
+      <th scope="row" align="left"><kbd>"bank"</kbd> (自身参照)</th>
+      <td align="center">11.86% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.1186">11.86%</meter></td>
+      <td align="center">25.95% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.2595">25.95%</meter></td>
+      <td align="center">34.35% <br><meter min="0" max="1" low="0.1" high="0.5" optimum="0.8" value="0.3435">34.35%</meter></td>
     </tr>
   </tbody>
 </table>
 
-- 当 $T = 0.5$ 时，线索词 \lt kbd>"river"</kbd> 的权重暴增至 **$88\%$**，注意力光束极度收窄！
+- 当 $T = 0.5$ 时，线索词 <kbd>"river"</kbd> 的权重暴增至 **$88\%$**，注意力光束极度收窄！
 - 当 $T = 2.0$ 时，各个词被平摊，注意力光束向全场均匀散射。
 
 ---
@@ -514,13 +614,19 @@ $$
 
 在第 06 章第 3 节中，三个词元分别携带着自己的内容载荷向量（Value 向量 $\mathbf{v}_j \in \mathbb{R}^2$）：
 
+
+
 $$
 \mathbf{v}_1 (\text{"The"}) = \begin{bmatrix} 1 \\ 2 \end{bmatrix}, \quad
 \mathbf{v}_2 (\text{"river"}) = \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \quad
 \mathbf{v}_3 (\text{"bank"}) = \begin{bmatrix} 1 \\ 2 \end{bmatrix}
 $$
 
-歧义词 \lt kbd>"bank"</kbd> 经过注意力洗礼后获得的新上下文表征向量 $\mathbf{c}_{\text{bank}}$，就是这三组载荷在 Softmax 概率下的**加权线性组合**：
+
+
+歧义词 <kbd>"bank"</kbd> 经过注意力洗礼后获得的新上下文表征向量 $\mathbf{c}_{\text{bank}}$，就是这三组载荷在 Softmax 概率下的**加权线性组合**：
+
+
 
 $$
 \begin{aligned}
@@ -531,6 +637,8 @@ $$
 &= \mathbf{\begin{bmatrix} 0.2946 \\ 1.2946 \end{bmatrix}}
 \end{aligned}
 $$
+
+
 
 让我们凝视这个新向量：
 - 在进入注意力机制前，<kbd>"bank"</kbd> 的静态向量是孤立的，分不清究竟是金融金库还是河流岸边。

@@ -36,9 +36,13 @@
 
 在模型能够做出预测之前，我们必须先写下一份它被允许使用的完整词汇清单。在数学中，我们称这个清单为**词汇集合**（Vocabulary Set），记作符号 $V$：
 
+
+
 $$
 V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}
 $$
+
+
 
 这个箱子里不同单词的总数量，称为**词汇表大小**（Vocabulary Size），记作 $|V|$：
 - 在玩具模型中：$|V| = 4$ 或 $|V| = 10$。
@@ -50,29 +54,45 @@ $$
 
 当模型已经观察到前 $t-1$ 个单词组成的序列时：
 
+
+
 $$
 w_1, w_2, \dots, w_{t-1} \quad (\text{通常简写为 } w_{\lt t})
 $$
 
+
+
 它会计算在第 $t$ 个位置出现的下一个词是某个特定候选词 $w \in V$ 的概率。数学上记作：
+
+
 
 $$
 P(w_t = w \mid w_1, w_2, \dots, w_{t-1})
 $$
+
+
 
 其中的竖线 $\mid$ 在自然语言中读作**“在已知……的前提条件下”**。
 
 在 LLM 中，任何合法的概率分布都必须严格服从两条不可打破的数学铁律：
 
 1. **非负性与有界性**：任何单词的概率都不能为负数，也不能超过 100%：
+
+
    $$
    0 \le P(w_t = w \mid w_{\lt t}) \le 1 \quad (\forall w \in V)
    $$
 
+
+
 2. **全概率守恒律**：如果把词典中所有候选词的概率加在一起，总和必须严格等于 $1$（即整张披萨的 100%）：
+
+
    $$
    \sum_{w \in V} P(w_t = w \mid w_{\lt t}) = 1
    $$
+
+
 
 ---
 
@@ -80,15 +100,23 @@ $$
 
 LLM 是如何生成一整篇文章、一首诗或一段计算机程序的？它通过**联合概率链式法则**（Chain Rule of Probability），将每一次预测下一个词的概率连乘起来：
 
+
+
 $$
 P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})
 $$
 
+
+
 利用紧凑的数学连乘符号（$\prod$）可写作：
+
+
 
 $$
 P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})
 $$
+
+
 
 !!! example "数学公式与符号剖析: 数学符号解读"
     - $\sum$（大写 Sigma）：表示**“将它们全部加起来”**。
@@ -106,8 +134,8 @@ $$
 
 2. **对比与挑选更合理的表达**：  
    在文本生成或机器翻译时，模型往往会面临多个候选句子：
-   - 候选 A：\lt samp>"The cat sat on the warm rug."</samp>
-   - 候选 B：\lt samp>"The cat sat on the warm rug rug."</samp>  
+   - 候选 A：<samp>"The cat sat on the warm rug."</samp>
+   - 候选 B：<samp>"The cat sat on the warm rug rug."</samp>  
    评估整条序列的联合概率，能让模型横向对比完整假设，挑出语义最为通顺协调的最佳句子。
 
 3. **防止短视的“贪婪”陷阱（Greedy Traps）**：  
@@ -117,91 +145,91 @@ $$
 
 ### 数学符号拆解速查表
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 0.1：</strong> 形式化数学符号、维度与操作定义</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0f0f0">
-      \lt th align="left">符号</th>
-      \lt th align="left">正式名称</th>
-      \lt th align="left">3岁小孩的理解</th>
-      \lt th align="left">微型算例</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 0.1：</strong> 形式化数学符号、维度与操作定义</caption>
+  <thead>
+    <tr bgcolor="#f0f0f0">
+      <th align="left">符号</th>
+      <th align="left">正式名称</th>
+      <th align="left">3岁小孩的理解</th>
+      <th align="left">微型算例</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>$V$</td>
-      \lt td>词汇集合（Vocabulary）</td>
-      \lt td>模型认识的所有单词玩具箱</td>
-      \lt td>$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$</td>
+  <tbody>
+    <tr>
+      <td>$V$</td>
+      <td>词汇集合（Vocabulary）</td>
+      <td>模型认识的所有单词玩具箱</td>
+      <td>$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$</td>
     </tr>
-    \lt tr>
-      \lt td>$|V|$</td>
-      \lt td>词汇表大小（Cardinality）</td>
-      \lt td>玩具箱里总共有几块积木</td>
-      \lt td>$|V| = 4$ 个单词</td>
+    <tr>
+      <td>$|V|$</td>
+      <td>词汇表大小（Cardinality）</td>
+      <td>玩具箱里总共有几块积木</td>
+      <td>$|V| = 4$ 个单词</td>
     </tr>
-    \lt tr>
-      \lt td>$t$</td>
-      \lt td>时间步 / 位置（Time Step）</td>
-      \lt td>当前正在猜第几个单词</td>
-      \lt td>$t = 4$（正在猜第4个单词）</td>
+    <tr>
+      <td>$t$</td>
+      <td>时间步 / 位置（Time Step）</td>
+      <td>当前正在猜第几个单词</td>
+      <td>$t = 4$（正在猜第4个单词）</td>
     </tr>
-    \lt tr>
-      \lt td>$w_t$</td>
-      \lt td>位置 $t$ 处的词元（Token）</td>
-      \lt td>当前正在考量的候选单词</td>
-      \lt td>$w_4 = \text{"cream"}$</td>
+    <tr>
+      <td>$w_t$</td>
+      <td>位置 $t$ 处的词元（Token）</td>
+      <td>当前正在考量的候选单词</td>
+      <td>$w_4 = \text{"cream"}$</td>
     </tr>
-    \lt tr>
-      \lt td>$w_{\lt t}$</td>
-      \lt td>上文语境（Prefix Context）</td>
-      \lt td>之前已经耳语过的所有上无线索</td>
-      \lt td>$w_{\lt 4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
+    <tr>
+      <td>$w_{\lt t}$</td>
+      <td>上文语境（Prefix Context）</td>
+      <td>之前已经耳语过的所有上无线索</td>
+      <td>$w_{\lt 4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
     </tr>
-    \lt tr>
-      \lt td>$P(w_t \mid w_{\lt t})$</td>
-      \lt td>条件概率（Conditional Prob）</td>
-      \lt td>模型对该词信心的指示计（$0.0$ 到 $1.0$）</td>
-      \lt td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
+    <tr>
+      <td>$P(w_t \mid w_{\lt t})$</td>
+      <td>条件概率（Conditional Prob）</td>
+      <td>模型对该词信心的指示计（$0.0$ 到 $1.0$）</td>
+      <td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
     </tr>
-    \lt tr>
-      \lt td>$\sum$</td>
-      \lt td>求和符号（Sigma）</td>
-      \lt td>把整张概率披萨的所有切片加起来</td>
-      \lt td>4个候选词概率之和 $= 1.00$（100%）</td>
+    <tr>
+      <td>$\sum$</td>
+      <td>求和符号（Sigma）</td>
+      <td>把整张概率披萨的所有切片加起来</td>
+      <td>4个候选词概率之和 $= 1.00$（100%）</td>
     </tr>
-    \lt tr>
-      \lt td>$\prod$</td>
-      \lt td>求积符号（Capital Pi）</td>
-      \lt td>将链条上每一步的几率全部乘起来</td>
-      \lt td>$0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$</td>
+    <tr>
+      <td>$\prod$</td>
+      <td>求积符号（Capital Pi）</td>
+      <td>将链条上每一步的几率全部乘起来</td>
+      <td>$0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$</td>
     </tr>
   </tbody>
 </table>
 
-\lt br>
+<br>
 
-\lt details>
-\lt summary>\lt strong>符号词汇表（定义列表）</strong></summary>
+<details>
+<summary><strong>符号词汇表（定义列表）</strong></summary>
 
-\lt dl>
-  \lt dt>\lt strong>词汇集合（Vocabulary Set, $V$）</strong></dt>
-  \lt dd>分词器（Tokenizer）所能识别的全部独立单词、子词或字符构成的有限离散集合。</dd>
+<dl>
+  <dt><strong>词汇集合（Vocabulary Set, $V$）</strong></dt>
+  <dd>分词器（Tokenizer）所能识别的全部独立单词、子词或字符构成的有限离散集合。</dd>
   
-  \lt dt>\lt strong>词表基数（Vocabulary Cardinality, $|V|$）</strong></dt>
-  \lt dd>集合 $V$ 中的词元总数。现代主流 LLM 的词表规模通常在 32,000 到 128,000 之间。</dd>
+  <dt><strong>词表基数（Vocabulary Cardinality, $|V|$）</strong></dt>
+  <dd>集合 $V$ 中的词元总数。现代主流 LLM 的词表规模通常在 32,000 到 128,000 之间。</dd>
   
-  \lt dt>\lt strong>序列索引（Sequential Index, $t$）</strong></dt>
-  \lt dd>序列轴上的离散时间步或词元所处位置编号（$t \in \{1, 2, \dots, T\}$）。</dd>
+  <dt><strong>序列索引（Sequential Index, $t$）</strong></dt>
+  <dd>序列轴上的离散时间步或词元所处位置编号（$t \in \{1, 2, \dots, T\}$）。</dd>
   
-  \lt dt>\lt strong>目标词元（Target Token, $w_t$）</strong></dt>
-  \lt dd>在序列位置 $t$ 处被选中或被预测的具体词元。</dd>
+  <dt><strong>目标词元（Target Token, $w_t$）</strong></dt>
+  <dd>在序列位置 $t$ 处被选中或被预测的具体词元。</dd>
   
-  \lt dt>\lt strong>前缀历史 / 上文（Prefix History, $w_{\lt t}$）</strong></dt>
-  \lt dd>在时间步 $t$ 之前出现的所有词元的有序元组：$(w_1, w_2, \dots, w_{t-1})$。</dd>
+  <dt><strong>前缀历史 / 上文（Prefix History, $w_{\lt t}$）</strong></dt>
+  <dd>在时间步 $t$ 之前出现的所有词元的有序元组：$(w_1, w_2, \dots, w_{t-1})$。</dd>
   
-  \lt dt>\lt strong>条件概率（Conditional Probability, $P(w_t \mid w_{\lt t})$）</strong></dt>
-  \lt dd>介于 $0.0$ 和 $1.0$ 之间的实数标量，在词汇集合上严格满足归一化条件 $\sum_{w \in V} P(w \mid w_{\lt t}) = 1.0$。</dd>
+  <dt><strong>条件概率（Conditional Probability, $P(w_t \mid w_{\lt t})$）</strong></dt>
+  <dd>介于 $0.0$ 和 $1.0$ 之间的实数标量，在词汇集合上严格满足归一化条件 $\sum_{w \in V} P(w \mid w_{\lt t}) = 1.0$。</dd>
 </dl>
 </details>
 
@@ -211,27 +239,31 @@ $$
 
 为什么现代所有 LLM 都会将语言生成建模为条件概率的链条，而不是直接一次性预测一整句话？
 
-\lt details>
-\lt summary>\lt strong>历史溯源：安德雷·马尔可夫（1913）与克劳德·香农（1948）</strong></summary>
+<details>
+<summary><strong>历史溯源：安德雷·马尔可夫（1913）与克劳德·香农（1948）</strong></summary>
 
-\lt p>1913年，俄国数学家\lt strong>安德雷·马尔可夫（Andrey Markov）</strong>点亮烛光，手捧亚历山大·普希金的诗体小说《叶甫盖尼·奥涅金》。他耗时数月，以惊人的毅力手工统计了小说中的20,000个俄文字母，证明了一个惊人的事实：一个字母是元音的概率，极大程度取决于它前一个字母是辅音还是元音。</p>
+<p>1913年，俄国数学家<strong>安德雷·马尔可夫（Andrey Markov）</strong>点亮烛光，手捧亚历山大·普希金的诗体小说《叶甫盖尼·奥涅金》。他耗时数月，以惊人的毅力手工统计了小说中的20,000个俄文字母，证明了一个惊人的事实：一个字母是元音的概率，极大程度取决于它前一个字母是辅音还是元音。</p>
 
-\lt p>这一发现证明了人类语言具有强烈的\lt strong>时序依赖性</strong>：字母与词语并不是杂乱无章随机出现的，每个词都在深刻依赖紧随其前的词。这一数学结构被后世命名为\lt strong>马尔可夫链（Markov Chain）</strong>。</p>
+<p>这一发现证明了人类语言具有强烈的<strong>时序依赖性</strong>：字母与词语并不是杂乱无章随机出现的，每个词都在深刻依赖紧随其前的词。这一数学结构被后世命名为<strong>马尔可夫链（Markov Chain）</strong>。</p>
 
-\lt p>35年后的1948年，信息论之父\lt strong>克劳德·香农（Claude Shannon）</strong>发表了划时代的论文《通信的数学理论》。香农将自然语言形式化为一种统计随机过程，每个连续出现的符号，都是根据以其先前符号为条件的概率分布选择而来的。</p>
+<p>35年后的1948年，信息论之父<strong>克劳德·香农（Claude Shannon）</strong>发表了划时代的论文《通信的数学理论》。香农将自然语言形式化为一种统计随机过程，每个连续出现的符号，都是根据以其先前符号为条件的概率分布选择而来的。</p>
 </details>
 
-\lt br>
+<br>
 
-\lt details>
-\lt summary>\lt strong>当研究者尝试更简单的公式时，发生了什么？</strong></summary>
+<details>
+<summary><strong>当研究者尝试更简单的公式时，发生了什么？</strong></summary>
 
-\lt p>我们为什么不能直接假定单词之间是完全独立的？也就是说，为什么不直接计算：</p>
+<p>我们为什么不能直接假定单词之间是完全独立的？也就是说，为什么不直接计算：</p>
+
+
 $$
 P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)
 $$
 
-\lt p>如果各个词之间彼此独立，那么英文句子 \lt em>"The dog bit the man"（狗咬了人）</em> 与 \lt em>"Bit man dog the the"（乱序单词）</em> 的概率将完全一样，因为它们包含的单词完全相同！但语言的本质在于语序和语境。因此，以上文历史 $w_{\lt t}$ 为条件是不可或缺的数学前提。</p>
+
+
+<p>如果各个词之间彼此独立，那么英文句子 <em>"The dog bit the man"（狗咬了人）</em> 与 <em>"Bit man dog the the"（乱序单词）</em> 的概率将完全一样，因为它们包含的单词完全相同！但语言的本质在于语序和语境。因此，以上文历史 $w_{\lt t}$ 为条件是不可或缺的数学前提。</p>
 </details>
 
 ---
@@ -240,14 +272,18 @@ $$
 
 让我们在一个极简的玩具语言环境中，一步一步验证实际乘法过程：
 
+
+
 $$
 V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)
 $$
 
+
+
 我们希望计算生成完整句子 **"I love ice cream"** 的概率：
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 第1步: P("I")                                         = 0.50  (50% 概率)
              │
 第2步: P("love"  │ "I")                               = 0.40  (40% 概率)
@@ -258,7 +294,7 @@ $$
 ──────────────────────────────────────────────────────────────────────────
 全句联合概率: 0.50 × 0.40 × 0.30 × 0.90               = 0.054 (5.4%)
 </pre>
-\lt figcaption>\lt strong>图 0.1:</strong> 四个连续时间步上的序列概率条件展开图。</figcaption>
+<figcaption><strong>图 0.1:</strong> 四个连续时间步上的序列概率条件展开图。</figcaption>
 </figure>
 
 ---
@@ -267,52 +303,52 @@ $$
 
 在第 $t=4$ 步，当模型接收到前缀 *"I love ice"* 后，它会遍历评估词表 $V$ 中的每一个候选词：
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>表 0.2:</strong> 在前缀语境 \lt kbd>"I love ice"</kbd> 下各候选词的条件概率分布</caption>
-  \lt thead>
-    \lt tr bgcolor="#f0f0f0">
-      \lt th align="left">候选词 $w \in V$</th>
-      \lt th align="right">条件概率 $P(w \mid \text{"I love ice"})$</th>
-      \lt th align="right">百分比</th>
-      \lt th align="center">图形化概率槽</th>
-      \lt th align="left">含义解读</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 0.2:</strong> 在前缀语境 <kbd>"I love ice"</kbd> 下各候选词的条件概率分布</caption>
+  <thead>
+    <tr bgcolor="#f0f0f0">
+      <th align="left">候选词 $w \in V$</th>
+      <th align="right">条件概率 $P(w \mid \text{"I love ice"})$</th>
+      <th align="right">百分比</th>
+      <th align="center">图形化概率槽</th>
+      <th align="left">含义解读</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"cream"</kbd></strong></td>
-      \lt td align="right">\lt strong>0.90</strong></td>
-      \lt td align="right">\lt mark>\lt strong>90%</strong></mark></td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.90" optimum="0.8">90%</meter></td>
-      \lt td align="left">压倒性首选</td>
+  <tbody>
+    <tr>
+      <td align="left"><strong><kbd>"cream"</kbd></strong></td>
+      <td align="right"><strong>0.90</strong></td>
+      <td align="right"><mark><strong>90%</strong></mark></td>
+      <td align="center"><meter min="0" max="1" value="0.90" optimum="0.8">90%</meter></td>
+      <td align="left">压倒性首选</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"ice"</kbd></strong></td>
-      \lt td align="right">0.05</td>
-      \lt td align="right">5%</td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.05">5%</meter></td>
-      \lt td align="left">极不自然（"ice ice"）</td>
+    <tr>
+      <td align="left"><strong><kbd>"ice"</kbd></strong></td>
+      <td align="right">0.05</td>
+      <td align="right">5%</td>
+      <td align="center"><meter min="0" max="1" value="0.05">5%</meter></td>
+      <td align="left">极不自然（"ice ice"）</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"love"</kbd></strong></td>
-      \lt td align="right">0.03</td>
-      \lt td align="right">3%</td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.03">3%</meter></td>
-      \lt td align="left">语法不通（"ice love"）</td>
+    <tr>
+      <td align="left"><strong><kbd>"love"</kbd></strong></td>
+      <td align="right">0.03</td>
+      <td align="right">3%</td>
+      <td align="center"><meter min="0" max="1" value="0.03">3%</meter></td>
+      <td align="left">语法不通（"ice love"）</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"I"</kbd></strong></td>
-      \lt td align="right">0.02</td>
-      \lt td align="right">2%</td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.02">2%</meter></td>
-      \lt td align="left">毫无道理（"ice I"）</td>
+    <tr>
+      <td align="left"><strong><kbd>"I"</kbd></strong></td>
+      <td align="right">0.02</td>
+      <td align="right">2%</td>
+      <td align="center"><meter min="0" max="1" value="0.02">2%</meter></td>
+      <td align="left">毫无道理（"ice I"）</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>全概率总和 ($\sum$)</strong></td>
-      \lt td align="right">\lt strong>1.00</strong></td>
-      \lt td align="right">\lt mark>\lt strong>100%</strong></mark></td>
-      \lt td align="center">\lt progress max="100" value="100">100%</progress></td>
-      \lt td align="left">\lt strong>概率严格守恒</strong></td>
+    <tr>
+      <td align="left"><strong>全概率总和 ($\sum$)</strong></td>
+      <td align="right"><strong>1.00</strong></td>
+      <td align="right"><mark><strong>100%</strong></mark></td>
+      <td align="center"><progress max="100" value="100">100%</progress></td>
+      <td align="left"><strong>概率严格守恒</strong></td>
     </tr>
   </tbody>
 </table>
@@ -323,34 +359,50 @@ $$
 
 依据链式法则，我们将这 4 个单步概率相乘：
 
+
+
 $$
 P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90
 $$
 
+
+
 我们通过笔算分解每一步乘积：
 
 1. 前两个词相乘：
+
+
    $$
    0.50 \times 0.40 = 0.20
    $$
 
+
+
 2. 乘上第三个词：
+
+
    $$
    0.20 \times 0.30 = 0.06
    $$
 
+
+
 3. 乘上第四个词：
+
+
    $$
    0.06 \times 0.90 = \mathbf{0.054}
    $$
 
-整句话生成的全局概率为 \lt mark>\lt strong>0.054</strong></mark>（即 \lt mark>\lt strong>5.4%</strong></mark>）。
+
+
+整句话生成的全局概率为 <mark><strong>0.054</strong></mark>（即 <mark><strong>5.4%</strong></mark>）。
 
 ---
 
 ### 5.4% 的悖论：看似很低，为何在统计学上极其巨大？
 
-初看之下，\lt mark>\lt strong>5.4%</strong></mark> 似乎很小。很多初学者会疑惑：*“如果模型真的聪明，生成这句常识的概率不应该达到 80% 或 90% 吗？”*
+初看之下，<mark><strong>5.4%</strong></mark> 似乎很小。很多初学者会疑惑：*“如果模型真的聪明，生成这句常识的概率不应该达到 80% 或 90% 吗？”*
 
 这揭示了一个深刻的概率论真谛：**在序列概率的世界里，5.4% 是一个极其庞大的天文级数字。**
 
@@ -359,29 +411,41 @@ $$
 #### 1. 256 句话构成的全集宇宙（组合爆炸）
 在我们只有 4 个单词的微型世界（$|V| = 4$）里，总共可以写出多少句互不相同的 4 词句子？
 
+
+
 $$
 \text{总候选句数} = |V|^T = 4^4 = 256 \text{ 种组合}
 $$
 
+
+
 这包括了各种语序：
-- \lt samp>"I I I I"</samp>
-- \lt samp>"cream cream cream cream"</samp>
-- \lt samp>"love ice cream I"</samp>
-- \lt samp>"I love ice cream"</samp>
+- <samp>"I I I I"</samp>
+- <samp>"cream cream cream cream"</samp>
+- <samp>"love ice cream I"</samp>
+- <samp>"I love ice cream"</samp>
 - ……以及其他 252 种候选可能！
 
 #### 2. 与完全随机猜想的对比
 如果一个小孩在箱子里完全闭着眼睛随机抓取 4 个积木拼成句子，每句话的概率都严格均等：
 
+
+
 $$
 P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)
 $$
 
-而我们的语言模型给 \lt samp>"I love ice cream"</samp> 赋予了 \lt mark>\lt strong>5.4%</strong></mark> 的概率。对比一下：
+
+
+而我们的语言模型给 <samp>"I love ice cream"</samp> 赋予了 <mark><strong>5.4%</strong></mark> 的概率。对比一下：
+
+
 
 $$
 \frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{（是随机几率的近 14 倍！）}}
 $$
+
+
 
 在容纳了 256 句竞争者的庞大宇宙里，单单这一句话就霸占了全宇宙超过 5% 的概率质量。这是一个压倒性的统计支持。
 
@@ -392,9 +456,13 @@ $$
 
 可能拼出的 50 词序列总数是：
 
+
+
 $$
 |V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}
 $$
+
+
 
 作为对比，整个可观测宇宙中的原子总数才不过区区 $10^{80}$ 个！
 
@@ -406,9 +474,13 @@ $$
 **数学上的破解之道（对数概率 Log-Probabilities）：**
 为了彻底避免下溢，AI 研究人员在实践中从不直接做概率连乘。相反，他们会将概率取对数（Logarithm）。由于对数具有神奇的性质 $\log(a \times b) = \log(a) + \log(b)$，原本极易崩盘的连乘法，瞬间化为了安全稳定的**对数加法**：
 
+
+
 $$
 \log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{\lt t})
 $$
+
+
 
 在第6模块探讨**交叉熵损失函数（Cross-Entropy Loss）**时，我们将深入领略对数空间的非凡威力！
 

@@ -50,9 +50,13 @@ AdamW（动量抵消横向震荡 + 自适应缩放抚平悬崖，直扑谷底）
 !!! question "计算连接问题: 为什么单纯的梯度下降在深层网络中会彻底瘫痪？"
     在第 16 章中，我们推导出了经典的梯度下降参数更新公式：
 
+
+
     $$
     \boldsymbol{\theta}_{t+1} = \boldsymbol{\theta}_t - \eta \mathbf{g}_t
     $$
+
+
 
     这个公式在数学上极其优美，但在直接拿去训练 700 亿参数的 Transformer 时，会引发严重的灾难：
 
@@ -70,17 +74,25 @@ AdamW（动量抵消横向震荡 + 自适应缩放抚平悬崖，直扑谷底）
 在每个训练迭代步 $t$，给定当前模型参数向量 $\boldsymbol{\theta}_{t-1}$ 以及当前小批次计算出的梯度 $\mathbf{g}_t = \nabla_{\boldsymbol{\theta}} \mathcal{L}(\boldsymbol{\theta}_{t-1})$：
 
 #### 步骤 A：一阶动量估计（梯度的指数移动平均 &mdash; 模拟速度惯性）
+
+
 $$
 \mathbf{m}_t = \beta_1 \mathbf{m}_{t-1} + (1 - \beta_1) \mathbf{g}_t
 $$
+
+
 
 - $\mathbf{m}_t \in \mathbb{R}^P$ 追踪历史梯度的方向与动量。
 - $\beta_1 \in [0, 1)$ 为一阶衰减系数（行业通用默认值：$\beta_1 = 0.9$）。
 
 #### 步骤 B：二阶能量估计（梯度平方的指数移动平均 &mdash; 模拟震荡方差）
+
+
 $$
 \mathbf{v}_t = \beta_2 \mathbf{v}_{t-1} + (1 - \beta_2) \mathbf{g}_t^2
 $$
+
+
 
 - $\mathbf{v}_t \in \mathbb{R}^P$ 追踪每个参数梯度的未中心化方差（能量大小）。$\mathbf{g}_t^2 = \mathbf{g}_t \odot \mathbf{g}_t$ 表示逐元素平方。
 - $\beta_2 \in [0, 1)$ 为二阶衰减系数（大语言模型通常设为 $\beta_2 = 0.95$，经典视觉通常设为 $0.999$）。
@@ -88,45 +100,69 @@ $$
 #### 步骤 C：冷启动偏差修正（消除零初始化阻力）
 因为在训练第 0 步时，算法初始化 $\mathbf{m}_0 = \mathbf{0}, \mathbf{v}_0 = \mathbf{0}$，在最初的几十步中，移动平均值会被严重拉向零。我们通过除以 $(1 - \beta^t)$ 进行动态补偿修正：
 
+
+
 $$
 \hat{\mathbf{m}}_t = \frac{\mathbf{m}_t}{1 - \beta_1^t}, \quad \hat{\mathbf{v}}_t = \frac{\mathbf{v}_t}{1 - \beta_2^t}
 $$
 
-\lt details>
-\lt summary>\lt strong>数学推导证明：为什么除以 $1 - \beta^t$ 能够完美消除冷启动偏差？</strong></summary>
+
+
+<details>
+<summary><strong>数学推导证明：为什么除以 $1 - \beta^t$ 能够完美消除冷启动偏差？</strong></summary>
 
 将递归式 $\mathbf{m}_t = (1 - \beta_1)\mathbf{g}_t + \beta_1 \mathbf{m}_{t-1}$ 彻底展开（设初始 $\mathbf{m}_0 = \mathbf{0}$）：
+
+
 
 $$
 \mathbf{m}_t = (1 - \beta_1)\sum_{i=1}^t \beta_1^{t-i} \mathbf{g}_i
 $$
 
+
+
 两边取数学期望 $\mathbb{E}[\cdot]$。假设近期的真实梯度期望均值为 $\mathbb{E}[\mathbf{g}]$：
+
+
 
 $$
 \mathbb{E}[\mathbf{m}_t] = \mathbb{E}\left[(1 - \beta_1)\sum_{i=1}^t \beta_1^{t-i} \mathbf{g}_i\right] = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1) \sum_{i=1}^t \beta_1^{t-i}
 $$
 
+
+
 利用有限等比数列求和公式：
+
+
 
 $$
 \sum_{i=1}^t \beta_1^{t-i} = \frac{1 - \beta_1^t}{1 - \beta_1}
 $$
 
+
+
 代入回期望式：
+
+
 
 $$
 \mathbb{E}[\mathbf{m}_t] = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1) \cdot \frac{1 - \beta_1^t}{1 - \beta_1} = \mathbb{E}[\mathbf{g}] \cdot (1 - \beta_1^t)
 $$
+
+
 
 在第一步 $t = 1$ 时（若 $\beta_1 = 0.9$），未修正的 $\mathbf{m}_1$ 实际上只有真实梯度的 $10\%$！
 通过除以 $(1 - \beta_1^1) = 0.10$，刚好将其无偏放大 10 倍还原到 $100\%$！随着训练步数 $t$ 增大，$\beta^t \to 0$，修正项自然平滑淡出。
 </details>
 
 #### 步骤 D：解耦权重衰减更新步（AdamW）
+
+
 $$
 \boldsymbol{\theta}_t = \boldsymbol{\theta}_{t-1} - \underbrace{\eta \lambda \boldsymbol{\theta}_{t-1}}_{\text{解耦权重衰减}} - \underbrace{\frac{\eta}{\sqrt{\hat{\mathbf{v}}_t} + \epsilon} \odot \hat{\mathbf{m}}_t}_{\text{自适应动量梯度步}}
 $$
+
+
 
 其中：
 - $\eta > 0$ 为学习率计划值。
@@ -150,18 +186,18 @@ $$
 
 ## 第 4 步：历史源流与思考演进（从 AdaGrad 到 AdamW 的进化史） {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="2011">2011</time> &mdash; \lt strong>杜奇、哈赞 与 辛格</strong>（\lt abbr title="Adaptive Gradient Algorithm">AdaGrad</abbr>）</dt>
-  \lt dd>首次提出针对每个参数定制自适应学习率，分母除以历史所有梯度的平方累加和 $\sqrt{\sum g_\tau^2}$。但由于累加和单调递增，分母越来越大，学习率过早枯竭至 0，导致训练提前停滞。</dd>
+<dl>
+  <dt><time datetime="2011">2011</time> &mdash; <strong>杜奇、哈赞 与 辛格</strong>（<abbr title="Adaptive Gradient Algorithm">AdaGrad</abbr>）</dt>
+  <dd>首次提出针对每个参数定制自适应学习率，分母除以历史所有梯度的平方累加和 $\sqrt{\sum g_\tau^2}$。但由于累加和单调递增，分母越来越大，学习率过早枯竭至 0，导致训练提前停滞。</dd>
 
-  \lt dt>\lt time datetime="2012">2012</time> &mdash; \lt strong>杰弗里·辛顿 团队</strong>（\lt abbr title="Root Mean Square Propagation">RMSProp</abbr>）</dt>
-  \lt dd>用指数移动平均（$1 - \beta_2$）取代了死板的历史总和累加，赋予了优化器动态遗忘过往地形的能力，完美解决了 AdaGrad 步长过早冻结的绝症。</dd>
+  <dt><time datetime="2012">2012</time> &mdash; <strong>杰弗里·辛顿 团队</strong>（<abbr title="Root Mean Square Propagation">RMSProp</abbr>）</dt>
+  <dd>用指数移动平均（$1 - \beta_2$）取代了死板的历史总和累加，赋予了优化器动态遗忘过往地形的能力，完美解决了 AdaGrad 步长过早冻结的绝症。</dd>
 
-  \lt dt>\lt time datetime="2014">2014</time> &mdash; \lt strong>迪德里克·金玛 与 吉米·巴</strong>（\lt abbr title="Adaptive Moment Estimation">Adam</abbr>）</dt>
-  \lt dd>将 RMSProp 的自适应分母与经典动量机制（Polyak Momentum）双剑合璧，并提出了精妙的偏差修正公式，一经发布便成为深度学习最受欢迎的优化器。</dd>
+  <dt><time datetime="2014">2014</time> &mdash; <strong>迪德里克·金玛 与 吉米·巴</strong>（<abbr title="Adaptive Moment Estimation">Adam</abbr>）</dt>
+  <dd>将 RMSProp 的自适应分母与经典动量机制（Polyak Momentum）双剑合璧，并提出了精妙的偏差修正公式，一经发布便成为深度学习最受欢迎的优化器。</dd>
 
-  \lt dt>\lt time datetime="2017">2017</time> &mdash; \lt strong>伊利亚·洛希奇洛夫 与 弗兰克·哈特</strong>（\lt abbr title="Adam with Decoupled Weight Decay">AdamW</abbr>）</dt>
-  \lt dd>揭示了 Adam 与 $L_2$ 正则化混合导致的病态现象，提出了“解耦权重衰减”架构，彻底恢复了自适应优化器的泛化性能，成为当今全世界大语言模型标准训练配置。</dd>
+  <dt><time datetime="2017">2017</time> &mdash; <strong>伊利亚·洛希奇洛夫 与 弗兰克·哈特</strong>（<abbr title="Adam with Decoupled Weight Decay">AdamW</abbr>）</dt>
+  <dd>揭示了 Adam 与 $L_2$ 正则化混合导致的病态现象，提出了“解耦权重衰减”架构，彻底恢复了自适应优化器的泛化性能，成为当今全世界大语言模型标准训练配置。</dd>
 </dl>
 
 ---
@@ -183,12 +219,12 @@ $$
 
 ### 2. 第一轮优化 $t = 1$（遭遇较大梯度 $g_1 = 2.0$）
 
-\lt fieldset>
-\lt legend>\lt strong>计算流程清单（第 1 步）</strong></legend>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 A：</strong> 更新一阶矩 $m_1$ 和二阶矩 $v_1$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 B：</strong> 执行冷启动偏差修正 $\hat{m}_1$ 与 $\hat{v}_1$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 C：</strong> 计算自适应步进比率 $u_1 = \hat{m}_1 / \sqrt{\hat{v}_1}$。</p>
-\lt p>\lt input type="checkbox" checked disabled> \lt strong>步骤 D：</strong> 执行解耦衰减并计算新参数 $\theta_1$。</p>
+<fieldset>
+<legend><strong>计算流程清单（第 1 步）</strong></legend>
+<p><input type="checkbox" checked disabled> <strong>步骤 A：</strong> 更新一阶矩 $m_1$ 和二阶矩 $v_1$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 B：</strong> 执行冷启动偏差修正 $\hat{m}_1$ 与 $\hat{v}_1$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 C：</strong> 计算自适应步进比率 $u_1 = \hat{m}_1 / \sqrt{\hat{v}_1}$。</p>
+<p><input type="checkbox" checked disabled> <strong>步骤 D：</strong> 执行解耦衰减并计算新参数 $\theta_1$。</p>
 </fieldset>
 
 #### 步骤 A：原始矩移动平均
@@ -199,14 +235,20 @@ $$
 - $\hat{m}_1 = \frac{m_1}{1 - \beta_1^1} = \frac{0.20}{1 - 0.90} = \frac{0.20}{0.10} = \mathbf{2.0000}$
 - $\hat{v}_1 = \frac{v_1}{1 - \beta_2^1} = \frac{0.04}{1 - 0.99} = \frac{0.04}{0.01} = \mathbf{4.0000}$
 
-\lt mark>看：偏差修正发挥了神效！它把被零拉扯的 $m_1$ 从 0.20 还原回了真实的 2.00，把 $v_1$ 从 0.04 还原回了 4.00！</mark>
+<mark>看：偏差修正发挥了神效！它把被零拉扯的 $m_1$ 从 0.20 还原回了真实的 2.00，把 $v_1$ 从 0.04 还原回了 4.00！</mark>
 
 #### 步骤 C：计算自适应步进方向
+
+
 $$
 u_1 = \frac{\hat{m}_1}{\sqrt{\hat{v}_1} + \epsilon} = \frac{2.0000}{\sqrt{4.0000}} = \frac{2.0000}{2.0000} = \mathbf{1.0000}
 $$
 
+
+
 #### 步骤 D：更新参数（融合解耦权重衰减）
+
+
 $$
 \begin{aligned}
 \theta_1 &= \theta_0 - \eta \lambda \theta_0 - \eta u_1 \\
@@ -214,6 +256,8 @@ $$
 &= 1.0000 - 0.0050 - 0.1000 = \mathbf{0.8950}
 \end{aligned}
 $$
+
+
 
 ---
 
@@ -232,13 +276,19 @@ $$
 - $\hat{v}_2 = \frac{0.0421}{0.0199} \approx \mathbf{2.1156}$
 
 #### 步骤 C：计算自适应步进方向
+
+
 $$
 u_2 = \frac{\hat{m}_2}{\sqrt{\hat{v}_2} + \epsilon} = \frac{1.2105}{\sqrt{2.1156}} \approx \frac{1.2105}{1.4545} \approx \mathbf{0.8322}
 $$
 
+
+
 注意观察：即使单步梯度暴跌了 $75\%$（从 $2.0$ 跌到 $0.5$），但因为保龄球积累了向前的冲量，实际更新步长 $u_2 = 0.8322$ 依然保持着饱满且平稳的推进力度！
 
 #### 步骤 D：更新参数（融合解耦权重衰减）
+
+
 $$
 \begin{aligned}
 \theta_2 &= \theta_1 - \eta \lambda \theta_1 - \eta u_2 \\
@@ -246,6 +296,8 @@ $$
 &= 0.8950 - 0.00448 - 0.08322 = \mathbf{0.8073}
 \end{aligned}
 $$
+
+
 
 参数平滑而扎实地从 $1.0000 \to 0.8950 \to 0.8073$ 稳健逼近目标最优解。
 

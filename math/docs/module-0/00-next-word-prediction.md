@@ -36,7 +36,16 @@ Instead, a computer needs a **mathematical ruler**. It must assign a precise num
 
 Before the model can make a guess, we must write down a master catalog of every word or subword it is allowed to speak. We call this catalog the **Vocabulary Set**, denoted by the symbol $V$:
 
-$$V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}$$
+
+
+
+
+$$
+V = \{\text{"the"}, \text{"cat"}, \text{"sat"}, \text{"on"}, \text{"mat"}, \dots\}
+$$
+
+
+
 
 The total count of distinct words in this box is called the **Vocabulary Size**, written as $|V|$:
 - In toy models: $|V| = 4$ or $|V| = 10$.
@@ -48,21 +57,57 @@ The total count of distinct words in this box is called the **Vocabulary Size**,
 
 When the model has already observed a sequence of $t-1$ words:
 
-$$w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{\lt t})$$
+
+
+
+
+$$
+w_1, w_2, \dots, w_{t-1} \quad (\text{often abbreviated as } w_{\lt t})
+$$
+
+
+
 
 it calculates the probability that the next word at position $t$ is a specific candidate word $w \in V$. We write this as:
 
-$$P(w_t = w \mid w_1, w_2, \dots, w_{t-1})$$
+
+
+
+
+$$
+P(w_t = w \mid w_1, w_2, \dots, w_{t-1})
+$$
+
+
+
 
 The vertical bar $\mid$ translates into plain English as **"given that we already observed"**.
 
 Every valid probability distribution in an LLM must satisfy two unbreakable mathematical laws:
 
 1. **Non-negativity & Boundedness**: No word can have a negative chance, and no word can have more than a 100% chance:
-   $$0 \le P(w_t = w \mid w_{\lt t}) \le 1 \quad \text{for all } w \in V$$
+
+
+
+
+   $$
+   0 \le P(w_t = w \mid w_{\lt t}) \le 1 \quad \text{for all } w \in V
+   $$
+
+
+
 
 2. **Total Probability Conservation**: If you add up the probabilities of every word in the entire dictionary, the sum must equal exactly $1$ (100% of the pie):
-   $$\sum_{w \in V} P(w_t = w \mid w_{\lt t}) = 1$$
+
+
+
+
+   $$
+   \sum_{w \in V} P(w_t = w \mid w_{\lt t}) = 1
+   $$
+
+
+
 
 ---
 
@@ -70,11 +115,29 @@ Every valid probability distribution in an LLM must satisfy two unbreakable math
 
 How does an LLM generate an entire essay, a poem, or a computer program? It strings individual next-word guesses together using the **Chain Rule of Joint Probability**:
 
-$$P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})$$
+
+
+
+
+$$
+P(w_1, w_2, \dots, w_T) = P(w_1) \times P(w_2 \mid w_1) \times P(w_3 \mid w_1, w_2) \times \dots \times P(w_T \mid w_1, \dots, w_{T-1})
+$$
+
+
+
 
 Using compact mathematical product notation ($\prod$):
 
-$$P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})$$
+
+
+
+
+$$
+P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_1, \dots, w_{t-1})
+$$
+
+
+
 
 !!! example "Exact Math & Formulas: Decoding the Mathematical Symbols"
     - $\sum$ (Capital Sigma): Means **"Add them all up"**.
@@ -92,8 +155,8 @@ There are three foundational reasons:
 
 2. **Comparing and Ranking Competing Thoughts**:  
    When generating text or translating between languages, the model often considers multiple candidate sentences:
-   - Candidate A: \lt samp>"The cat sat on the warm rug."</samp>
-   - Candidate B: \lt samp>"The cat sat on the warm rug rug."</samp>  
+   - Candidate A: <samp>"The cat sat on the warm rug."</samp>
+   - Candidate B: <samp>"The cat sat on the warm rug rug."</samp>  
    Evaluating the joint probability across all tokens allows the model to score and rank complete hypotheses, picking the one that makes the most cohesive sense as a whole.
 
 3. **Preventing Short-Sighted "Greedy" Traps**:  
@@ -103,91 +166,91 @@ There are three foundational reasons:
 
 ### Mathematical Symbol Breakdown Table
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>Table 0.1:</strong> Formal mathematical symbols, dimensions, and operational definitions.</caption>
-  \lt thead>
-    \lt tr>
-      \lt th align="left">Symbol</th>
-      \lt th align="left">Formal Name</th>
-      \lt th align="left">3-Year-Old Meaning</th>
-      \lt th align="left">Concrete Toy Example</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 0.1:</strong> Formal mathematical symbols, dimensions, and operational definitions.</caption>
+  <thead>
+    <tr>
+      <th align="left">Symbol</th>
+      <th align="left">Formal Name</th>
+      <th align="left">3-Year-Old Meaning</th>
+      <th align="left">Concrete Toy Example</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td>$V$</td>
-      \lt td>Vocabulary Set</td>
-      \lt td>The big toy box of words the model knows</td>
-      \lt td>$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$</td>
+  <tbody>
+    <tr>
+      <td>$V$</td>
+      <td>Vocabulary Set</td>
+      <td>The big toy box of words the model knows</td>
+      <td>$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\}$</td>
     </tr>
-    \lt tr>
-      \lt td>$|V|$</td>
-      \lt td>Vocabulary Size</td>
-      \lt td>How many word blocks are in the toy box</td>
-      \lt td>$|V| = 4$ words</td>
+    <tr>
+      <td>$|V|$</td>
+      <td>Vocabulary Size</td>
+      <td>How many word blocks are in the toy box</td>
+      <td>$|V| = 4$ words</td>
     </tr>
-    \lt tr>
-      \lt td>$t$</td>
-      \lt td>Time Step / Position</td>
-      \lt td>The index of the word we are guessing right now</td>
-      \lt td>$t = 4$ (the fourth word)</td>
+    <tr>
+      <td>$t$</td>
+      <td>Time Step / Position</td>
+      <td>The index of the word we are guessing right now</td>
+      <td>$t = 4$ (the fourth word)</td>
     </tr>
-    \lt tr>
-      \lt td>$w_t$</td>
-      \lt td>Token at Step $t$</td>
-      \lt td>The candidate word being considered</td>
-      \lt td>$w_4 = \text{"cream"}$</td>
+    <tr>
+      <td>$w_t$</td>
+      <td>Token at Step $t$</td>
+      <td>The candidate word being considered</td>
+      <td>$w_4 = \text{"cream"}$</td>
     </tr>
-    \lt tr>
-      \lt td>$w_{\lt t}$</td>
-      \lt td>Prefix Context</td>
-      \lt td>All previous clues whispered into the funnel</td>
-      \lt td>$w_{\lt 4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
+    <tr>
+      <td>$w_{\lt t}$</td>
+      <td>Prefix Context</td>
+      <td>All previous clues whispered into the funnel</td>
+      <td>$w_{\lt 4} = (\text{"I"}, \text{"love"}, \text{"ice"})$</td>
     </tr>
-    \lt tr>
-      \lt td>$P(w_t \mid w_{\lt t})$</td>
-      \lt td>Conditional Probability</td>
-      \lt td>The model's belief meter ($0.0$ to $1.0$) for that word</td>
-      \lt td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
+    <tr>
+      <td>$P(w_t \mid w_{\lt t})$</td>
+      <td>Conditional Probability</td>
+      <td>The model's belief meter ($0.0$ to $1.0$) for that word</td>
+      <td>$P(\text{"cream"} \mid \text{"I love ice"}) = 0.90$</td>
     </tr>
-    \lt tr>
-      \lt td>$\sum$</td>
-      \lt td>Summation (Sigma)</td>
-      \lt td>Add up all slices of the probability pizza</td>
-      \lt td>Sum of all 4 word probabilities $= 1.00$ (100%)</td>
+    <tr>
+      <td>$\sum$</td>
+      <td>Summation (Sigma)</td>
+      <td>Add up all slices of the probability pizza</td>
+      <td>Sum of all 4 word probabilities $= 1.00$ (100%)</td>
     </tr>
-    \lt tr>
-      \lt td>$\prod$</td>
-      \lt td>Product (Capital Pi)</td>
-      \lt td>Multiply the chances of each step along the chain</td>
-      \lt td>$0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$</td>
+    <tr>
+      <td>$\prod$</td>
+      <td>Product (Capital Pi)</td>
+      <td>Multiply the chances of each step along the chain</td>
+      <td>$0.50 \times 0.40 \times 0.30 \times 0.90 = 0.054$</td>
     </tr>
   </tbody>
 </table>
 
-\lt br>
+<br>
 
-\lt details>
-\lt summary>\lt strong>Symbol Glossary (Definition List)</strong></summary>
+<details>
+<summary><strong>Symbol Glossary (Definition List)</strong></summary>
 
-\lt dl>
-  \lt dt>\lt strong>Vocabulary Set ($V$)</strong></dt>
-  \lt dd>The finite set of all unique words, subwords, or characters recognized by the tokenizer.</dd>
+<dl>
+  <dt><strong>Vocabulary Set ($V$)</strong></dt>
+  <dd>The finite set of all unique words, subwords, or characters recognized by the tokenizer.</dd>
   
-  \lt dt>\lt strong>Vocabulary Cardinality ($|V|$)</strong></dt>
-  \lt dd>The total count of tokens in $V$. Modern LLMs typically range from 32,000 to 128,000 tokens.</dd>
+  <dt><strong>Vocabulary Cardinality ($|V|$)</strong></dt>
+  <dd>The total count of tokens in $V$. Modern LLMs typically range from 32,000 to 128,000 tokens.</dd>
   
-  \lt dt>\lt strong>Sequential Index ($t$)</strong></dt>
-  \lt dd>The discrete time step or token position along the sequence axis ($t \in \{1, 2, \dots, T\}$).</dd>
+  <dt><strong>Sequential Index ($t$)</strong></dt>
+  <dd>The discrete time step or token position along the sequence axis ($t \in \{1, 2, \dots, T\}$).</dd>
   
-  \lt dt>\lt strong>Target Token ($w_t$)</strong></dt>
-  \lt dd>The specific word chosen or predicted at sequence position $t$.</dd>
+  <dt><strong>Target Token ($w_t$)</strong></dt>
+  <dd>The specific word chosen or predicted at sequence position $t$.</dd>
   
-  \lt dt>\lt strong>Prefix History / Context ($w_{\lt t}$)</strong></dt>
-  \lt dd>The ordered tuple of all tokens preceding step $t$: $(w_1, w_2, \dots, w_{t-1})$.</dd>
+  <dt><strong>Prefix History / Context ($w_{\lt t}$)</strong></dt>
+  <dd>The ordered tuple of all tokens preceding step $t$: $(w_1, w_2, \dots, w_{t-1})$.</dd>
   
-  \lt dt>\lt strong>Conditional Probability ($P(w_t \mid w_{\lt t})$)</strong></dt>
-  \lt dd>A real scalar between $0.0$ and $1.0$ satisfying $\sum_{w \in V} P(w \mid w_{\lt t}) = 1.0$.</dd>
+  <dt><strong>Conditional Probability ($P(w_t \mid w_{\lt t})$)</strong></dt>
+  <dd>A real scalar between $0.0$ and $1.0$ satisfying $\sum_{w \in V} P(w \mid w_{\lt t}) = 1.0$.</dd>
 </dl>
 </details>
 
@@ -197,25 +260,34 @@ There are three foundational reasons:
 
 Why do all modern LLMs formulate language generation as a chain of conditional probabilities rather than predicting the whole sentence at once?
 
-\lt details>
-\lt summary>\lt strong>Historical Origins: Andrey Markov (1913) & Claude Shannon (1948)</strong></summary>
+<details>
+<summary><strong>Historical Origins: Andrey Markov (1913) & Claude Shannon (1948)</strong></summary>
 
-\lt p>In 1913, Russian mathematician \lt strong>Andrey Markov</strong> spent months working by candlelight with a copy of Alexander Pushkin's verse novel \lt em>Eugene Onegin</em>. He meticulously counted 20,000 Russian letters by hand to prove that the probability of a letter being a vowel depended strongly on whether the previous letter was a consonant.</p>
+<p>In 1913, Russian mathematician <strong>Andrey Markov</strong> spent months working by candlelight with a copy of Alexander Pushkin's verse novel <em>Eugene Onegin</em>. He meticulously counted 20,000 Russian letters by hand to prove that the probability of a letter being a vowel depended strongly on whether the previous letter was a consonant.</p>
 
-\lt p>This proved that language has \lt strong>temporal dependence</strong>: letters and words do not appear randomly; each token depends on what came immediately before it. This mathematical structure became known as a \lt strong>Markov Chain</strong>.</p>
+<p>This proved that language has <strong>temporal dependence</strong>: letters and words do not appear randomly; each token depends on what came immediately before it. This mathematical structure became known as a <strong>Markov Chain</strong>.</p>
 
-\lt p>Thirty-five years later, in 1948, \lt strong>Claude Shannon</strong> published his landmark paper \lt em>"A Mathematical Theory of Communication"</em>. Shannon formalized human language as a statistical stochastic process where each successive symbol is chosen according to conditional probability distributions conditioned on preceding symbols.</p>
+<p>Thirty-five years later, in 1948, <strong>Claude Shannon</strong> published his landmark paper <em>"A Mathematical Theory of Communication"</em>. Shannon formalized human language as a statistical stochastic process where each successive symbol is chosen according to conditional probability distributions conditioned on preceding symbols.</p>
 </details>
 
-\lt br>
+<br>
 
-\lt details>
-\lt summary>\lt strong>What Broke When Researchers Tried Simpler Ideas?</strong></summary>
+<details>
+<summary><strong>What Broke When Researchers Tried Simpler Ideas?</strong></summary>
 
-\lt p>Why can't we just assume words are independent? That is, why not compute:</p>
-$$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
+<p>Why can't we just assume words are independent? That is, why not compute:</p>
 
-\lt p>If words were independent, the sentence \lt em>"The dog bit the man"</em> would have the exact same probability as \lt em>"Bit man dog the the"</em>, because both contain identical words! Language relies entirely on word order and context. Therefore, conditioning on the past prefix $w_{\lt t}$ is mathematically essential.</p>
+
+
+
+$$
+P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)
+$$
+
+
+
+
+<p>If words were independent, the sentence <em>"The dog bit the man"</em> would have the exact same probability as <em>"Bit man dog the the"</em>, because both contain identical words! Language relies entirely on word order and context. Therefore, conditioning on the past prefix $w_{\lt t}$ is mathematically essential.</p>
 </details>
 
 ---
@@ -224,13 +296,22 @@ $$P(w_1, w_2, w_3) \stackrel{?}{=} P(w_1) \times P(w_2) \times P(w_3)$$
 
 Let's walk through the exact arithmetic using our tiny toy language:
 
-$$V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)$$
+
+
+
+
+$$
+V = \{\text{"I"}, \text{"love"}, \text{"ice"}, \text{"cream"}\} \quad (|V| = 4)
+$$
+
+
+
 
 We want to calculate the probability of generating the complete sentence:  
 **"I love ice cream"**
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
 Step 1: P("I")                                        = 0.50  (50% chance)
              │
 Step 2: P("love"  │ "I")                              = 0.40  (40% chance)
@@ -241,7 +322,7 @@ Step 4: P("cream" │ "I", "love", "ice")               = 0.90  (90% chance)
 ──────────────────────────────────────────────────────────────────────────
 Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
 </pre>
-\lt figcaption>\lt strong>Figure 0.1:</strong> Sequential probability conditioning across four time steps.</figcaption>
+<figcaption><strong>Figure 0.1:</strong> Sequential probability conditioning across four time steps.</figcaption>
 </figure>
 
 ---
@@ -250,52 +331,52 @@ Full Joint Probability: 0.50 × 0.40 × 0.30 × 0.90     = 0.054 (5.4%)
 
 At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate word in $V$:
 
-\lt table border="1" cellpadding="8" cellspacing="0" width="100%">
-  \lt caption>\lt strong>Table 0.2:</strong> Candidate word probability distribution conditioned on prefix context \lt kbd>"I love ice"</kbd>.</caption>
-  \lt thead>
-    \lt tr>
-      \lt th align="left">Candidate Word $w \in V$</th>
-      \lt th align="right">Conditional Probability $P(w \mid \text{"I love ice"})$</th>
-      \lt th align="right">Percentage</th>
-      \lt th align="center">Visual Probability Bar</th>
-      \lt th align="left">Interpretation</th>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 0.2:</strong> Candidate word probability distribution conditioned on prefix context <kbd>"I love ice"</kbd>.</caption>
+  <thead>
+    <tr>
+      <th align="left">Candidate Word $w \in V$</th>
+      <th align="right">Conditional Probability $P(w \mid \text{"I love ice"})$</th>
+      <th align="right">Percentage</th>
+      <th align="center">Visual Probability Bar</th>
+      <th align="left">Interpretation</th>
     </tr>
   </thead>
-  \lt tbody>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"cream"</kbd></strong></td>
-      \lt td align="right">\lt strong>0.90</strong></td>
-      \lt td align="right">\lt mark>\lt strong>90%</strong></mark></td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.90" optimum="0.8">90%</meter></td>
-      \lt td align="left">Clear favorite</td>
+  <tbody>
+    <tr>
+      <td align="left"><strong><kbd>"cream"</kbd></strong></td>
+      <td align="right"><strong>0.90</strong></td>
+      <td align="right"><mark><strong>90%</strong></mark></td>
+      <td align="center"><meter min="0" max="1" value="0.90" optimum="0.8">90%</meter></td>
+      <td align="left">Clear favorite</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"ice"</kbd></strong></td>
-      \lt td align="right">0.05</td>
-      \lt td align="right">5%</td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.05">5%</meter></td>
-      \lt td align="left">Unlikely ("ice ice")</td>
+    <tr>
+      <td align="left"><strong><kbd>"ice"</kbd></strong></td>
+      <td align="right">0.05</td>
+      <td align="right">5%</td>
+      <td align="center"><meter min="0" max="1" value="0.05">5%</meter></td>
+      <td align="left">Unlikely ("ice ice")</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"love"</kbd></strong></td>
-      \lt td align="right">0.03</td>
-      \lt td align="right">3%</td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.03">3%</meter></td>
-      \lt td align="left">Unlikely ("ice love")</td>
+    <tr>
+      <td align="left"><strong><kbd>"love"</kbd></strong></td>
+      <td align="right">0.03</td>
+      <td align="right">3%</td>
+      <td align="center"><meter min="0" max="1" value="0.03">3%</meter></td>
+      <td align="left">Unlikely ("ice love")</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>\lt kbd>"I"</kbd></strong></td>
-      \lt td align="right">0.02</td>
-      \lt td align="right">2%</td>
-      \lt td align="center">\lt meter min="0" max="1" value="0.02">2%</meter></td>
-      \lt td align="left">Very unlikely ("ice I")</td>
+    <tr>
+      <td align="left"><strong><kbd>"I"</kbd></strong></td>
+      <td align="right">0.02</td>
+      <td align="right">2%</td>
+      <td align="center"><meter min="0" max="1" value="0.02">2%</meter></td>
+      <td align="left">Very unlikely ("ice I")</td>
     </tr>
-    \lt tr>
-      \lt td align="left">\lt strong>Total Sum ($\sum$)</strong></td>
-      \lt td align="right">\lt strong>1.00</strong></td>
-      \lt td align="right">\lt mark>\lt strong>100%</strong></mark></td>
-      \lt td align="center">\lt progress max="100" value="100">100%</progress></td>
-      \lt td align="left">\lt strong>Conserved Probability</strong></td>
+    <tr>
+      <td align="left"><strong>Total Sum ($\sum$)</strong></td>
+      <td align="right"><strong>1.00</strong></td>
+      <td align="right"><mark><strong>100%</strong></mark></td>
+      <td align="center"><progress max="100" value="100">100%</progress></td>
+      <td align="left"><strong>Conserved Probability</strong></td>
     </tr>
   </tbody>
 </table>
@@ -306,26 +387,62 @@ At step $t=4$, after hearing *"I love ice"*, the model evaluates every candidate
 
 Now we multiply the 4 probabilities together using the Chain Rule:
 
-$$P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90$$
+
+
+
+
+$$
+P(\text{"I love ice cream"}) = 0.50 \times 0.40 \times 0.30 \times 0.90
+$$
+
+
+
 
 Let's compute each multiplication by hand:
 
 1. Multiply the first two words:
-   $$0.50 \times 0.40 = 0.20$$
+
+
+
+
+   $$
+   0.50 \times 0.40 = 0.20
+   $$
+
+
+
 
 2. Multiply by the third word:
-   $$0.20 \times 0.30 = 0.06$$
+
+
+
+
+   $$
+   0.20 \times 0.30 = 0.06
+   $$
+
+
+
 
 3. Multiply by the fourth word:
-   $$0.06 \times 0.90 = \mathbf{0.054}$$
 
-The full sentence has an overall probability of \lt mark>\lt strong>0.054</strong></mark> (or \lt mark>\lt strong>5.4%</strong></mark>).
+
+
+
+   $$
+   0.06 \times 0.90 = \mathbf{0.054}
+   $$
+
+
+
+
+The full sentence has an overall probability of <mark><strong>0.054</strong></mark> (or <mark><strong>5.4%</strong></mark>).
 
 ---
 
 ### The Paradox of 5.4%: Why Does It Look So Low, and Why Is It Actually Huge?
 
-At first glance, a probability of \lt mark>\lt strong>5.4%</strong></mark> looks tiny. You might wonder: *"If the model is so smart, shouldn't the probability of 'I love ice cream' be 80% or 90%?"*
+At first glance, a probability of <mark><strong>5.4%</strong></mark> looks tiny. You might wonder: *"If the model is so smart, shouldn't the probability of 'I love ice cream' be 80% or 90%?"*
 
 Here is the deep mathematical secret: **In sequence probability, 5.4% is an astonishingly massive number.**
 
@@ -334,23 +451,50 @@ Let's see why:
 #### 1. The 256-Sentence Universe (Combinatorial Explosion)
 In our tiny toy language with only 4 words ($|V| = 4$), how many unique 4-word sentences can you write?
 
-$$\text{Total Possible Sentences} = |V|^T = 4^4 = 256 \text{ sentences}$$
+
+
+
+
+$$
+\text{Total Possible Sentences} = |V|^T = 4^4 = 256 \text{ sentences}
+$$
+
+
+
 
 These include sentences like:
-- \lt samp>"I I I I"</samp>
-- \lt samp>"cream cream cream cream"</samp>
-- \lt samp>"love ice cream I"</samp>
-- \lt samp>"I love ice cream"</samp>
+- <samp>"I I I I"</samp>
+- <samp>"cream cream cream cream"</samp>
+- <samp>"love ice cream I"</samp>
+- <samp>"I love ice cream"</samp>
 - ...and 252 other candidate combinations!
 
 #### 2. Comparison With Pure Random Chance
 If a child randomly picked 4 word blocks out of the box, every sentence would have an identical chance of:
 
-$$P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)$$
 
-Our language model assigns \lt mark>\lt strong>5.4%</strong></mark> to \lt samp>"I love ice cream"</samp>. Let's compare our model to random chance:
 
-$$\frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{ higher than random chance!}}$$
+
+
+$$
+P_{\text{random}} = \frac{1}{|V|^T} = \frac{1}{256} \approx 0.003906 \quad (0.39\%)
+$$
+
+
+
+
+Our language model assigns <mark><strong>5.4%</strong></mark> to <samp>"I love ice cream"</samp>. Let's compare our model to random chance:
+
+
+
+
+
+$$
+\frac{5.4\%}{0.39\%} \approx \mathbf{13.8\times \text{ higher than random chance!}}
+$$
+
+
+
 
 In a crowded stadium of 256 competing sentences, one single sentence captured over 5% of all the probability mass in the entire universe. That is an overwhelming statistical endorsement.
 
@@ -361,7 +505,16 @@ Now imagine a production LLM like GPT-4 or LLaMA-3:
 
 The number of possible 50-token sequences is:
 
-$$|V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}$$
+
+
+
+
+$$
+|V|^T = 100{,}000^{50} = (10^5)^{50} = 10^{250}
+$$
+
+
+
 
 By comparison, the entire observable universe contains only about $10^{80}$ atoms!
 
@@ -373,7 +526,16 @@ If a computer chip tries to store a number like $10^{-250}$ using standard float
 **The Mathematical Solution (Log-Probabilities):**
 To prevent this underflow, AI researchers never multiply probabilities directly. Instead, they convert probabilities into logarithms. Because $\log(a \times b) = \log(a) + \log(b)$, dangerous multiplication turns into safe, stable addition:
 
-$$\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{\lt t})$$
+
+
+
+
+$$
+\log P(w_1, w_2, \dots, w_T) = \sum_{t=1}^T \log P(w_t \mid w_{\lt t})
+$$
+
+
+
 
 We will explore this logarithmic superpower in depth when we train models with **Cross-Entropy Loss** in Module 6!
 

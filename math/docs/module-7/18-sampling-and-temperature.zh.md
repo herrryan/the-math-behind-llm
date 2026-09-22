@@ -57,13 +57,17 @@
 
     最直观、最简单的策略就是**贪婪解码（Greedy Decoding）**：
 
+
+
     $$
     w_{t}^* = \arg\max_{w \in V} z_w
     $$
 
+
+
     既然我们费尽千辛万苦训练模型让它越准越好，为什么商业大模型几乎从来不用贪婪解码？
 
-    2019 年，华盛顿大学的阿里·霍尔茨曼（Ari Holtzman）等人在论文 \lt cite>《The Curious Case of Neural Text Degeneration》</cite> 中证明了一个令人震惊的统计学事实：
+    2019 年，华盛顿大学的阿里·霍尔茨曼（Ari Holtzman）等人在论文 <cite>《The Curious Case of Neural Text Degeneration》</cite> 中证明了一个令人震惊的统计学事实：
     1. **人类自然语言并不追求最高概率**：人类作家在写作时，句子从来不是由一连串概率最高的词简单拼凑而成的。真实自然的人类语言充满波澜，在极度可预测的高概率词与充满创意的低概率惊喜词之间有规律地交替波动。
     2. **自回归的复读机死循环**：在自回归循环生成中，贪婪解码极易陷入局部确定性陷阱。词 A 的最高概率后继是词 B，而词 B 的最高概率后继又是词 A，导致模型一旦踏入陷阱，便永远在 $A \to B \to A \to B$ 的无限死循环中发疯。
 
@@ -78,31 +82,47 @@
 设模型最顶层输出的未归一化对数几率为 $\mathbf{z} = [z_1, z_2, \dots, z_{|V|}]^\top \in \mathbb{R}^{|V|}$。
 **温度缩放 Softmax** 将词元 $i$ 的生成概率严格定义为：
 
+
+
 $$
 p_i(T) = \frac{\exp(z_i / T)}{\sum_{j=1}^{|V|} \exp(z_j / T)}
 $$
+
+
 
 其中 $T > 0$ 为**温度超参数**。
 
 #### 不同温度区间的严谨数学极限性质：
 1. **当 $T \to 0^+$ 时（极寒贪婪极限，Argmax）**：
    最大对数几率 $z_{\max}$ 与其余所有对数几率的差值被放大到无穷大：
+
+
    $$
    \lim_{T \to 0^+} p_i(T) = \begin{cases} 1 & \text{若 } z_i = \max_j z_j \\ 0 & \text{其它情况} \end{cases}
    $$
+
+
    整个概率分布塌缩为确定性的 **One-Hot 狄拉克 $\delta$ 分布**。
 
 2. **标准温度（$T = 1.0$）**：
    完全还原训练阶段交叉熵损失所使用的纯净原始 Softmax 分布：
+
+
    $$
    p_i(1.0) = \frac{\exp(z_i)}{\sum_j \exp(z_j)}
    $$
 
+
+
 3. **当 $T \to \infty$ 时（狂暴均匀极限，白噪声）**：
    所有缩放后的对数几率都趋近于零（$z_i / T \to 0$），导致分子 $\exp(z_i / T) \to 1$：
+
+
    $$
    \lim_{T \to \infty} p_i(T) = \frac{1}{|V|}
    $$
+
+
    整个概率分布完全拉平，词表中所有词的被选概率完全均等（最大信息熵状态）。
 
 ---
@@ -111,16 +131,24 @@ $$
 
 Top-$k$ 过滤强制只保留对数几率最高的前 $k$ 个词元，将其余所有词元的对数几率强行抹平为负无穷大：
 
+
+
 $$
 z'_i = \begin{cases} z_i & \text{若 } z_i \ge z_{(k)} \\ -\infty & \text{其它情况} \end{cases}
 $$
 
+
+
 其中 $z_{(k)}$ 是词表中第 $k$ 大的对数几率。
 掩码屏蔽之后，在剩下的 $k$ 个候选词上重新计算 Softmax：
+
+
 
 $$
 p'_i = \frac{\exp(z'_i / T)}{\sum_{j=1}^{|V|} \exp(z'_j / T)}
 $$
+
+
 
 ---
 
@@ -130,24 +158,40 @@ Top-$k$ 存在死板的硬伤：固定的 $k=50$ 在模型极有把握时显得�
 
 **Top-$p$（核采样）算法**通过累积概率动态自适应调整候选池窗口：
 1. 将词表中所有词元按照概率大小降序排列：
+
+
    $$
    p_{(1)} \ge p_{(2)} \ge \dots \ge p_{(|V|)}
    $$
-2. 寻找使累积分布函数（\lt abbr title="Cumulative Distribution Function">CDF</abbr>）首次突破阈值 $p \in (0, 1]$ 的最小临界索引 $k^*$：
+
+
+2. 寻找使累积分布函数（<abbr title="Cumulative Distribution Function">CDF</abbr>）首次突破阈值 $p \in (0, 1]$ 的最小临界索引 $k^*$：
+
+
    $$
    k^* = \min \left\{ k : \sum_{i=1}^k p_{(i)} \ge p \right\}
    $$
+
+
 3. 将前 $k^*$ 个核心词元集合定义为“核心核”（Nucleus $V^{(p)}$）：
+
+
    $$
    V^{(p)} = \{ (1), (2), \dots, (k^*) \}
    $$
+
+
 4. 严格在核心核 $V^{(p)}$ 内部重新归一化概率分布：
+
+
    $$
    p'_i = \begin{cases} \frac{p_i}{\sum_{j \in V^{(p)}} p_j} & \text{若 } i \in V^{(p)} \\ 0 & \text{其它情况} \end{cases}
    $$
 
-\lt figure>
-\lt pre>
+
+
+<figure>
+<pre>
 Top-p 核采样在不同语境下的动态弹性缩放表现：
 
 情境 A：极度自信确定的语境（"法国的首都是……"）
@@ -158,22 +202,22 @@ Top-p 核采样在不同语境下的动态弹性缩放表现：
   词元：        [ 小鸟 (0.18) │ 树叶 (0.15) │ 猫咪 (0.12) │ 蝴蝶 (0.10) ... ]
   累积概率：      0.18 + 0.15 + 0.12 + 0.10 + ... >= 0.90 ──► 候选池自动膨胀为 18 个词！
 </pre>
-\lt figcaption>\lt strong>图 18.2：</strong> 核采样在模型笃定时收缩至唯一解，在语境开放时动态扩充候选池。</figcaption>
+<figcaption><strong>图 18.2：</strong> 核采样在模型笃定时收缩至唯一解，在语境开放时动态扩充候选池。</figcaption>
 </figure>
 
 ---
 
 ## 第 4 步：历史源流与思考演进（玻尔兹曼、Fan 与 Holtzman） {: #step-4 }
 
-\lt dl>
-  \lt dt>\lt time datetime="1877">1877</time> &mdash; \lt strong>路德维希·玻尔兹曼（Ludwig Boltzmann）</strong></dt>
-  \lt dd>创立了统计热力学，证明了处于热力学温度 $T$ 下的物理系统，其微观状态 $i$（能量为 $E_i$）出现的概率严格服从麦克斯韦-玻尔兹曼分布 $p_i \propto \exp(-E_i / k_B T)$。在现代大模型中，负对数几率 $-z_i$ 恰好扮演了粒子的微观能量状态。</dd>
+<dl>
+  <dt><time datetime="1877">1877</time> &mdash; <strong>路德维希·玻尔兹曼（Ludwig Boltzmann）</strong></dt>
+  <dd>创立了统计热力学，证明了处于热力学温度 $T$ 下的物理系统，其微观状态 $i$（能量为 $E_i$）出现的概率严格服从麦克斯韦-玻尔兹曼分布 $p_i \propto \exp(-E_i / k_B T)$。在现代大模型中，负对数几率 $-z_i$ 恰好扮演了粒子的微观能量状态。</dd>
 
-  \lt dt>\lt time datetime="2018">2018</time> &mdash; \lt strong>安吉拉·范、迈克·刘易斯 与 雅恩·多芬</strong>（\lt cite>《Hierarchical Neural Story Generation》</cite>）</dt>
-  \lt dd>在 Meta AI 提出了将 Top-$k$ 截断随机采样引入神经文本生成，证实斩断概率尾部可以大幅压制模型胡言乱语与机械复读的现象。</dd>
+  <dt><time datetime="2018">2018</time> &mdash; <strong>安吉拉·范、迈克·刘易斯 与 雅恩·多芬</strong>（<cite>《Hierarchical Neural Story Generation》</cite>）</dt>
+  <dd>在 Meta AI 提出了将 Top-$k$ 截断随机采样引入神经文本生成，证实斩断概率尾部可以大幅压制模型胡言乱语与机械复读的现象。</dd>
 
-  \lt dt>\lt time datetime="2019">2019</time> &mdash; \lt strong>阿里·霍尔茨曼 等人</strong>（\lt cite>《The Curious Case of Neural Text Degeneration》</cite>）</dt>
-  \lt dd>深入剖析了人类语言的统计学分布真相，揭示了贪婪解码与固定 Top-$k$ 的根本缺陷，开创了 Top-$p$ 核采样机制，该算法至今仍是 ChatGPT、Claude、Gemini 等主流大模型的默认解码利器。</dd>
+  <dt><time datetime="2019">2019</time> &mdash; <strong>阿里·霍尔茨曼 等人</strong>（<cite>《The Curious Case of Neural Text Degeneration》</cite>）</dt>
+  <dd>深入剖析了人类语言的统计学分布真相，揭示了贪婪解码与固定 Top-$k$ 的根本缺陷，开创了 Top-$p$ 核采样机制，该算法至今仍是 ChatGPT、Claude、Gemini 等主流大模型的默认解码利器。</dd>
 </dl>
 
 ---
@@ -185,9 +229,13 @@ Top-p 核采样在不同语境下的动态弹性缩放表现：
 ### 1. 微型词表与原始对数几率
 设词表 $V = \{\text{猫}, \text{狗}, \text{鱼}, \text{微波炉}\}$，大模型输出的原始对数几率如下：
 
+
+
 $$
 \mathbf{z} = [z_{\text{猫}} = 4.0, \; z_{\text{狗}} = 2.0, \; z_{\text{鱼}} = 1.0, \; z_{\text{微波炉}} = -1.0]
 $$
+
+
 
 ---
 

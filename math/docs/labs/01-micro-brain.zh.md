@@ -281,9 +281,13 @@ print("生成结果:", " ".join(generated))
     Bengio 提出了一项改写历史的划时代构想：<strong>放弃离散词频计数，让每一个词在连续几何空间中拥有一个稠密向量（Distributed Representation）！</strong><br>
     因为在这个连续空间中：
     
+
+
 $$
 \text{“猫”} \approx \text{“狗”}, \quad \text{“地毯”} \approx \text{“垫子”}
 $$
+
+
 
     即使训练集里只见过 <samp>"the cat sat on the mat"</samp>，当模型第一次在测试集里看到 <samp>"the dog sat on the rug"</samp> 时，凭借几何向量的余弦相似度，网络依然能自动领悟出这完全是一句合乎语法的优美句子！<cite>《A Neural Probabilistic Language Model》, JMLR 2003</cite>。
   </dd>

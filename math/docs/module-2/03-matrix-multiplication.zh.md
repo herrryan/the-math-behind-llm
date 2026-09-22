@@ -108,9 +108,13 @@
 在第01章中，我们引入了<strong>嵌入查找矩阵</strong> $\mathbf{E} \in \mathbb{R}^{|V| \times d}$。
 请留意这个奇妙的统一性：$\mathbf{E}$ 本质上就是我们遇到的第一个权重矩阵！它容纳了 $|V|$ 个词向量，负责将离散的单词编号（一热编码向量）翻译成连续的语义空间坐标：
 
+
+
 $$
 \mathbf{x}_i^\top = \mathbf{e}_i^\top \mathbf{E}
 $$
+
+
 
 而到了第03章，层级中的<strong>权重矩阵</strong> $\mathbf{W}$ 则接过了接力棒：它接收现有的词嵌入 $\mathbf{x}$，并将它进一步投影、旋转到更深层、更高级的特征空间中。
 
@@ -123,15 +127,23 @@ $$
 
 对于一个维度为 $k$ 的输入词嵌入向量 $\mathbf{x} \in \mathbb{R}^{k \times 1}$、一个权重矩阵 $\mathbf{W} \in \mathbb{R}^{m \times k}$，以及一个偏置向量 $\mathbf{b} \in \mathbb{R}^{m \times 1}$，变换后的输出向量 $\mathbf{y} \in \mathbb{R}^{m \times 1}$ 为：
 
+
+
 $$
 \mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}
 $$
 
+
+
 让我们把这个公式彻底展开为矩阵和向量的内部元素：
+
+
 
 $$
 \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_m \end{bmatrix} = \begin{bmatrix} W_{1,1} & W_{1,2} & \cdots & W_{1,k} \\ W_{2,1} & W_{2,2} & \cdots & W_{2,k} \\ \vdots & \vdots & \ddots & \vdots \\ W_{m,1} & W_{m,2} & \cdots & W_{m,k} \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_k \end{bmatrix} + \begin{bmatrix} b_1 \\ b_2 \\ \vdots \\ b_m \end{bmatrix}
 $$
+
+
 
 在这个公式中：
 - $\mathbf{W}\mathbf{x}$ 负责执行**橡胶布拉伸**：拉伸、旋转、倾斜剪切，或者改变词嵌入空间的维度大小。
@@ -161,15 +173,23 @@ $$
 
 写成维度公式：
 
+
+
 $$
 (m \times k) \times (k \times n) \longrightarrow (m \times n)
 $$
 
+
+
 如果矩阵 $\mathbf{A} \in \mathbb{R}^{m \times k}$，矩阵 $\mathbf{B} \in \mathbb{R}^{k \times n}$，则乘积矩阵 $\mathbf{C} \in \mathbb{R}^{m \times n}$ 中的每一个元素 $C_{i, j}$，都是通过将矩阵 $\mathbf{A}$ 的**第 $i$ 行**与矩阵 $\mathbf{B}$ 的**第 $j$ 列**做**点积**计算出来的：
+
+
 
 $$
 C_{i, j} = \sum_{r=1}^k A_{i, r} B_{r, j} = A_{i, 1} B_{1, j} + A_{i, 2} B_{2, j} + \dots + A_{i, k} B_{k, j}
 $$
+
+
 
 <fieldset>
 <legend><strong>矩阵乘法本质上就是一张并行的点积阵列！</strong></legend>
@@ -187,9 +207,13 @@ $$
 
 当大多数人初学矩阵乘法时，脑海中往往只有逐行点乘的死板算术规则：
 
+
+
 $$
 y_i = (\mathbf{W} \text{ 的第 } i \text{ 行}) \cdot \mathbf{x}
 $$
+
+
 
 虽然这解释了芯片在底层如何进行微观计算，但它把整个神经网络层变成了一张毫无生机的冰冷数字网格，无法帮我们建立对特征处理的直观物理认知。
 
@@ -209,13 +233,21 @@ $$
 
 现在，请观察当权重矩阵透镜 $\mathbf{W} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix}$ 投射在这些纯特征基向量嵌入上时，会发生什么：
 
+
+
 $$
 \mathbf{W} \hat{\mathbf{i}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} W_{1,1} \\ W_{2,1} \end{bmatrix} = \mathbf{W} \text{ 的第 1 列}
 $$
 
+
+
+
+
 $$
 \mathbf{W} \hat{\mathbf{j}} = \begin{bmatrix} W_{1,1} & W_{1,2} \\ W_{2,1} & W_{2,2} \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} W_{1,2} \\ W_{2,2} \end{bmatrix} = \mathbf{W} \text{ 的第 2 列}
 $$
+
+
 
 这就揭示了神经网络空间变换的核心真谛：
 
@@ -229,9 +261,13 @@ $$
 
 当一个真实的词嵌入向量 $\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \end{bmatrix}$（如 $\text{"cat"} = [2, 1]^\top$）进入神经网络层时，矩阵乘法在几何上执行的是：
 
+
+
 $$
 \mathbf{W}\mathbf{x} = x_1 (\mathbf{W} \text{ 的第 1 列}) + x_2 (\mathbf{W} \text{ 的第 2 列})
 $$
+
+
 
 输入嵌入向量 $\mathbf{x}$ 绝非冰冷的数学谜题，它是一份**概念搅拌配方**：
 > *“请从第 1 列的概念中取 $x_1$ 份，从第 2 列的概念中取 $x_2$ 份，将它们充分混合，作为输出表征！”*
@@ -261,15 +297,23 @@ $$
 
 前向传播计算将输入矩阵置于左侧：
 
+
+
 $$
 \mathbf{Y} = \mathbf{X}\mathbf{W} + \mathbf{b}
 $$
 
+
+
 核对维度尺寸：
+
+
 
 $$
 (T \times d_{\text{in}}) \times (d_{\text{in}} \times d_{\text{out}}) \longrightarrow (T \times d_{\text{out}})
 $$
+
+
 
 依据转置恒等式 $(\mathbf{W}\mathbf{x})^\top = \mathbf{x}^\top \mathbf{W}^\top$，两套表述在数学实质上完全对等。
 
@@ -377,24 +421,36 @@ $$
 
 因为矩阵乘法完全由线性的加法和乘法构成，它的导数惊人地纯净简练：
 
+
+
 $$
 y_i = \sum_{r=1}^k W_{i, r} x_r + b_i \implies \frac{\partial y_i}{\partial W_{i, j}} = x_j
 $$
+
+
 
 对权重 $W_{i, j}$ 的变化率，仅仅就是输入的激活值 $x_j$ 本身！这使得**反向传播算法（Backpropagation）**能够无需解复杂方程，同时并发更新数以千亿计的参数。
 
 #### 超能力 2：保真几何结构
 线性变换保留共线性与平行线。如果在输入空间中三个词向量构成了一条生动的语义类比：
 
+
+
 $$
 \mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}} \approx \mathbf{x}_{\text{queen}}
 $$
 
+
+
 应用线性变换 $\mathbf{W}$ 后，这个关系分毫不差地继续成立：
+
+
 
 $$
 \mathbf{W}(\mathbf{x}_{\text{king}} - \mathbf{x}_{\text{man}} + \mathbf{x}_{\text{woman}}) = \mathbf{W}\mathbf{x}_{\text{king}} - \mathbf{W}\mathbf{x}_{\text{man}} + \mathbf{W}\mathbf{x}_{\text{woman}} \approx \mathbf{W}\mathbf{x}_{\text{queen}}
 $$
+
+
 
 大模型可以将整套概念体系旋转、投影并拉伸到新的子空间中，而完全不会撕裂或破坏概念之间的内在联系。
 
@@ -413,9 +469,13 @@ $$
 
 <p>注意这两者的比例：</p>
 
+
+
 $$
 \frac{\text{运算次数}}{\text{内存传输量}} = \frac{O(N^3)}{O(N^2)} = O(N)
 $$
+
+
 
 <p>这就是计算机体系结构中梦寐以求的圣杯——<strong>高算术强度（High Arithmetic Intensity）</strong>！对于大规模矩阵，<abbr title="Graphics Processing Unit">GPU</abbr> 只需要从昂贵缓慢的显存中加载一次数字，就能在不同的点积计算中将其复用数百次。</p>
 
@@ -440,15 +500,23 @@ $$
 - 维度 1：**毛茸茸度** $= 2$
 - 维度 2：**活泼度** $= 1$
 
+
+
 $$
 \mathbf{x}_{\text{cat}} = \begin{bmatrix} 2 \\ 1 \end{bmatrix}
 $$
 
+
+
 我们希望通过一个权重矩阵 $\mathbf{W}$ 将其投影，该矩阵拉伸了毛茸茸度并倾斜了活泼度，随后加上一个偏置偏移 $\mathbf{b}$：
+
+
 
 $$
 \mathbf{W} = \begin{bmatrix} 2 & 1 \\ 0 & 3 \end{bmatrix}, \quad \mathbf{b} = \begin{bmatrix} 1 \\ -1 \end{bmatrix}
 $$
+
+
 
 让我们一步一步手算出最终的输出向量 $\mathbf{y} = \mathbf{W}\mathbf{x} + \mathbf{b}$。
 
@@ -470,6 +538,8 @@ $$
 
 利用点积法则计算每一行的数值：
 
+
+
 $$
 \begin{aligned}
 y_1^{\text{raw}} &= (\mathbf{W} \text{ 的第 1 行}) \cdot \mathbf{x} \\
@@ -479,6 +549,10 @@ y_1^{\text{raw}} &= (\mathbf{W} \text{ 的第 1 行}) \cdot \mathbf{x} \\
 &= \mathbf{5}
 \end{aligned}
 $$
+
+
+
+
 
 $$
 \begin{aligned}
@@ -490,11 +564,17 @@ y_2^{\text{raw}} &= (\mathbf{W} \text{ 的第 2 行}) \cdot \mathbf{x} \\
 \end{aligned}
 $$
 
+
+
 得到初步的原始线性投影：
+
+
 
 $$
 \mathbf{W}\mathbf{x} = \begin{bmatrix} 5 \\ 3 \end{bmatrix}
 $$
+
+
 
 ---
 
@@ -502,15 +582,23 @@ $$
 
 加上恒定的平移向量 $\mathbf{b} = \begin{bmatrix} 1 \\ -1 \end{bmatrix}$：
 
+
+
 $$
 \mathbf{y} = \begin{bmatrix} 5 \\ 3 \end{bmatrix} + \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 5 + 1 \\ 3 + (-1) \end{bmatrix} = \begin{bmatrix} \mathbf{6} \\ \mathbf{2} \end{bmatrix}
 $$
 
+
+
 最终求出的变换后向量为：
+
+
 
 $$
 \mathbf{y}_{\text{cat}} = \begin{bmatrix} \mathbf{6} \\ \mathbf{2} \end{bmatrix}
 $$
+
+
 
 <p>
   <strong>变换后的新坐标：</strong>
@@ -525,19 +613,27 @@ $$
 让我们查验在这场变换中，两个标准坐标轴分别落在了哪里：
 
 1. **水平基向量 $\hat{\mathbf{i}} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$**：
+
+
    $$
    \mathbf{W}\hat{\mathbf{i}} = \begin{bmatrix} 2 & 1 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 2 \\ 0 \end{bmatrix}
    $$
+
+
    水平单位轴在水平方向上被拉伸放大了 $2$ 倍！
 
 2. **垂直基向量 $\hat{\mathbf{j}} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$**：
+
+
    $$
    \mathbf{W}\hat{\mathbf{j}} = \begin{bmatrix} 2 & 1 \\ 0 & 3 \end{bmatrix} \begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} 1 \\ 3 \end{bmatrix}
    $$
+
+
    垂直单位轴向右倾斜了 $+1$ 个单位，并在垂直方向上被拉长了 $3$ 倍！
 
-\lt figure>
-\lt pre>
+<figure>
+<pre>
        原始基向量方格                           变换后的基向量平行四边形
             ▲                                        ▲
             │                                    3.00│       • W(j) = (1, 3)
@@ -547,14 +643,18 @@ $$
         0.00└───────┴────────►                   0.00└───┴───► W(i) = (2, 0)
           0.00    1.00                             0.00 1.00 2.00
 </pre>
-\lt figcaption>\lt strong>图 3.3:</strong> 变换将原本的正方形重塑为倾斜拉伸的平行四边形，其边界边缘完全由矩阵 W 的两列所定义。</figcaption>
+<figcaption><strong>图 3.3:</strong> 变换将原本的正方形重塑为倾斜拉伸的平行四边形，其边界边缘完全由矩阵 W 的两列所定义。</figcaption>
 </figure>
 
 直接用基底坐标重构 $\mathbf{W}\mathbf{x}$：
 
+
+
 $$
 \mathbf{W}\mathbf{x} = 2 \begin{bmatrix} 2 \\ 0 \end{bmatrix} + 1 \begin{bmatrix} 1 \\ 3 \end{bmatrix} = \begin{bmatrix} 4 \\ 0 \end{bmatrix} + \begin{bmatrix} 1 \\ 3 \end{bmatrix} = \begin{bmatrix} 5 \\ 3 \end{bmatrix}
 $$
+
+
 
 基底视角的推导与逐行点积计算的结果毫厘不差！
 
