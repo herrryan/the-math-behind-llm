@@ -1,0 +1,95 @@
+/* Custom typography and semantic elements for The Math Behind LLMs */
+
+/* Token Badges & Code Samples */
+kbd {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  padding: 0.15rem 0.35rem;
+  background-color: var(--md-code-bg-color, #f5f5f5);
+  border: 1px solid var(--md-default-fg-color--lightest, #dcdcd4);
+  border-radius: 4px;
+  color: var(--md-typeset-color, #222222);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+samp {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  padding: 0.15rem 0.35rem;
+  background-color: var(--md-code-bg-color, #f0f4f8);
+  border: 1px solid #c2d6ea;
+  border-radius: 4px;
+  color: #1a4971;
+}
+
+/* Milestone Highlights */
+mark {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+/* Callout Fieldsets & Containers */
+fieldset {
+  background-color: var(--md-default-bg-color, #ffffff);
+  border: 1px solid var(--md-default-fg-color--lightest, #dcdcd4);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+legend {
+  font-weight: 700;
+  color: var(--md-typeset-color, #222222);
+  padding: 0 6px;
+}
+
+/* Architecture Figures & ASCII Art */
+figure {
+  margin: 1.25rem 0;
+  padding: 0;
+}
+
+figure pre {
+  margin-bottom: 0.35rem !important;
+}
+
+figcaption {
+  font-size: 0.85rem;
+  color: var(--md-default-fg-color--light, #666666);
+  text-align: center;
+  margin-top: 0.35rem;
+}
+
+/* Visual Probability Meters */
+meter {
+  width: 100px;
+  height: 14px;
+  vertical-align: middle;
+}
+
+progress {
+  width: 120px;
+  height: 14px;
+  vertical-align: middle;
+}
+
+/* MathJax Spacing & Overflow */
+.arithmatex {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+mjx-container[jax="CHTML"][display="true"] {
+  margin: 0.85rem 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Definition Terms */
+dfn {
+  font-style: normal;
+  font-weight: 600;
+  border-bottom: 1px dotted var(--md-typeset-a-color, #4051b5);
+}

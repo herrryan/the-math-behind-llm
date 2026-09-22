@@ -1,0 +1,129 @@
+site_name: The Math Behind Large Language Models
+site_description: An intuitive, rigorous, and comprehensive mathematical guide to understanding Large Language Models — from next-word prediction to self-attention, RoPE, RMSNorm, AdamW, and DPO.
+site_author: Antigravity Research Team
+site_url: https://github.com/herrryan/the-math-behind-llm
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.arithmatex:
+      generic: true
+  - tables
+  - attr_list
+  - md_in_html
+  - def_list
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - English Curriculum:
+      - Home: index.md
+      - Curriculum Overview: curriculum.md
+      - Module 0 - The Big Picture:
+          - Chapter 00 - The Next-Word Guessing Game: module-0/00-next-word-prediction.md
+      - Module 1 - Vector Geometry & Embeddings:
+          - Chapter 01 - The Word Map: module-1/01-vectors-and-spaces.md
+          - Chapter 02 - Measuring Closeness (Dot Product & Cosine): module-1/02-dot-product-and-similarity.md
+      - Module 2 - Transforming Spaces & Activations:
+          - Chapter 03 - The Magic Stretching Box (Matrix Multiplication): module-2/03-matrix-multiplication.md
+          - Chapter 04 - The One-Way Gate (ReLU, GELU, SwiGLU): module-2/04-activation-functions.md
+          - Chapter 04b - Hands-on Lab 01 (The Micro-Brain): module-2/04b-lab-micro-brain.md
+      - Module 3 - The Attention Mechanism:
+          - Chapter 05 - The Transformer Blueprint: module-3/05-transformer-architecture.md
+          - Chapter 06 - The Library Clue Hunt (Queries, Keys, Values): module-3/06-queries-keys-values.md
+          - Chapter 07 - The Fair Voting Booth (Softmax): module-3/07-softmax-function.md
+          - Chapter 08 - The Attention Formula & Division by sqrt(dk): module-3/08-attention-formula.md
+      - Module 4 - Positional Encodings & Multi-Head Attention:
+          - Chapter 09 - Blindfolds on Future Words (Causal Masking): module-4/09-causal-masking.md
+          - Chapter 10 - Where in the Sentence Am I? (RoPE): module-4/10-positional-encodings.md
+          - Chapter 11 - Looking Through Different Glasses (Multi-Head Attention): module-4/11-multi-head-attention.md
+      - Module 5 - Residuals, Normalization & Feed-Forward:
+          - Chapter 12 - The Shortcut Bridge (Residual Connections): module-5/12-residual-connections.md
+          - Chapter 13 - Keeping Everyone Calm (LayerNorm & RMSNorm): module-5/13-layer-norm-and-rmsnorm.md
+          - Chapter 14 - The Thinking Chamber (Feed-Forward Networks): module-5/14-feed-forward-networks.md
+      - Module 6 - Training, Loss & Optimization:
+          - Chapter 15 - How Wrong Was I? (Cross-Entropy Loss): module-6/15-cross-entropy-loss.md
+          - Chapter 16 - Walking Down the Mountain (Backpropagation): module-6/16-gradients-and-backpropagation.md
+          - Chapter 17 - The Smart Walker (AdamW Optimizer): module-6/17-adam-optimizer.md
+      - Module 7 - Inference & Sampling:
+          - Chapter 18 - Turning Up the Heat (Temperature, Top-k, Top-p): module-7/18-sampling-and-temperature.md
+      - Module 8 - Alignment & Post-Training:
+          - Chapter 19 - Teaching Good Manners (RLHF & DPO): module-8/19-rlhf-and-dpo.md
+      - Hands-on Labs:
+          - Lab 01 - The Micro-Brain (Bengio 2003): labs/01-micro-brain.md
+  - 中文课程 (Chinese):
+      - 首页: index.zh.md
+      - 课程体系全景: curriculum.zh.md
+      - 模块 0 - 认知起点与大模型宏观全景:
+          - 第 00 章 - 猜词游戏（自回归下一个词预测）: module-0/00-next-word-prediction.zh.md
+      - 模块 1 - 向量几何与嵌入空间:
+          - 第 01 章 - 单词地图（向量与嵌入空间）: module-1/01-vectors-and-spaces.zh.md
+          - 第 02 章 - 丈量亲疏（点积与余弦相似度）: module-1/02-dot-product-and-similarity.zh.md
+      - 模块 2 - 空间变换与激活函数:
+          - 第 03 章 - 空间变形盒（矩阵乘法）: module-2/03-matrix-multiplication.zh.md
+          - 第 04 章 - 单向阀门（激活函数：ReLU, GELU, SwiGLU）: module-2/04-activation-functions.zh.md
+          - 第 04b 章 - 实战工坊 01（80行纯Python手搓微脑）: module-2/04b-lab-micro-brain.zh.md
+      - 模块 3 - 核心注意力机制:
+          - 第 05 章 - 全景蓝图（Transformer 宏观架构与圆桌会议）: module-3/05-transformer-architecture.zh.md
+          - 第 06 章 - 图书寻踪（查询、键与值：Q, K, V）: module-3/06-queries-keys-values.zh.md
+          - 第 07 章 - 公平投票箱（Softmax 函数）: module-3/07-softmax-function.zh.md
+          - 第 08 章 - 注意力公式与为何除以根号dk: module-3/08-attention-formula.zh.md
+      - 模块 4 - 序列顺序与多头注意力:
+          - 第 09 章 - 戴上眼罩（因果掩码）: module-4/09-causal-masking.zh.md
+          - 第 10 章 - 我在句中何处（位置编码与 RoPE）: module-4/10-positional-encodings.zh.md
+          - 第 11 章 - 换副眼镜看世界（多头注意力机制）: module-4/11-multi-head-attention.zh.md
+      - 模块 5 - 残差连接、归一化与前馈网络:
+          - 第 12 章 - 高速立交桥（残差连接）: module-5/12-residual-connections.zh.md
+          - 第 13 章 - 让大家冷静下来（层归一化与 RMSNorm）: module-5/13-layer-norm-and-rmsnorm.zh.md
+          - 第 14 章 - 沉思密室（前馈神经网络）: module-5/14-feed-forward-networks.zh.md
+      - 模块 6 - 模型训练、损失度量与参数优化:
+          - 第 15 章 - 我错得有多离谱（交叉熵损失与困惑度）: module-6/15-cross-entropy-loss.zh.md
+          - 第 16 章 - 摸黑下山（梯度与反向传播）: module-6/16-gradients-and-backpropagation.zh.md
+          - 第 17 章 - 聪明的向导（动量与 AdamW 优化器）: module-6/17-adam-optimizer.zh.md
+      - 模块 7 - 推理生成与采样策略:
+          - 第 18 章 - 调高温度（温度、Top-k 与 Top-p 采样）: module-7/18-sampling-and-temperature.zh.md
+      - 模块 8 - 模型对齐与人类偏好:
+          - 第 19 章 - 立规矩学礼貌（RLHF、奖励模型与直接偏好优化 DPO）: module-8/19-rlhf-and-dpo.zh.md
+      - 动手实战工坊:
+          - 实验 01 - 80行纯Python手搓微脑 (Bengio 2003): labs/01-micro-brain.zh.md
