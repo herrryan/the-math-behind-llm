@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>动手实验 02：用 140 行纯 Python 实现注意力大脑 - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../08-attention-formula/index.zh.html">&larr; 第 08 章：注意力公式与为何除以根号 $d_k$</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../09-causal-masking/index.zh.html">第 09 章：戴上时间盲盒（因果掩码 Causal Masking） &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>动手实验 02：用 140 行纯 Python 实现注意力大脑</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-1">1. 3岁孩子也能懂的直觉</a> &bull; 
+    <a href="#step-2">2. 连接理论与纯 Python 的数学桥梁</a> &bull; 
+    <a href="#step-3">3. 完整代码实现与解剖</a> &bull; 
+    <a href="#step-4">4. 源自何处？</a> &bull; 
+    <a href="#step-5">5. 具体数字演练与注意力热力图分析</a> &bull; 
+    <a href="#step-6">6. 核心收获与致命瓶颈</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset id="evolution">
+<legend><strong>Python 大脑演化链 &bull; 第 2 阶段（共 4 阶段）</strong></legend>
+<p>在实验 01 中，我们从零实现了 2003 年 Bengio 的多层感知机（MLP）。尽管它成功学会了词嵌入和局部转移概率，但它存在一个致命的架构缺陷：<strong>严重的短期健忘症（Severe Short-Term Amnesia）</strong>。因为它只接受单个前驱词作为输入（$x_{t-1} \to y_t$），对于两个词或更早以前的上下文完全处于失明状态。</p>
+<p>在第二个动手实验中，我们将从第一性原理出发，用约 140 行标准库纯 Python 打造一个完整的<strong>自回归注意力大脑（The Attention Brain）</strong>。全程零外部依赖：无需 PyTorch、无需 TensorFlow、无需 NumPy。</p>
+<pre>
+[Python 大脑演化路线图]
+[第 1 阶段] 80 行纯 Python：Bengio 2003 MLP 语言模型（嵌入、全连接层、手工反向传播）
+       │
+       ▼ (致命瓶颈：1 词上下文视界；对更早的从句完全健忘)
+[第 2 阶段 (当前)] 140 行纯 Python：注意力大脑（解锁 Q、K、V 投影与因果注意力机制）
+       │
+       ▼ (致命瓶颈：直接堆叠深层注意力会引发梯度消失与数值爆炸)
+[第 3 阶段 (第 13 章)] 220 行纯 Python：现代 Transformer 块（残差连接、RMSNorm 与 SwiGLU 门控）
+       │
+       ▼ (推理打磨：无缓存的僵硬贪婪解码)
+[第 4 阶段 (第 17 章)] 300 行纯 Python 终极版：工业级推理引擎（KV 缓存与 Top-p 采样）
+</pre>
+</fieldset>
+<hr />
+<h2 id="step-1">步骤 1：3岁孩子也能懂的直觉（圆桌会议与聚光手电筒）</h2>
+<p>想象一群小学生围坐在圆桌旁，正在按顺序玩接龙讲故事的游戏：</p>
+<figure>
+<pre>
+[圆桌注意力会议数据流]
+
+位置 0: "the"   [ Key 身份胸牌: 定冠词 ]  ───────► [ Value 宝藏: 语法铺垫信息 ]
+位置 1: "cat"   [ Key 身份胸牌: 猫咪主语 ]  ───────► [ Value 宝藏: 毛茸茸、吃鱼、喜欢睡在垫子上 ]
+位置 2: "sat"   [ Key 身份胸牌: 坐下动作 ]  ───────► [ Value 宝藏: 静止姿态 ]
+位置 3: "on"    [ Key 身份胸牌: 空间介词 ]  ───────► [ Value 宝藏: 物体表面支撑 ]
+位置 4: "the"   [ Query 聚光手电筒: "谁需要一个可以坐的地方？" ]
+                         │
+                         ├─────────────────────────────────────────┐
+                         ▼ (39.0% 聚光灯强度)                      ▼ (16.0% 聚光灯强度)
+                 [ 位置 1: "cat" ]                         [ 位置 4: "the" ]
+                         │
+                         ▼
+        [ 混合上下文: "一只猫正在寻找支撑表面！" ]
+                         │
+                         ▼
+     [ LM Head 输出头宣布获胜词: "mat" ]
+</pre>
+<figcaption><strong>图 8b.1:</strong> 注意力大脑允许第二个 "the" 跨越时空，将查询手电筒直接照向前方的 "cat"，从而精准判断该从句应该接什么物体。</figcaption>
+</figure>
+
+<ol>
+<li><strong>三张专属身份卡（$Q, K, V$）</strong>：
+   每个词进入圆桌时，并不是只报出自己的名字，而是领到三件工具：</li>
+</ol>
+<ul>
+<li><strong>Query（查询手电筒 $Q$）</strong>：提出明确的寻人需求：“我是刚刚跟在‘sat on’后面的定冠词‘the’，之前坐下的主角到底是谁？”</li>
+<li><strong>Key（反光胸牌 $K$）</strong>：标明自己的身份特征：“我是‘cat’，一只小型家养哺乳动物。”</li>
+<li><strong>Value（宝藏背包 $V$）</strong>：装载可供提取的具体事实：<code>[毛茸茸、小型、爱睡在垫子上]</code>。</li>
+</ul>
+<ol start="2">
+<li>
+<p><strong>因果蒙眼规则（绝不偷看未来）</strong>：
+   因为这是一个接龙游戏，任何坐在椅子上的小朋友都绝对不能往右看。2号小朋友只能把手电筒照向0号、1号以及自己。如果偷看4号小朋友，就等于在写答案前偷偷翻阅了下一页的剧本！</p>
+</li>
+<li>
+<p><strong>主音量旋钮（$1/\sqrt{d_k}$）</strong>：
+   当多支手电筒同时照向某块胸牌时，反光可能会刺眼夺目。如果一块胸牌的反光稍强一点，指数投票箱就会把 $100\%$ 的注意力全部判给它，彻底忽略其他有价值的线索。我们把亮度除以胸牌维度的平方根（$\sqrt{d_k}$），使全场始终保持清晰敏感，绝不发生过载致盲。</p>
+</li>
+<li>
+<p><strong>混合宝藏背包（$O = A V$）</strong>：
+   4号小朋友测量每块胸牌反射的亮度百分比（照在 <code>"cat"</code> 上占 $39\%$，照在 <code>"on"</code> 上占 $26\%$，照在自己 <code>"the"</code> 上占 $16\%$）。接着，他取出猫咪宝藏背包的 $39\%$、介词背包的 $26\%$，混合成一份极其丰富的融合意图向量。</p>
+</li>
+<li>
+<p><strong>敲响输出钟声（LM Head）</strong>：
+   圆桌裁判接过这份融合意图向量，立刻敲响钟声宣布下一个最合理的单词：<samp>"mat"</samp>！</p>
+</li>
+</ol>
+<hr />
+<h2 id="step-2">步骤 2：连接理论与纯 Python 的数学桥梁</h2>
+<p>第 05 章至第 09 章中所有的核心数学公式，都能直接对应到极其优雅的纯 Python 列表推导式中：</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 8b.1:</strong> 注意力数学公式与纯 Python 代码逐行映射</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="18%">架构组件</th>
+      <th scope="col" align="left" width="14%">对应章节</th>
+      <th scope="col" align="left" width="34%">数学公式</th>
+      <th scope="col" align="left" width="34%">纯 Python 实现（零依赖）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><strong>序列嵌入查找</strong></th>
+      <td>第 01 章</td>
+      <td>$\mathbf{X} = [\mathbf{e}_{x_0}, \dots, \mathbf{e}_{x_{T-1}}]^\top \mathbf{E} \in \mathbb{R}^{T \times d_{\text{model}}}$</td>
+      <td><code>X = [params["E"][idx][:] for idx in inputs]</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>QKV 线性投影</strong></th>
+      <td>第 06 章</td>
+      <td>$\mathbf{Q} = \mathbf{X} \mathbf{W}_Q, \mathbf{K} = \mathbf{X} \mathbf{W}_K, \mathbf{V} = \mathbf{X} \mathbf{W}_V$</td>
+      <td><code>Q = matmul(X, params["W_q"])</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>缩放点积得分</strong></th>
+      <td>第 08 章</td>
+      <td>$\mathbf{S} = \frac{\mathbf{Q} \mathbf{K}^\top}{\sqrt{d_k}} \in \mathbb{R}^{T \times T}$</td>
+      <td><code>scores[i][j] = dot(Q[i], K[j]) * scale</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>因果未来掩码</strong></th>
+      <td>第 09 章</td>
+      <td>$S_{ij}^{\text{masked}} = \begin{cases} S_{ij} & j \le i \\ -\infty & j > i \end{cases}$</td>
+      <td><code>if j > i: scores[i][j] = -1e9</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>按行 Softmax 归一化</strong></th>
+      <td>第 07 章</td>
+      <td>$A_{ij} = \frac{\exp(S_{ij}^{\text{masked}})}{\sum_{k=0}^{T-1} \exp(S_{ik}^{\text{masked}})}$</td>
+      <td><code>A = [softmax_row(scores[i]) for i in range(T)]</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>注意力加权汇聚</strong></th>
+      <td>第 08 章</td>
+      <td>$\mathbf{O} = \mathbf{A} \mathbf{V} \in \mathbb{R}^{T \times d_k}$</td>
+      <td><code>O = matmul(A, V_mat)</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>语言模型输出头</strong></th>
+      <td>第 03 章</td>
+      <td>$\mathbf{Z} = \mathbf{O} \mathbf{W}_{\text{head}} \in \mathbb{R}^{T \times |V|}$</td>
+      <td><code>Z = matmul(O, params["W_head"])</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>序列交叉熵损失</strong></th>
+      <td>第 00 章</td>
+      <td>$\mathcal{L} = -\frac{1}{T} \sum_{t=0}^{T-1} \log P(y_t \mid x_{\le t})$</td>
+      <td><code>loss = sum(-math.log(P[i][targets[i]])) / T</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Softmax 掩码反向传播</strong></th>
+      <td>第 07 章</td>
+      <td>$\frac{\partial \mathcal{L}}{\partial S_{ij}} = A_{ij} \left( \frac{\partial \mathcal{L}}{\partial A_{ij}} - \sum_k \frac{\partial \mathcal{L}}{\partial A_{ik}} A_{ik} \right) \frac{1}{\sqrt{d_k}}$</td>
+      <td><code>dScores[i][j] = A[i][j] * (dA[i][j] - sum_dA) * scale</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-3">步骤 3：完整代码实现与解剖</h2>
+<p>为了帮助大家建立扎实的动手能力，本实验配备了两个脚本：</p>
+<ul>
+<li><strong>引导式练习模板</strong>：<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/02_attention_brain_exercise.py"><code>labs/02_attention_brain_exercise.py</code></a>（同步存放于 <a href="file:///Users/guofei/workspace/the-math-behind-llm/08b-lab-attention-brain/attention_brain_exercise.py"><code>08b-lab-attention-brain/attention_brain_exercise.py</code></a>），留出了 TODO 步骤，并包含内置单步自动化单元测试。</li>
+<li><strong>完整参考实现</strong>：<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/02_attention_brain.py"><code>labs/02_attention_brain.py</code></a>（同步存放于 <a href="file:///Users/guofei/workspace/the-math-behind-llm/08b-lab-attention-brain/attention_brain.py"><code>08b-lab-attention-brain/attention_brain.py</code></a>）。</li>
+</ul>
+<p>完整可直接运行的参考代码如下：</p>
+<figure>
+<pre>
+# =====================================================================
+# 第 2 阶段：注意力大脑（140 行纯 Python 实现）
+# 依赖项：零外部库（仅使用标准库 math 和 random）
+# =====================================================================
+import math
+import random
+
+# 1. 语料库、词汇表与序列训练对
+sentences = [
+    "the cat sat on the mat .",
+    "the dog sat on the rug .",
+    "the cat walked on the mat .",
+    "the dog walked on the rug ."
+]
+
+all_words = (" ".join(sentences)).split()
+vocab = sorted(list(set(all_words)))
+word2id = {w: i for i, w in enumerate(vocab)}
+id2word = {i: w for i, w in enumerate(vocab)}
+
+V = len(vocab)          # |V| = 9
+d_model = 8             # 残差流维度
+d_k = 8                 # 注意力子空间维度
+lr = 0.2                # 学习率
+scale = 1.0 / math.sqrt(d_k)
+
+# 构造自回归序列数据对: (tokens[0:T-1] -&gt; tokens[1:T])
+dataset = []
+for s in sentences:
+    toks = [word2id[w] for w in s.split()]
+    dataset.append((toks[:-1], toks[1:]))
+
+# 2. 线性代数基础辅助函数
+def init_matrix(rows, cols, scale_init=0.3):
+    return [[random.gauss(0, scale_init) for _ in range(cols)] for _ in range(rows)]
+
+def matmul(A, B):
+    n, m, p = len(A), len(A[0]), len(B[0])
+    return [[sum(A[i][k] * B[k][j] for k in range(m)) for j in range(p)] for i in range(n)]
+
+def transpose(A):
+    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]
+
+def softmax_row(row):
+    max_val = max(row)
+    exp_r = [math.exp(v - max_val) for v in row]
+    sum_r = sum(exp_r)
+    return [v / sum_r for v in exp_r]
+
+# 3. 参数初始化
+random.seed(42)
+params = {
+    "E":      init_matrix(V, d_model),     # 词嵌入矩阵 [V x d_model]
+    "W_q":    init_matrix(d_model, d_k),   # Query 投影矩阵 [d_model x d_k]
+    "W_k":    init_matrix(d_model, d_k),   # Key 投影矩阵   [d_model x d_k]
+    "W_v":    init_matrix(d_model, d_k),   # Value 投影矩阵 [d_model x d_k]
+    "W_head": init_matrix(d_k, V),         # 输出头矩阵     [d_k x V]
+}
+
+# 4. 训练循环：250 轮迭代
+for epoch in range(251):
+    total_loss = 0.0
+
+    for inputs, targets in dataset:
+        T = len(inputs)
+
+        # 前向传播 (Forward Pass)
+        X = [params["E"][idx][:] for idx in inputs]
+        Q = matmul(X, params["W_q"])
+        K = matmul(X, params["W_k"])
+        V_mat = matmul(X, params["W_v"])
+
+        scores = matmul(Q, transpose(K))
+        for i in range(T):
+            for j in range(T):
+                scores[i][j] *= scale
+                if j &gt; i:
+                    scores[i][j] = -1e9  # 因果掩码遮蔽未来
+
+        A = [softmax_row(scores[i]) for i in range(T)]
+        O = matmul(A, V_mat)
+        Z = matmul(O, params["W_head"])
+        P = [softmax_row(Z[i]) for i in range(T)]
+
+        loss = sum(-math.log(max(P[i][targets[i]], 1e-12)) for i in range(T)) / T
+        total_loss += loss
+
+        # 反向传播 (Backward Pass)
+        dZ = [[(P[i][v] - (1.0 if v == targets[i] else 0.0)) / T for v in range(V)] for i in range(T)]
+        dW_head = matmul(transpose(O), dZ)
+        dO = matmul(dZ, transpose(params["W_head"]))
+
+        dV_mat = matmul(transpose(A), dO)
+        dA = matmul(dO, transpose(V_mat))
+
+        dScores = [[0.0] * T for _ in range(T)]
+        for i in range(T):
+            sum_dA_A = sum(dA[i][k] * A[i][k] for k in range(T))
+            for j in range(T):
+                if j &lt;= i:
+                    dScores[i][j] = A[i][j] * (dA[i][j] - sum_dA_A) * scale
+
+        dQ = matmul(dScores, K)
+        dK = matmul(transpose(dScores), Q)
+
+        dW_q = matmul(transpose(X), dQ)
+        dW_k = matmul(transpose(X), dK)
+        dW_v = matmul(transpose(X), dV_mat)
+
+        dX = [[sum(dQ[i][k] * params["W_q"][j][k] +
+                   dK[i][k] * params["W_k"][j][k] +
+                   dV_mat[i][k] * params["W_v"][j][k] for k in range(d_k))
+               for j in range(d_model)] for i in range(T)]
+
+        # SGD 梯度下降更新
+        for i in range(d_k):
+            for v in range(V):
+                params["W_head"][i][v] -= lr * dW_head[i][v]
+        for i in range(d_model):
+            for k in range(d_k):
+                params["W_q"][i][k] -= lr * dW_q[i][k]
+                params["W_k"][i][k] -= lr * dW_k[i][k]
+                params["W_v"][i][k] -= lr * dW_v[i][k]
+        for i in range(T):
+            idx = inputs[i]
+            for j in range(d_model):
+                params["E"][idx][j] -= lr * dX[i][j]
+</pre>
+<figcaption><strong>图 8b.2:</strong> 140 行纯 Python 实现的注意力大脑完整前向推理与解析反向传播管线。</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-4">步骤 4：源自何处？（注意力机制为何击败循环神经网络）</h2>
+<p>在 <cite>Vaswani 等人（2017）</cite> 提出 Transformer 架构之前，自然语言处理的主导模型是<strong>循环神经网络（RNN）</strong>与 <strong>长短期记忆网络（LSTM）</strong>：</p>
+<figure>
+<pre>
+RNN / LSTM 串行记忆挤压：
+x_0 ──► [ Cell 0 ] ──(h_0)──► [ Cell 1 ] ──(h_1)──► [ Cell 2 ] ──(h_2)──► [ Cell 3 ] ──► 下一个词
+             │                     │                     │                     │
+          (Cat)                  (Sat)                  (On)                  (The)
+
+Attention 直通无阻高速公路：
+x_0 ("cat") ────────────────────────────────────────────────────────────┐
+x_1 ("sat") ──────────────────────────────────────────────┐              │
+x_2 ("on")  ───────────────────────────────┐              │              │
+x_3 ("the") ──► [ Query 聚光灯 ] ──────────┴──────────────┴──────────────▼──► 下一个词 ("mat")
+</pre>
+<figcaption><strong>图 8b.3:</strong> RNN 受到跨长距离串行衰减的困扰（路径长度为 $O(T)$）。自注意力机制在任意两个位置之间提供了即时的 $O(1)$ 直通物理路径。</figcaption>
+</figure>
+
+<ol>
+<li><strong>串行隐藏状态的信息衰减</strong>：
+   在 RNN 中，第 0 个词的信息必须通过隐藏向量 $h_0$ 传递给 $h_1$，再传递给 $h_2$，才能到达第 3 个词。在这个漫长的连续矩阵乘法链条中，“猫”和“狗”之间的细微差异会被不可避免地稀释和抹平。</li>
+<li><strong>自注意力的 $O(1)$ 超短路径</strong>：
+   在自注意力机制中，位置 4 的定冠词 <code>"the"</code> 直接与位置 1 的 <code>"cat"</code> 做点积：</li>
+</ol>
+
+
+$$
+S_{4, 1} = \frac{\mathbf{q}_4 \cdot \mathbf{k}_1}{\sqrt{d_k}}
+$$
+
+
+<p>两者在时序上的物理距离不会造成任何信号衰减。只要 Query 与 Key 匹配，梯度就能通过单步（$O(1)$）直接传回，彻底根除了长程梯度消失问题。</p>
+<hr />
+<h2 id="step-5">步骤 5：具体数字演练与注意力热力图分析</h2>
+<p>让我们亲自检查注意力大脑在训练后学到的真实数学权重。当我们向模型输入 5 个词的前缀：
+<kbd>"the"</kbd> <kbd>"cat"</kbd> <kbd>"sat"</kbd> <kbd>"on"</kbd> <kbd>"the"</kbd></p>
+<p>模型计算第 5 个词（<code>"the"</code>，索引 4）对前面所有可见词的注意力权重分布：</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 8b.2:</strong> 第 4 个位置的单词 "the" 对历史上下文的注意力权重分布</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="15%">位置编号</th>
+      <th scope="col" align="left" width="15%">对应单词</th>
+      <th scope="col" align="center" width="25%">学到的注意力权重 ($A_{4, j}$)</th>
+      <th scope="col" align="left" width="45%">可视化概率条与语义职能</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left">位置 0</th>
+      <td><code>"the"</code></td>
+      <td align="center"><strong>16.0%</strong></td>
+      <td><meter min="0" max="1" low="0.2" high="0.5" optimum="0.8" value="0.16"></meter> 句首冠词</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">位置 1</th>
+      <td><code>"cat"</code></td>
+      <td align="center"><mark><strong>39.0%</strong></mark></td>
+      <td><meter min="0" max="1" low="0.2" high="0.5" optimum="0.8" value="0.39"></meter> <strong>主导信号：锁定句子主语为猫咪！</strong></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">位置 2</th>
+      <td><code>"sat"</code></td>
+      <td align="center"><strong>3.1%</strong></td>
+      <td><meter min="0" max="1" low="0.2" high="0.5" optimum="0.8" value="0.031"></meter> 动作动词</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">位置 3</th>
+      <td><code>"on"</code></td>
+      <td align="center"><strong>26.0%</strong></td>
+      <td><meter min="0" max="1" low="0.2" high="0.5" optimum="0.8" value="0.26"></meter> 指向承载表面的介词</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left">位置 4</th>
+      <td><code>"the"</code></td>
+      <td align="center"><strong>16.0%</strong></td>
+      <td><meter min="0" max="1" low="0.2" high="0.5" optimum="0.8" value="0.16"></meter> 当前触发查询的词本身</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>当我们将主语 <code>"cat"</code> 换成 <code>"dog"</code> 时：
+<kbd>"the"</kbd> <kbd>"dog"</kbd> <kbd>"sat"</kbd> <kbd>"on"</kbd> <kbd>"the"</kbd></p>
+<p>在索引 4 处，模型对 <code>"dog"</code> 的注意力激增至 <strong>63.5%</strong>！
+因为 <code>"dog"</code> 的 Value 向量完全主导了融合意图向量 $\mathbf{O}_4$，输出矩阵 $\mathbf{W}_{\text{head}}$ 以超过 $95\%$ 的绝对优势输出了 <samp>"rug"</samp> 而不是 <samp>"mat"</samp>：</p>
+<figure>
+<pre>
+自回归生成轨迹：
+提示词:    "the cat sat on the" ──► 预测出: "mat" ──► "the cat sat on the mat ."
+提示词:    "the dog sat on the" ──► 预测出: "rug" ──► "the dog sat on the rug ."
+提示词: "the cat walked on the" ──► 预测出: "mat" ──► "the cat walked on the mat ."
+提示词: "the dog walked on the" ──► 预测出: "rug" ──► "the dog walked on the rug ."
+</pre>
+<figcaption><strong>图 8b.4:</strong> 注意力大脑通过跨时序动态路由主语信息，彻底化解了困扰二元文法模型的歧义困境。</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-6">步骤 6：核心收获与致命瓶颈</h2>
+<fieldset>
+<legend><strong>核心教学总结</strong></legend>
+<p>注意力大脑彻底打破了马尔可夫短视健忘症的枷锁。通过将每个词映射至动态的 <strong>Query、Key 和 Value 子空间</strong>，模型能够主动向历史发射定向聚光灯，不论句子有多长，都能在单步内精准捕获最关键的上下文特征。</p>
+</fieldset>
+<h3>致命瓶颈：深层不稳定性（Depth Instability）</h3>
+<p>如果单层注意力机制如此强大，我们能否直接将 12 层或 24 层注意力块依次串联？</p>
+<p>当研究人员尝试直接堆叠纯注意力层时：</p>
+
+
+$$
+\mathbf{X}_{l+1} = \operatorname{Attention}(\mathbf{X}_l)
+$$
+
+
+<p>遭遇了灾难性的数学崩溃：
+1. <strong>梯度消失与梯度爆炸</strong>：误差信号反向穿过一层又一层的 Softmax 和投影矩阵时，梯度数值要么快速衰减至绝对零度，要么呈指数级爆炸。
+2. <strong>表征坍塌（Representational Collapse）</strong>：由于缺乏一条能够持续保留原始词汇身份的直通高速通道，经过多次重复加权平均后，所有词向量逐渐趋于同一个模糊的平均值。</p>
+<p>为了堆叠上百层深度的超大神经网络并保持稳定的梯度流，我们必须引入两大关键工程基石：</p>
+<ul>
+<li><strong>残差连接（Residual Connections, $\mathbf{X} + \operatorname{Layer}(\mathbf{X})$）</strong>：第 11 章</li>
+<li><strong>均方根归一化（Root Mean Square Normalization, RMSNorm）</strong>：第 12 章</li>
+</ul>
+<p>这两大支柱将带领我们迈入 <strong>第 3 阶段：现代 Transformer 块（实验 03）</strong>！</p>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../08-attention-formula/index.zh.html">&larr; 第 08 章：注意力公式与为何除以根号 $d_k$</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../09-causal-masking/index.zh.html">第 09 章：戴上时间盲盒（因果掩码 Causal Masking） &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
