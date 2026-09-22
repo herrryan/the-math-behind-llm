@@ -131,7 +131,12 @@ def sample_with_temperature(logits, temperature=1.0):
         probs: List of probabilities summing to 1.0
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 1: Implement sample_with_temperature(logits, temperature)")
+    temp_logits = [l / temperature for l in logits]
+    max_logit = max(temp_logits)
+    exp_logits = [math.exp(l - max_logit) for l in temp_logits]
+    sum_exp = sum(exp_logits)
+    probs = [e / sum_exp for e in exp_logits]
+    return probs
 
 
 # =====================================================================
@@ -158,7 +163,12 @@ def apply_top_k(probs, k=5):
         List of (token_id, normalized_prob) pairs for the top-k tokens
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 2: Implement apply_top_k(probs, k)")
+    indexed_probs = list(enumerate(probs))
+    sorted_probs = sorted(indexed_probs, key=lambda x: x[1], reverse=True)
+    top_k = sorted_probs[:k]
+    sum_top_k = sum(p for _, p in top_k)
+    normalized_top_k = [(idx, p / sum_top_k) for idx, p in top_k]
+    return normalized_top_k
 
 
 # =====================================================================
@@ -186,7 +196,17 @@ def apply_top_p(indexed_probs, p=0.9):
         List of (token_id, normalized_prob) pairs retained in the nucleus
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 3: Implement apply_top_p(indexed_probs, p)")
+    indexed_probs = sorted(indexed_probs, key=lambda x: x[1], reverse=True)
+    cumulative_prob = 0.0
+    nucleus_tokens = []
+    for idx, prob in indexed_probs:
+        nucleus_tokens.append((idx, prob))
+        cumulative_prob += prob
+        if cumulative_prob >= p:
+            break
+    sum_nucleus = sum(p for _, p in nucleus_tokens)
+    normalized_nucleus = [(idx, p / sum_nucleus) for idx, p in nucleus_tokens]
+    return normalized_nucleus
 
 
 # =====================================================================

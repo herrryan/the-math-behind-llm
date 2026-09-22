@@ -162,7 +162,10 @@ def compute_scaled_scores(Q, K, scale_factor):
     # 3. Multiply every entry in the resulting matrix by scale_factor.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 2: Implement compute_scaled_scores(Q, K, scale_factor)")
+    K_T = transpose(K)
+    scores = matmul(Q, K_T)
+    scores = [[s * scale_factor for s in row] for row in scores]
+    return scores
 
 
 def apply_causal_mask(scores):
@@ -190,7 +193,16 @@ def apply_causal_mask(scores):
     # If j > i, set masked_scores[i][j] = -1e9.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 3: Implement apply_causal_mask(scores)")
+    masked_scores = []
+    for i in range(len(scores)):
+        row = []
+        for j in range(len(scores[i])):
+            if j > i:
+                row.append(-1e9)
+            else:
+                row.append(scores[i][j])
+        masked_scores.append(row)
+    return masked_scores
 
 
 def compute_attention_weights(masked_scores):
@@ -216,7 +228,10 @@ def compute_attention_weights(masked_scores):
     # Use the provided softmax_row(row) helper on each row of masked_scores.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 4: Implement compute_attention_weights(masked_scores)")
+    A = []
+    for row in masked_scores:
+        A.append(softmax_row(row))
+    return A
 
 
 def aggregate_values(A, V_mat):
@@ -243,7 +258,8 @@ def aggregate_values(A, V_mat):
     # Multiply A @ V_mat using matmul(A, V_mat).
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 5: Implement aggregate_values(A, V_mat)")
+    O = matmul(A, V_mat)
+    return O
 
 
 def forward_pass(inputs, targets, params):
@@ -511,7 +527,7 @@ def main():
     print("Prompt 'the dog sat on the'    ->", generate("the dog sat on the"))
     print("Prompt 'the cat walked on the' ->", generate("the cat walked on the"))
     print("Prompt 'the dog walked on the' ->", generate("the dog walked on the"))
-
+    print("Prompt 'the dog ' ->", generate("the dog"))
     # Attention Heatmap
     def inspect_attention(text):
         toks = [word2id[w] for w in text.split()]

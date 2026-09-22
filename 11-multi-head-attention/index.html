@@ -591,6 +591,60 @@ $$
 
 <p>Both tokens now possess rich, multi-dimensional representations incorporating both self-focus and cross-token contextual information, produced with zero parameter blowup!</p>
 <hr />
+<h3>6. Hands-on Subexercise: Building State-of-the-Art Grouped-Query Attention (GQA)</h3>
+<p>While standard Multi-Head Attention (MHA) partitions the hidden dimension into $h$ independent heads, production frontier models (LLaMA-3, Mistral, Gemma 2, DeepSeek) cannot afford $h$ independent Key and Value heads due to the <strong>KV Cache Memory Wall</strong> in long-context inference (32k to 128k tokens).</p>
+<figure>
+<pre>
+[Grouped-Query Attention Subspace Topology: H_q = 4, H_kv = 2, Group Size G = 2]
+
+Query Heads:    [ Q_0 ] [ Q_1 ]     [ Q_2 ] [ Q_3 ]
+                   \     /             \     /
+Group Pairing:      \   /               \   /
+Shared KV Heads:   [ KV_0 ]            [ KV_1 ]
+                      │                   │
+Memory Footprint: 2 KV heads cached in VRAM (50% reduction vs MHA!)
+</pre>
+<figcaption><strong>Figure 11.4:</strong> Grouped-Query Attention routes a group of $G$ Query heads to a single shared Key-Value pair, cutting KV Cache memory by $G\times$.</figcaption>
+</figure>
+
+<h4>The KV Cache Hardware Explosion (Why GQA is the Modern SOTA)</h4>
+<p>During inference at 128,000 tokens (e.g., LLaMA-3 70B with 80 layers, $d_{\text{head}}=128$):</p>
+<ul>
+<li><strong>MHA ($H_{KV} = 64$)</strong>:</li>
+</ul>
+
+
+$$
+\text{RAM} = 2 \times 80 \times 128{,}000 \times 64 \times 128 \times 2 \text{ bytes} \approx 312.50 \text{ GB}
+$$
+
+
+<p>Storing the KV cache for a single user sequence requires more than three 80GB A100 GPUs solely for memory!</p>
+<ul>
+<li><strong>GQA ($H_{KV} = 8$, SOTA standard)</strong>:</li>
+</ul>
+
+
+$$
+\text{RAM} = 2 \times 80 \times 128{,}000 \times 8 \times 128 \times 2 \text{ bytes} \approx 39.06 \text{ GB}
+$$
+
+
+<p>An $8\times$ memory reduction allowing the entire model and cache to serve users on a single machine!</p>
+<h4>Python Subexercise Implementation</h4>
+<p>To test your understanding of this state-of-the-art architecture, this chapter includes two runnable Python scripts:
+1. <strong>Guided Exercise Script with Automated Unit Tests</strong>: <a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/subexercise_gqa_exercise.py"><code>labs/subexercise_gqa_exercise.py</code></a> (also mirrored in <a href="file:///Users/guofei/workspace/the-math-behind-llm/11-multi-head-attention/subexercise_gqa_exercise.py"><code>11-multi-head-attention/subexercise_gqa_exercise.py</code></a>).</p>
+<ul>
+<li>Implement <code>get_kv_head_index(q_head_idx, group_size)</code></li>
+<li>Implement <code>slice_head(tensor_2d, head_idx, d_head)</code></li>
+<li>Implement <code>single_head_causal_attention(Q_h, K_k, V_k, scale)</code></li>
+<li>Implement <code>grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head)</code>
+2. <strong>Complete Reference Script</strong>: <a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/subexercise_gqa.py"><code>labs/subexercise_gqa.py</code></a> (also mirrored in <a href="file:///Users/guofei/workspace/the-math-behind-llm/11-multi-head-attention/subexercise_gqa.py"><code>11-multi-head-attention/subexercise_gqa.py</code></a>).</li>
+</ul>
+<p>Run the subexercise directly in your terminal:</p>
+<pre><code class="language-bash">python3 labs/subexercise_gqa_exercise.py
+</code></pre>
+<hr />
 <h2 id="step-6">Step 6: Core Takeaway</h2>
 <fieldset>
 <legend><strong>The Punchline of Multi-Head Attention</strong></legend>

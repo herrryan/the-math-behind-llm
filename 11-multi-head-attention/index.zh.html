@@ -584,6 +584,60 @@ $$
 
 <p>两个词元在此刻同时吸收了多个正交子空间的特征信息，而且整个过程在硬件上没有产生任何额外的参数暴涨！</p>
 <hr />
+<h3>6. 动手实战微实验：构建前沿分组查询注意力（GQA）</h3>
+<p>尽管标准多头注意力（MHA）将隐藏维度均分为 $h$ 个独立头，但现代工业级前沿大模型（LLaMA-3、Mistral、Gemma 2、DeepSeek）在长上下文推理（32k 到 128k 词元）中无法承受为每个查询头分别维护独立的 Key 和 Value 头，否则会直接撞上 <strong>KV 缓存显存墙（KV Cache Memory Wall）</strong>。</p>
+<figure>
+<pre>
+[分组查询注意力 (GQA) 拓扑结构：H_q = 4, H_kv = 2, 分组大小 G = 2]
+
+查询头 (Query Heads):    [ Q_0 ] [ Q_1 ]     [ Q_2 ] [ Q_3 ]
+                             \     /             \     /
+组别映射 (Group Pairing):     \   /               \   /
+共享键值头 (Shared KV):      [ KV_0 ]            [ KV_1 ]
+                                │                   │
+显存占用 (Memory Footprint): 仅缓存 2 个 KV 头（较 MHA 显存暴降 50%！）
+</pre>
+<figcaption><strong>图 11.4:</strong> 分组查询注意力让每组 $G$ 个查询头共享同一对键值投影，将长文本推理的 KV 缓存显存开销直接缩减 $G\times$。</figcaption>
+</figure>
+
+<h4>128k 超长上下文显存爆炸算术对比（为何 GQA 是业界无可争议的 SOTA）</h4>
+<p>在 128,000 词元超长上下文推理场景下（以 LLaMA-3 70B 为例，80 层网络，单头维度 $d_{\text{head}}=128$）：</p>
+<ul>
+<li><strong>标准多头注意力 MHA（$H_{KV} = 64$）</strong>：</li>
+</ul>
+
+
+$$
+\text{显存需求} = 2 \times 80 \times 128{,}000 \times 64 \times 128 \times 2 \text{ 字节} \approx 312.50 \text{ GB}
+$$
+
+
+<p>仅存放单一用户的上下文 KV 缓存就需要超过 3 张 80GB 的 A100/H100 显卡！</p>
+<ul>
+<li><strong>现代前沿分组查询注意力 GQA（$H_{KV} = 8$，工业标准）</strong>：</li>
+</ul>
+
+
+$$
+\text{显存需求} = 2 \times 80 \times 128{,}000 \times 8 \times 128 \times 2 \text{ 字节} \approx 39.06 \text{ GB}
+$$
+
+
+<p>显存暴降整整 $8\times$！单台标准服务器即可轻松承载全量模型推理与上下文服务。</p>
+<h4>Python 动手微实验实现</h4>
+<p>为了让读者亲手掌握这一工业级前沿架构，本章配备了双轨 Python 实验脚本：
+1. <strong>引导式练习脚本（带自动化单元测试）</strong>：<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/subexercise_gqa_exercise.py"><code>labs/subexercise_gqa_exercise.py</code></a>（同步镜像于 <a href="file:///Users/guofei/workspace/the-math-behind-llm/11-multi-head-attention/subexercise_gqa_exercise.py"><code>11-multi-head-attention/subexercise_gqa_exercise.py</code></a>）。</p>
+<ul>
+<li>实现组别索引映射：<code>get_kv_head_index(q_head_idx, group_size)</code></li>
+<li>实现多头张量切片：<code>slice_head(tensor_2d, head_idx, d_head)</code></li>
+<li>实现单头因果注意力：<code>single_head_causal_attention(Q_h, K_k, V_k, scale)</code></li>
+<li>实现全流程 GQA 管道：<code>grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head)</code>
+2. <strong>完整参考实现</strong>：<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/subexercise_gqa.py"><code>labs/subexercise_gqa.py</code></a>（同步镜像于 <a href="file:///Users/guofei/workspace/the-math-behind-llm/11-multi-head-attention/subexercise_gqa.py"><code>11-multi-head-attention/subexercise_gqa.py</code></a>）。</li>
+</ul>
+<p>直接在终端中运行练习脚本：</p>
+<pre><code class="language-bash">python3 labs/subexercise_gqa_exercise.py
+</code></pre>
+<hr />
 <h2 id="step-6">步骤 6：核心精要（一句话记住核心奥秘）</h2>
 <fieldset>
 <legend><strong>多头注意力机制的终极心法</strong></legend>
