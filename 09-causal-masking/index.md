@@ -287,6 +287,78 @@ The mathematical gradient cannot flow across the temporal barrier. Parameters up
 
 ---
 
+### 5. Breaking the Left-to-Right Limitation: Fill-in-the-Middle (FIM / Mid-fill)
+
+While the lower-triangular causal mask $\mathbf{M}$ is ideal for generating new text from scratch (predicting future words from past words), it introduces a major limitation: **standard causal models cannot edit or fill in the middle of existing text**.
+
+Consider a software developer writing code:
+```python
+def calculate_area(radius):
+    # [CURSOR: Model needs to write the formula here]
+    return area
+```
+Here, the developer already wrote the code before the cursor (**Prefix**, $P$) and the code after the cursor (**Suffix**, $S$). The missing logic is the **Middle** ($M$).
+
+Under standard causal generation, the model can only condition on the prefix:
+
+$$
+P(M \mid P)
+$$
+
+The model is completely blind to the suffix $S$ because the lower-triangular mask blocks future tokens! The model might invent an entirely different variable name (e.g., `result = 3.14 * radius ** 2`), causing a runtime crash because the suffix expects `area`.
+
+#### The Fill-in-the-Middle (FIM) Sequence Transformation
+
+In 2022, researchers at OpenAI (Bavarian et al., <cite>"Efficient Training of Language Models to Fill in the Middle"</cite>) discovered that you do **not** need to modify the Transformer architecture or remove the causal mask. Instead, you simply transform the document sequence using three special delimiter tokens: $\langle\text{PRE}\rangle$, $\langle\text{SUF}\rangle$, and $\langle\text{MID}\rangle$.
+
+Given an arbitrary document split into three contiguous segments $D = (P, M, S)$:
+
+1. **PSM (Prefix-Suffix-Middle) Mode**:
+   $$
+   \tau_{\text{PSM}}(D) = \langle\text{PRE}\rangle \circ P \circ \langle\text{SUF}\rangle \circ S \circ \langle\text{MID}\rangle \circ M \circ \langle\text{EOT}\rangle
+   $$
+
+2. **SPM (Suffix-Prefix-Middle) Mode**:
+   $$
+   \tau_{\text{SPM}}(D) = \langle\text{SUF}\rangle \circ S \circ \langle\text{PRE}\rangle \circ P \circ \langle\text{MID}\rangle \circ M \circ \langle\text{EOT}\rangle
+   $$
+
+where $\langle\text{EOT}\rangle$ is the End-of-Transmission token.
+
+#### How FIM Works Under the Lower-Triangular Causal Mask
+
+Because the sequence has been permuted, look at what the standard lower-triangular causal mask $\mathbf{M}$ allows each section to attend to:
+
+<figure>
+<pre>
+Attention Connectivity in PSM Fill-in-the-Middle:
+
+Token Position:    [PRE]  ...Prefix...  [SUF]  ...Suffix...  [MID]  ...Middle...
+                   ┌────────────────────────────────────────────────────────┐
+[PRE] + Prefix     │   Can Attend To    │             BLOCKED               │
+                   │    Prefix Only     │         (Future Masked)           │
+                   ├────────────────────┴───────────────────────────────────┤
+[SUF] + Suffix     │   Can Attend To Both Prefix AND Suffix                 │
+                   │             (Lower-Triangular History)                 │
+                   ├────────────────────────────────────────────────────────┤
+[MID] + Middle     │   CAN ATTEND TO PREFIX, SUFFIX, AND GENERATED MIDDLE!  │
+                   │   Full bidirectional context across both anchors!      │
+                   └────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 9.3:</strong> Under the standard causal mask, rearranging the sequence into PSM format allows the Middle segment to attend to both the Prefix and Suffix without leaking future Middle tokens.</figcaption>
+</figure>
+
+Notice the mathematical elegance:
+1. When generating the middle tokens $M$, every Query in $M$ can attend to all Key-Value pairs of $P$ and $S$ because they physically appear *earlier* in the sequence.
+2. The causal mask still prevents token $m_t$ from peeking at future middle tokens $m_{t+1}$.
+3. Standard autoregressive loss is applied strictly over the middle segment:
+   $$
+   \mathcal{L}_{\text{FIM}} = -\sum_{k=1}^{|M|} \log P(m_k \mid \langle\text{PRE}\rangle, P, \langle\text{SUF}\rangle, S, \langle\text{MID}\rangle, m_{\lt k})
+   $$
+4. A single model trained with 50% standard text and 50% FIM-permuted text becomes simultaneously capable of both standard left-to-right generation and arbitrary in-place document editing.
+
+---
+
 ## Step 4: Where Did It Come From?
 
 <figure>
@@ -312,8 +384,13 @@ The Evolution of Sequence Causality:
       ▼
 2018: Radford et al. ───────► GPT (Generative Pre-trained Transformer):
                                The pure causal decoder-only standard for modern LLMs.
+      │
+      ▼
+2022: Bavarian et al. ──────► Fill-in-the-Middle (OpenAI FIM):
+                               Permute document to [PRE] P [SUF] S [MID] M:
+                               Unlocks mid-document code editing using standard causal masks!
 </pre>
-<figcaption><strong>Figure 9.3:</strong> From sequential recurrence to parallel spatial masking.</figcaption>
+<figcaption><strong>Figure 9.4:</strong> From sequential recurrence to spatial matrix masking and Fill-in-the-Middle permutation.</figcaption>
 </figure>
 
 ### 1. From Temporal Loops to Spatial Masking

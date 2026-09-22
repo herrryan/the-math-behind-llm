@@ -31,8 +31,8 @@ import random
 corpus = "the cat sat on the mat the dog sat on the rug"
 words = corpus.split()
 vocab = sorted(list(set(words)))
-print(f"vocab: {vocab}")
 word2id = {w: i for i, w in enumerate(vocab)}
+print(f"word2id: {word2id}")
 id2word = {i: w for i, w in enumerate(vocab)}
 
 V = len(vocab)          # Vocabulary size |V| = 7
@@ -42,8 +42,8 @@ lr = 0.1                # Learning rate eta (Chapter 04)
 
 # Construct consecutive bigram training pairs: (current_word_id -> next_word_id)
 dataset = [(word2id[words[i]], word2id[words[i+1]]) for i in range(len(words) - 1)]
-
-
+print(f"dataset: {dataset}")
+ 
 # =====================================================================
 # 2. Parameter Initialization (Chapters 01 & 03)
 # =====================================================================
@@ -101,7 +101,8 @@ def forward_pass(x_id, y_target, params):
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
     # x_vec = ...
-    raise NotImplementedError("TODO 1: Implement embedding lookup x_vec from table E.")
+    x_vec = E[x_id]
+    # raise NotImplementedError("TODO 1: Implement embedding lookup x_vec from table E.")
 
     # -----------------------------------------------------------------
     # TODO 2: Layer 1 Linear Transformation (Chapter 03)
@@ -118,8 +119,13 @@ def forward_pass(x_id, y_target, params):
     #   Use a list comprehension over j in range(d_hidden) with an inner sum over k.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    # z1 = ...
-    raise NotImplementedError("TODO 2: Implement linear projection z1 = x_vec * W1 + b1.")
+    z1 = [0.0] * d_hidden
+    for j in range(d_hidden):
+        sum = 0.0
+        for k in range(d_embed):
+            sum += x_vec[k] * W1[k][j]
+        z1.append(sum + b1[j])
+    # raise NotImplementedError("TODO 2: Implement linear projection z1 = x_vec * W1 + b1.")
 
     # -----------------------------------------------------------------
     # TODO 3: Non-Linear ReLU Activation (Chapter 04)
@@ -135,8 +141,8 @@ def forward_pass(x_id, y_target, params):
     #   [max(0.0, val) for val in z1]
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    # a1 = ...
-    raise NotImplementedError("TODO 3: Implement ReLU activation a1 = max(0, z1).")
+    a1 = [max(0.0, val) for val in z1]
+    # raise NotImplementedError("TODO 3: Implement ReLU activation a1 = max(0, z1).")
 
     # -----------------------------------------------------------------
     # TODO 4: Layer 2 Output Logits Projection (Chapter 03)
@@ -151,8 +157,13 @@ def forward_pass(x_id, y_target, params):
     #   z2: [V] (raw unnormalized logits across all V vocabulary words)
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    # z2 = ...
-    raise NotImplementedError("TODO 4: Implement output logits projection z2 = a1 * W2 + b2.")
+    z2 = [0.0] * V
+    for j in range(V):
+        sum = 0.0
+        for k in range(d_hidden):
+            sum += a1[k] * W2[k][j]
+        z2.append(sum + b2[j])
+    # raise NotImplementedError("TODO 4: Implement output logits projection z2 = a1 * W2 + b2.")
 
     # -----------------------------------------------------------------
     # TODO 5: Softmax Probability Distribution (Chapters 00 & 07)
@@ -167,11 +178,11 @@ def forward_pass(x_id, y_target, params):
     #   z2: [V] -> probs: [V], where all elements in (0, 1) and sum(probs) == 1.0
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    # max_z2 = max(z2)
-    # exp_z2 = [math.exp(...) ...]
-    # sum_exp = sum(exp_z2)
-    # probs = [val / sum_exp for val in exp_z2]
-    raise NotImplementedError("TODO 5: Implement numerically-stable Softmax.")
+    max_z2 = max(z2)
+    exp_z2 = [math.exp(val - max_z2) for val in z2]
+    sum_exp = sum(exp_z2)
+    probs = [val / sum_exp for val in exp_z2]
+    # raise NotImplementedError("TODO 5: Implement numerically-stable Softmax.")
 
     # -----------------------------------------------------------------
     # TODO 6: Cross-Entropy Loss (Chapter 00)
@@ -186,10 +197,11 @@ def forward_pass(x_id, y_target, params):
     #   Guard against log(0) using max(probs[y_target], 1e-12).
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    # loss = ...
-    raise NotImplementedError("TODO 6: Implement cross-entropy loss L = -log(probs[y_target]).")
+    loss = -math.log(max(probs[y_target], 1e-12))
+    # raise NotImplementedError("TODO 6: Implement cross-entropy loss L = -log(probs[y_target]).")
 
     cache = (x_vec, z1, a1, z2)
+    print(f"loss: {loss}, probs: {probs}")
     return loss, probs, cache
 
 
@@ -227,7 +239,9 @@ def backward_pass(x_id, y_target, probs, cache, params):
     # YOUR CODE HERE:
     # dz2 = probs[:]
     # dz2[y_target] -= 1.0
-    raise NotImplementedError("TODO 7: Compute output error signal dz2.")
+    dz2 = probs[:]
+    dz2[y_target] -= 1.0
+    # raise NotImplementedError("TODO 7: Compute output error signal dz2.")
 
     # -----------------------------------------------------------------
     # TODO 8: Gradients for Layer 2 (W2, b2) and Hidden Signal da1 (Chapter 04)
@@ -245,6 +259,15 @@ def backward_pass(x_id, y_target, probs, cache, params):
     # dW2 = [[a1[k] * dz2[j] for j in range(V)] for k in range(d_hidden)]
     # db2 = dz2[:]
     # da1 = [sum(dz2[j] * W2[k][j] for j in range(V)) for k in range(d_hidden)]
+    dW2 = [[a1[k] * dz2[j] for j in range(V)] for k in range(d_hidden)]
+    db2 = dz2[:]  # Copy dz2 into db2
+
+    da1 = [0.0] * d_hidden
+    for k in range(d_hidden):
+        sum_val = 0.0
+        for j in range(V):
+            sum_val += dz2[j] * W2[k][j]
+        da1.append(sum_val)
     raise NotImplementedError("TODO 8: Compute dW2, db2, and da1.")
 
     # -----------------------------------------------------------------
@@ -260,7 +283,8 @@ def backward_pass(x_id, y_target, probs, cache, params):
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
     # dz1 = [da1[j] if z1[j] > 0 else 0.0 for j in range(d_hidden)]
-    raise NotImplementedError("TODO 9: Backpropagate through ReLU valve to obtain dz1.")
+    dz1 = [da1[j] if z1[j] > 0 else 0.0 for j in range(d_hidden)]
+    # raise NotImplementedError("TODO 9: Backpropagate through ReLU valve to obtain dz1.")
 
     # -----------------------------------------------------------------
     # TODO 10: Gradients for Layer 1 (W1, b1) and Embedding dx_vec (Chapter 04)
@@ -278,6 +302,15 @@ def backward_pass(x_id, y_target, probs, cache, params):
     # dW1 = [[x_vec[k] * dz1[j] for j in range(d_hidden)] for k in range(d_embed)]
     # db1 = dz1[:]
     # dx_vec = [sum(dz1[j] * W1[k][j] for j in range(d_hidden)) for k in range(d_embed)]
+    dW1 = [[x_vec[k] * dz1[j] for j in range(d_hidden)] for k in range(d_embed)]
+    db1 = dz1[:]
+
+    dx_vec = [0.0] * d_embed
+    for k in range(d_embed):
+        sum_val = 0.0
+        for j in range(d_hidden):
+            sum_val += dz1[j] * W1[k][j]
+        dx_vec.append(sum_val)
     raise NotImplementedError("TODO 10: Compute dW1, db1, and dx_vec.")
 
     grads = {
@@ -320,7 +353,20 @@ def sgd_step(params, grads, x_id, lr):
     #   5. E[x_id][k] -= lr * dx_vec[k]  (only the active embedding row!)
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 11: Implement SGD parameter updates.")
+    for k in range(d_hidden):
+        for j in range(V):
+            W2[k][j] -= lr * dW2[k][j]
+    for j in range(V):
+        b2[j] -= lr * db2[j]
+    for k in range(d_embed):
+        for j in range(d_hidden):
+            W1[k][j] -= lr * dW1[k][j]
+    for j in range(d_hidden):
+        b1[j] -= lr * db1[j]
+    # Update embedding row E[x_id]
+    for k in range(d_embed):
+        E[x_id][k] -= lr * dx_vec[k]
+    # raise NotImplementedError("TODO 11: Implement SGD parameter updates.")
 
 
 def generate_text(prompt_word, n_tokens, params):
@@ -349,7 +395,13 @@ def generate_text(prompt_word, n_tokens, params):
         # 5. Append to output, set curr_word = next_word
         # -------------------------------------------------------------
         # YOUR CODE HERE:
-        raise NotImplementedError("TODO 12: Implement autoregressive token generation.")
+        x_id = word2id[curr_word]
+        _, probs, _ = forward_pass(x_id, 0, params)  # y_target is dummy here
+        best_id = probs.index(max(probs))
+        next_word = id2word[best_id]
+        output.append(next_word)
+        curr_word = next_word
+        # raise NotImplementedError("TODO 12: Implement autoregressive token generation.")
 
     return " ".join(output)
 

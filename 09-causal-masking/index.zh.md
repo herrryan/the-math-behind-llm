@@ -287,6 +287,80 @@ $$
 
 ---
 
+### 5. 突破单向自回归的物理禁锢：中间填空（Fill-in-the-Middle / FIM）
+
+下三角因果掩码 $\mathbf{M}$ 虽然彻底解决了从左到右单向生成新文本的问题，但也带来了一个致命缺陷：**传统的因果语言模型根本无法对已有文本进行局部编辑或“中间填空”**。
+
+设想一位程序员正在 IDE 中写代码：
+```python
+def calculate_area(radius):
+    # [光标位置：希望大模型在此处补全公式]
+    return area
+```
+在这个场景中，光标前面的代码是**前缀（Prefix, $P$）**，光标后面的代码是**后缀（Suffix, $S$）**，中间缺失的逻辑则是**中间段（Middle, $M$）**。
+
+在标准因果掩码下，模型只能依据前缀进行预测：
+
+$$
+P(M \mid P)
+$$
+
+模型对后面的后缀 $S$ 完全处于“盲人”状态！因为因果掩码死死挡住了未来的视线。模型很可能会自己捏造一个变量名（如 `result = 3.14 * radius ** 2`），但后缀已经写死了 `return area`，导致生成的代码一运行就报错崩溃。
+
+#### 文本序列重排变换（FIM Transformation）
+
+2022年，OpenAI 的研究团队（Bavarian 等人，<cite>《Efficient Training of Language Models to Fill in the Middle》</cite>）发现了一个绝妙的数学解法：**我们完全不需要修改 Transformer 的网络结构，也不需要破坏下三角因果掩码，只需要在送入模型前，对文本序列做一次空间重排！**
+
+引入三个特殊的界定词元（Special Tokens）：$\langle\text{PRE}\rangle$、$\langle\text{SUF}\rangle$ 与 $\langle\text{MID}\rangle$。
+
+将任意一段切分成前缀、中间、后缀的文档 $D = (P, M, S)$ 按照以下格式重组：
+
+1. **PSM（Prefix-Suffix-Middle）模式**：
+   $$
+   \tau_{\text{PSM}}(D) = \langle\text{PRE}\rangle \circ P \circ \langle\text{SUF}\rangle \circ S \circ \langle\text{MID}\rangle \circ M \circ \langle\text{EOT}\rangle
+   $$
+
+2. **SPM（Suffix-Prefix-Middle）模式**：
+   $$
+   \tau_{\text{SPM}}(D) = \langle\text{SUF}\rangle \circ S \circ \langle\text{PRE}\rangle \circ P \circ \langle\text{MID}\rangle \circ M \circ \langle\text{EOT}\rangle
+   $$
+
+其中 $\langle\text{EOT}\rangle$ 是传输结束词元（End-of-Transmission）。
+
+#### 下三角因果掩码下的 FIM 几何魔术
+
+当序列被重排为 PSM 格式后，看看标准的下三角因果掩码 $\mathbf{M}$ 会发生什么美妙的化学反应：
+
+<figure>
+<pre>
+PSM 模式下的因果注意力可见性矩阵：
+
+词元物理位置：     [PRE]  ...前缀(P)...  [SUF]  ...后缀(S)...  [MID]  ...中间(M)...
+                   ┌────────────────────────────────────────────────────────┐
+[PRE] + 前缀(P)    │  只能看见前缀自身  │               完全遮蔽                 │
+                   │   （历史可见）     │            （因果掩码拦截）            │
+                   ├────────────────────┴───────────────────────────────────┤
+[SUF] + 后缀(S)    │  不仅能看见前缀自身，还能完整看清后缀自身！            │
+                   │             （处于下三角合法历史区）                   │
+                   ├────────────────────────────────────────────────────────┤
+[MID] + 中间(M)    │  同时完整看清前缀(P)、后缀(S) 以及已生成的中间词元！   │
+                   │  在数学上直接实现了以两端为锚点的完美双向条件补全！    │
+                   └────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>图 9.3：</strong> 在标准因果掩码下，通过将输入序列重排为 PSM 格式，使待补全的 Middle 能够同时合法地看见 Prefix 与 Suffix，而无需泄露未来的 Middle 词元。</figcaption>
+</figure>
+
+数学上的精妙之处在于：
+1. 当模型自回归生成中间词元 $M$ 时，因为前缀 $P$ 和后缀 $S$ 在物理序列中都已经排在了 $M$ 的前面，处于下三角掩码的合法可视区内，所以生成 $M$ 的每一个查询都可以自由地向 $P$ 和 $S$ 投射注意力！
+2. 因果掩码依然发挥着关键保护作用：它确保正在生成的中间词元 $m_t$ 绝对无法偷看尚未生成的未来中间词元 $m_{t+1}$。
+3. 损失函数仅仅计算在中间段 $M$ 之上：
+   $$
+   \mathcal{L}_{\text{FIM}} = -\sum_{k=1}^{|M|} \log P(m_k \mid \langle\text{PRE}\rangle, P, \langle\text{SUF}\rangle, S, \langle\text{MID}\rangle, m_{\lt k})
+   $$
+4. 在预训练阶段，只要混合 50% 的普通单向文本与 50% 的 FIM 重排文本，大模型就能同时拥有**从左往右顺畅行文**与**在文本中间精准补丁修补**的双重神力！
+
+---
+
 ## 第 4 步：历史渊源与技术演进
 
 <figure>
@@ -312,8 +386,13 @@ $$
         ▼
 2018年：Radford 等人 ──────────────────────► GPT（Generative Pre-trained Transformer）：
                                              确立 Decoder-only 纯因果大模型为当代 AI 主流范式。
+        │
+        ▼
+2022年：Bavarian 等人 ─────────────────────► 中间填空（OpenAI FIM）：
+                                             通过 [PRE] P [SUF] S [MID] M 序列空间置换，
+                                             在不破坏因果掩码的前提下解锁大模型局部代码插值！
 </pre>
-<figcaption><strong>图 9.3：</strong> 从时间物理循环到空间矩阵掩码的技术跨越。</figcaption>
+<figcaption><strong>图 9.4：</strong> 从时间物理循环到空间矩阵掩码，再到 FIM 中间填空置换的技术跨越。</figcaption>
 </figure>
 
 ### 1. 从时间循环到空间下三角掩码
