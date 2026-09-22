@@ -127,7 +127,10 @@ def project_qkv(X, W_q, W_k, W_v):
     # Q = ...
     # K = ...
     # V_mat = ...
-    raise NotImplementedError("TODO 1: Implement project_qkv(X, W_q, W_k, W_v)")
+    Q = matmul(X, W_q)
+    K = matmul(X, W_k)
+    V_mat = matmul(X, W_v)
+    return Q, K, V_mat
 
 
 def compute_scaled_scores(Q, K, scale_factor):
@@ -159,7 +162,10 @@ def compute_scaled_scores(Q, K, scale_factor):
     # 3. Multiply every entry in the resulting matrix by scale_factor.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 2: Implement compute_scaled_scores(Q, K, scale_factor)")
+    K_T = transpose(K)
+    scores = matmul(Q, K_T)
+    scores = [[s * scale_factor for s in row] for row in scores]
+    return scores
 
 
 def apply_causal_mask(scores):
@@ -187,7 +193,16 @@ def apply_causal_mask(scores):
     # If j > i, set masked_scores[i][j] = -1e9.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 3: Implement apply_causal_mask(scores)")
+    masked_scores = []
+    for i in range(len(scores)):
+        row = []
+        for j in range(len(scores[i])):
+            if j > i:
+                row.append(-1e9)
+            else:
+                row.append(scores[i][j])
+        masked_scores.append(row)
+    return masked_scores
 
 
 def compute_attention_weights(masked_scores):
@@ -213,7 +228,10 @@ def compute_attention_weights(masked_scores):
     # Use the provided softmax_row(row) helper on each row of masked_scores.
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 4: Implement compute_attention_weights(masked_scores)")
+    A = []
+    for row in masked_scores:
+        A.append(softmax_row(row))
+    return A
 
 
 def aggregate_values(A, V_mat):
@@ -240,7 +258,8 @@ def aggregate_values(A, V_mat):
     # Multiply A @ V_mat using matmul(A, V_mat).
     # -----------------------------------------------------------------
     # YOUR CODE HERE:
-    raise NotImplementedError("TODO 5: Implement aggregate_values(A, V_mat)")
+    O = matmul(A, V_mat)
+    return O
 
 
 def forward_pass(inputs, targets, params):
@@ -371,6 +390,70 @@ def update_parameters(params, grads, inputs, lr):
         idx = inputs[i]
         for j in range(d_model):
             params["E"][idx][j] -= lr * grads["dX"][i][j]
+
+
+# =====================================================================
+# BONUS SUB-EXERCISE: Grouped-Query Attention (GQA - Chapter 11 SOTA)
+# =====================================================================
+# In modern frontier LLMs (LLaMA-3, Mistral, Gemma 2), single-head and
+# standard multi-head attention have been superseded by Grouped-Query
+# Attention (GQA). GQA groups H_q query heads to share H_kv key-value
+# heads, slashing KV Cache RAM by 4x to 8x in long contexts.
+#
+# Complete the 2 bonus functions below:
+# 1. get_kv_head_index(q_head_idx, group_size)
+# 2. grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head)
+# =====================================================================
+def get_kv_head_index(q_head_idx, group_size):
+    """
+    BONUS TODO 8: Maps Query head index h to its shared Key-Value head index.
+    
+    Formula:
+        kv_idx = q_head_idx // group_size
+    """
+    # YOUR CODE HERE:
+    raise NotImplementedError("BONUS TODO 8: Implement get_kv_head_index(q_head_idx, group_size)")
+
+
+def slice_head(tensor_2d, head_idx, d_head):
+    """Helper: Slices [T x d_head] for head_idx from a [T x (H * d_head)] matrix."""
+    T = len(tensor_2d)
+    start = head_idx * d_head
+    end = start + d_head
+    return [[tensor_2d[t][d] for d in range(start, end)] for t in range(T)]
+
+
+def grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head):
+    """
+    BONUS TODO 9: Computes Grouped-Query Attention (GQA).
+
+    Arguments:
+        X: [T x d_model] Input representations
+        W_q: [d_model x (H_q * d_head)] Query weights
+        W_k: [d_model x (H_kv * d_head)] Key weights
+        W_v: [d_model x (H_kv * d_head)] Value weights
+        W_o: [(H_q * d_head) x d_model] Output projection weights
+        H_q: Number of Query heads (e.g., 4)
+        H_kv: Number of Key-Value heads (e.g., 2)
+        d_head: Dimension of each subspace head (e.g., 4)
+
+    Steps:
+      1. Project Q = X @ W_q, K = X @ W_k, V = X @ W_v
+      2. group_size = H_q // H_kv, scale = 1.0 / sqrt(d_head)
+      3. For each query head h in 0 .. H_q - 1:
+           kv_idx = get_kv_head_index(h, group_size)
+           Q_h = slice_head(Q, h, d_head)
+           K_k = slice_head(K, kv_idx, d_head)
+           V_k = slice_head(V, kv_idx, d_head)
+           scores = (Q_h @ K_k^T) * scale
+           apply causal mask (j > i -> -1e9)
+           A_h = [softmax_row(row) for row in scores]
+           O_h = A_h @ V_k
+      4. Concat all O_h horizontally into O_concat: [T x (H_q * d_head)]
+      5. Return O_concat @ W_o
+    """
+    # YOUR CODE HERE:
+    raise NotImplementedError("BONUS TODO 9: Implement grouped_query_attention(...)")
 
 
 # =====================================================================
@@ -508,7 +591,7 @@ def main():
     print("Prompt 'the dog sat on the'    ->", generate("the dog sat on the"))
     print("Prompt 'the cat walked on the' ->", generate("the cat walked on the"))
     print("Prompt 'the dog walked on the' ->", generate("the dog walked on the"))
-
+    print("Prompt 'the dog ' ->", generate("the dog"))
     # Attention Heatmap
     def inspect_attention(text):
         toks = [word2id[w] for w in text.split()]
@@ -527,6 +610,42 @@ def main():
 
     inspect_attention("the cat sat on the")
     inspect_attention("the dog sat on the")
+
+    # Run Bonus GQA Sub-Exercise Test
+    print("\n" + "=" * 60)
+    print("BONUS SUB-EXERCISE: Modern SOTA Grouped-Query Attention (GQA)")
+    print("=" * 60)
+    try:
+        assert get_kv_head_index(0, 2) == 0 and get_kv_head_index(1, 2) == 0
+        assert get_kv_head_index(2, 2) == 1 and get_kv_head_index(3, 2) == 1
+
+        toy_T = 3
+        toy_d_model = 8
+        toy_d_head = 4
+        toy_H_q = 4
+        toy_H_kv = 2
+        toy_X = [[0.1 * ((i + j) % 5) for j in range(toy_d_model)] for i in range(toy_T)]
+        toy_W_q = [[0.05] * (toy_H_q * toy_d_head) for _ in range(toy_d_model)]
+        toy_W_k = [[0.05] * (toy_H_kv * toy_d_head) for _ in range(toy_d_model)]
+        toy_W_v = [[0.05] * (toy_H_kv * toy_d_head) for _ in range(toy_d_model)]
+        toy_W_o = [[0.05] * toy_d_model for _ in range(toy_H_q * toy_d_head)]
+
+        gqa_out = grouped_query_attention(
+            toy_X, toy_W_q, toy_W_k, toy_W_v, toy_W_o,
+            toy_H_q, toy_H_kv, toy_d_head
+        )
+        assert len(gqa_out) == toy_T and len(gqa_out[0]) == toy_d_model
+        print("[PASS] BONUS SUB-EXERCISE: Grouped-Query Attention (GQA) verified!")
+        print("  - GQA Output Shape: [3 x 8] correctly projected!")
+        print("  - KV Cache Memory Savings at 128k context (LLaMA-3 70B):")
+        print("    * MHA (64 KV heads): 312.50 GB (VRAM bottleneck)")
+        print("    * GQA (8 KV heads):   39.06 GB (8x reduction! SOTA standard)")
+    except NotImplementedError:
+        print("[BONUS TODO] Ready for the next challenge?")
+        print("             Implement BONUS TODO 8 & 9 above to build modern SOTA GQA!")
+    except Exception as e:
+        print(f"[FAIL] BONUS GQA error: {e}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":

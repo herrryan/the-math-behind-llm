@@ -384,6 +384,16 @@ x_3 ("the") ──► [ Query 聚光灯 ] ──────────┴─�
 <figcaption><strong>图 8b.4:</strong> 注意力大脑通过跨时序动态路由主语信息，彻底化解了困扰二元文法模型的歧义困境。</figcaption>
 </figure>
 
+### 附加进阶练习：构建现代最前沿的分组查询注意力（GQA）
+
+虽然实验 02 采用纯单头注意力来突出核心数学脉络，但在现代前沿大模型（如 LLaMA-3、Mistral、Gemma 2、DeepSeek-V2）中，工业界既不使用单头注意力，也早已淘汰了标准多头注意力（MHA）。取而代之的是 **分组查询注意力（Grouped-Query Attention, GQA）**（Ainslie 等，2023）。
+
+标准 MHA 在 128k 超长上下文生成中会引发不可承受的显存墙瓶颈（70B 模型单并发 KV Cache 达到惊人的 $312.50\text{ GB}$！）。GQA 让多组 Query 头共用少量的 Key-Value 头，在不降低推理表征质量的前提下，将缓存显存带宽直接压降至原来的 $\frac{1}{8}$。
+
+完整脚本 [`08b-lab-attention-brain/attention_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/08b-lab-attention-brain/attention_brain.py) 与练习脚本 [`08b-lab-attention-brain/attention_brain_exercise.py`](file:///Users/guofei/workspace/the-math-behind-llm/08b-lab-attention-brain/attention_brain_exercise.py) 均内置了这一 **附加练习**：
+- **BONUS TODO 8**：实现 `get_kv_head_index(q_head_idx, group_size)`，将 Query 头索引 $h$ 映射至共享的 KV 头组索引（$kv\_idx = h // \text{group\_size}$）。
+- **BONUS TODO 9**：实现 `grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head)`，完成通用 GQA 运算，并验证推导中的 8 倍显存节省！
+
 ---
 
 ## 步骤 6：核心收获与致命瓶颈

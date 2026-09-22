@@ -100,8 +100,13 @@ def compute_rmsnorm(X, gamma, eps=1e-5):
         rms_list: List of length T containing the scalar RMS value for each row
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 1: Implement compute_rmsnorm(X, gamma, eps)")
-
+    rms_list = []
+    X_norm = []
+    for x in X:
+        rms = math.sqrt(sum(v * v for v in x) / len(x) + eps)
+        rms_list.append(rms)
+        X_norm.append([v / rms * g for v, g in zip(x, gamma)])
+    return X_norm, rms_list
 
 # =====================================================================
 # TODO 2: Residual Connection Highway (Chapter 12)
@@ -127,8 +132,9 @@ def compute_residual(X_in, Sublayer_out):
         X_out: Element-wise sum of shape [T, d]
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 2: Implement compute_residual(X_in, Sublayer_out)")
-
+    X_out = [[x_in + sub_out for x_in, sub_out in zip(x_row, sub_row)]
+             for x_row, sub_row in zip(X_in, Sublayer_out)]
+    return X_out
 
 # =====================================================================
 # TODO 3: SiLU (Swish) Activation Function (Chapter 04)
@@ -152,7 +158,7 @@ def compute_silu(x):
         The scalar float result of SiLU(x)
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 3: Implement compute_silu(x)")
+    return x * sigmoid(x)
 
 
 # =====================================================================
@@ -185,7 +191,13 @@ def compute_swiglu_ffn(X_norm, W_gate, W_up, W_down):
         cache: (H_gate, H_up, H_silu, H_swiglu) needed for backprop
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 4: Implement compute_swiglu_ffn(X_norm, W_gate, W_up, W_down)")
+    H_gate = matmul(X_norm, W_gate)
+    H_up = matmul(X_norm, W_up)
+    H_silu = [[compute_silu(val) for val in row] for row in H_gate]
+    H_swiglu = [[h_silu * h_up for h_silu, h_up in zip(h_silu_row, h_up_row)] for h_silu_row, h_up_row in zip(H_silu, H_up)]
+    FFN_out = matmul(H_swiglu, W_down)
+    cache = (H_gate, H_up, H_silu, H_swiglu)
+    return FFN_out, cache
 
 
 # =====================================================================
@@ -206,6 +218,66 @@ def rmsnorm_backward(dX_norm, X, gamma, rms_list):
             row_dx.append((term1 - term2) / rms)
         dX.append(row_dx)
     return dX, dgamma
+
+
+# =====================================================================
+# TODO 5: RMSNorm Dropout (Chapter 08 & 13)
+# =====================================================================
+def compute_rmsnorm_dropout(X, gamma, p_drop=0.1):
+    """
+    Applies RMSNorm followed by applying dropout to the normalized activations.
+
+    Mathematical Formula:
+        X_norm, rms = compute_rmsnorm(X, gamma)
+        # Create binary mask M (0 with probability p_drop, 1 otherwise)
+        M = Bernoulli(1 - p_drop)
+        X_dropped[i][j] = X_norm[i][j] * M[i][j] / (1 - p_drop)  # Rescale
+
+    Physical Metaphor:
+        A "Volume Limiter" (RMSNorm) followed by randomly "shorting out" (Dropout)
+        certain data channels. The division by (1-p_drop) is to keep the expected
+        signal energy constant.
+
+    Arguments:
+        X: 2D list of shape [T, d]
+        gamma: Learnable gain vector of shape [d]
+        p_drop: Dropout probability (default 0.1)
+
+    Returns:
+        X_dropped: 2D list of shape [T, d] with dropout applied
+        cache: (X_norm, M) needed for backprop
+    """
+    # YOUR CODE HERE
+    x_norm, rms = compute_rmsnorm(X, gamma)
+    T, d = len(x_norm), len(x_norm[0])
+    scale_factor = 1.0 / (1.0 - p_drop)
+    
+    # Create dropout mask M (1 with probability 1-p_drop)
+    # Note: In a real scenario, we'd use a proper random number generator.
+    # For this exercise, we'll simulate it deterministically or assume a helper.
+    # However, since unit tests rely on fixed outputs, we might need to
+    # mock random.random() or use a seeded generator. 
+    # Since we can't easily mock in this environment without changing the structure,
+    # we will write the logic assuming random.random() works.
+    
+    M = []
+    X_dropped = []
+    for i in range(T):
+        row_M = []
+        row_dropped = []
+        for j in range(d):
+            # Generate random float between 0.0 and 1.0
+            rand_val = random.random()
+            if rand_val < p_drop:
+                m_val = 0.0
+            else:
+                m_val = 1.0
+            row_M.append(m_val)
+            row_dropped.append(x_norm[i][j] * m_val * scale_factor)
+        M.append(row_M)
+        X_dropped.append(row_dropped)
+        
+    return X_dropped, (x_norm, M)
 
 
 # =====================================================================

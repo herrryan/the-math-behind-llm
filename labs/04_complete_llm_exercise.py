@@ -131,7 +131,12 @@ def sample_with_temperature(logits, temperature=1.0):
         probs: List of probabilities summing to 1.0
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 1: Implement sample_with_temperature(logits, temperature)")
+    temp_logits = [l / temperature for l in logits]
+    max_logit = max(temp_logits)
+    exp_logits = [math.exp(l - max_logit) for l in temp_logits]
+    sum_exp = sum(exp_logits)
+    probs = [e / sum_exp for e in exp_logits]
+    return probs
 
 
 # =====================================================================
@@ -158,7 +163,12 @@ def apply_top_k(probs, k=5):
         List of (token_id, normalized_prob) pairs for the top-k tokens
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 2: Implement apply_top_k(probs, k)")
+    indexed_probs = list(enumerate(probs))
+    sorted_probs = sorted(indexed_probs, key=lambda x: x[1], reverse=True)
+    top_k = sorted_probs[:k]
+    sum_top_k = sum(p for _, p in top_k)
+    normalized_top_k = [(idx, p / sum_top_k) for idx, p in top_k]
+    return normalized_top_k
 
 
 # =====================================================================
@@ -186,7 +196,17 @@ def apply_top_p(indexed_probs, p=0.9):
         List of (token_id, normalized_prob) pairs retained in the nucleus
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 3: Implement apply_top_p(indexed_probs, p)")
+    indexed_probs = sorted(indexed_probs, key=lambda x: x[1], reverse=True)
+    cumulative_prob = 0.0
+    nucleus_tokens = []
+    for idx, prob in indexed_probs:
+        nucleus_tokens.append((idx, prob))
+        cumulative_prob += prob
+        if cumulative_prob >= p:
+            break
+    sum_nucleus = sum(p for _, p in nucleus_tokens)
+    normalized_nucleus = [(idx, p / sum_nucleus) for idx, p in nucleus_tokens]
+    return normalized_nucleus
 
 
 # =====================================================================
@@ -275,7 +295,64 @@ def decode_step_with_cache(tok_id, params, cache):
         z: 1D list of length |V| containing output logits for next token
     """
     # YOUR CODE HERE
-    raise NotImplementedError("TODO 4: Implement decode_step_with_cache(tok_id, params, cache)")
+    x0 = [params["E"][tok_id]]
+    # 2. Apply Pre-RMSNorm 1 with params["gamma1"]
+    x0_norm, _ = rmsnorm_forward(x0, params["gamma1"])
+    # 3. Project single q, k, v vectors:
+    q = [v * params["W_q"][0][j] for j, v in enumerate(x0_norm[0])]
+    k = [v * params["W_k"][0][j] for j, v in enumerate(x0_norm[0])]
+    v = [v * params["W_v"][0][j] for j, v in enumerate(x0_norm[0])]
+    
+    # 4. Append k to cache.k_cache, v to cache.v_cache
+    cache.k_cache.append(k)
+    cache.v_cache.append(v)
+    
+    # 5. Compute attention against ALL cached keys:
+    raw_scores = []
+    for cached_k in cache.k_cache:
+        score = sum(q[j] * cached_k[j] for j in range(d_model)) * scale
+        raw_scores.append(score)
+        
+    attn_weights = softmax_row(raw_scores)
+    
+    # 6. Aggregate cached values:
+    o_raw = [0.0] * d_model
+    for j, weight in enumerate(attn_weights):
+        for d in range(d_model):
+            o_raw[d] += weight * cache.v_cache[j][d]
+            
+    # 7. Project o_raw through W_o and add residual highway: x1 = x0 + attn_out
+    attn_out = matmul([o_raw], params["W_o"])[0]
+    x1 = [x0_norm[0][j] + attn_out[j] for j in range(d_model)]
+    
+    # 8. Apply Pre-RMSNorm 2 with params["gamma2"]
+    x1_norm, _ = rmsnorm_forward([x1], params["gamma2"])
+    
+    # 9. Compute SwiGLU FFN
+    # H_gate = x1_norm * W_gate
+    H_gate = matmul(x1_norm, params["W_gate"])
+    # H_up = x1_norm * W_up
+    H_up = matmul(x1_norm, params["W_up"])
+    
+    # SiLU(H_gate)
+    H_silu = [[silu(val) for val in row] for row in H_gate]
+    
+    # H_swiglu = SiLU(H_gate) * H_up
+    H_swiglu = [[H_silu[0][j] * H_up[0][j] for j in range(d_model)]]
+    
+    # FFN_out = H_swiglu * W_down
+    FFN_out = matmul(H_swiglu, params["W_down"])
+    
+    # 10. Add residual highway: x2 = x1 + ffn_out
+    x2 = [x1_norm[0][j] + FFN_out[0][j] for j in range(d_model)]
+    
+    # 11. Apply Final RMSNorm with params["gamma_final"]
+    x2_norm, _ = rmsnorm_forward([x2], params["gamma_final"])
+    
+    # 12. Project through W_head to produce logits
+    z = matmul(x2_norm, params["W_head"])[0]
+    
+    return z
 
 
 # =====================================================================

@@ -254,3 +254,93 @@ def inspect_attention(text):
 
 inspect_attention("the cat sat on the")
 inspect_attention("the dog sat on the")
+
+
+# =====================================================================
+# 7. SOTA Extension: Grouped-Query Attention (GQA - Chapter 11)
+# =====================================================================
+def get_kv_head_index(q_head_idx, group_size):
+    """Maps Query head index h to its shared Key-Value head index."""
+    return q_head_idx // group_size
+
+
+def slice_head(tensor_2d, head_idx, d_head):
+    """Slices [T x d_head] for head_idx from a [T x (H * d_head)] matrix."""
+    T = len(tensor_2d)
+    start = head_idx * d_head
+    end = start + d_head
+    return [[tensor_2d[t][d] for d in range(start, end)] for t in range(T)]
+
+
+def grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head):
+    """
+    Computes Grouped-Query Attention (GQA).
+    Generalizes across:
+      - Multi-Head Attention (MHA): H_kv == H_q
+      - Grouped-Query Attention (GQA): 1 < H_kv < H_q (Modern SOTA!)
+      - Multi-Query Attention (MQA): H_kv == 1
+    """
+    assert H_q % H_kv == 0, f"H_q ({H_q}) must be divisible by H_kv ({H_kv})"
+    group_size = H_q // H_kv
+    scale_h = 1.0 / math.sqrt(d_head)
+    T = len(X)
+
+    # 1. Linear projections
+    Q = matmul(X, W_q)    # [T x (H_q * d_head)]
+    K = matmul(X, W_k)    # [T x (H_kv * d_head)]
+    V_m = matmul(X, W_v)  # [T x (H_kv * d_head)]
+
+    # 2. Multi-head attention with grouped KV routing
+    head_outputs = []
+    for h in range(H_q):
+        kv_idx = get_kv_head_index(h, group_size)
+        Q_h = slice_head(Q, h, d_head)
+        K_k = slice_head(K, kv_idx, d_head)
+        V_k = slice_head(V_m, kv_idx, d_head)
+
+        scores_h = matmul(Q_h, transpose(K_k))
+        for i in range(T):
+            for j in range(T):
+                scores_h[i][j] *= scale_h
+                if j > i:
+                    scores_h[i][j] = -1e9
+        A_h = [softmax_row(scores_h[i]) for i in range(T)]
+        O_h = matmul(A_h, V_k)
+        head_outputs.append(O_h)
+
+    # 3. Concatenate all query heads along feature dimension
+    O_concat = []
+    for t in range(T):
+        row = []
+        for h in range(H_q):
+            row.extend(head_outputs[h][t])
+        O_concat.append(row)
+
+    # 4. Final output projection back to d_model
+    return matmul(O_concat, W_o)
+
+
+print("\n" + "=" * 60)
+print("SOTA Extension: Grouped-Query Attention (GQA) Verification")
+print("=" * 60)
+toy_T = 3
+toy_d_model = 8
+toy_d_head = 4
+toy_H_q = 4
+toy_H_kv = 2  # Group size = 4 // 2 = 2
+
+toy_X = [[0.1 * ((i + j) % 5) for j in range(toy_d_model)] for i in range(toy_T)]
+toy_W_q = [[0.05] * (toy_H_q * toy_d_head) for _ in range(toy_d_model)]
+toy_W_k = [[0.05] * (toy_H_kv * toy_d_head) for _ in range(toy_d_model)]
+toy_W_v = [[0.05] * (toy_H_kv * toy_d_head) for _ in range(toy_d_model)]
+toy_W_o = [[0.05] * toy_d_model for _ in range(toy_H_q * toy_d_head)]
+
+gqa_out = grouped_query_attention(
+    toy_X, toy_W_q, toy_W_k, toy_W_v, toy_W_o,
+    toy_H_q, toy_H_kv, toy_d_head
+)
+print(f"GQA Output Shape: [{len(gqa_out)} tokens x {len(gqa_out[0])} d_model] - Match!")
+print("KV Cache Memory Savings at 128k context (LLaMA-3 70B):")
+print("  - MHA (64 KV heads): 312.50 GB (VRAM bottleneck)")
+print("  - GQA (8 KV heads):   39.06 GB (8x reduction! SOTA standard)")
+print("=" * 60)

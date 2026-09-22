@@ -384,6 +384,16 @@ Prompt: "the dog walked on the" ──► Predicts: "rug" ──► "the dog wal
 <figcaption><strong>Figure 8b.4:</strong> The Attention Brain completely resolves ambiguous bigrams by routing historical subject tokens across multiple time steps.</figcaption>
 </figure>
 
+### Bonus Sub-Exercise: Modern SOTA Grouped-Query Attention (GQA)
+
+While Lab 02 implements pure single-head attention to isolate the core mathematics, frontier LLMs (LLaMA-3, Mistral, Gemma 2, DeepSeek-V2) do not use single-head attention, nor do they use standard Multi-Head Attention (MHA). Instead, they deploy **Grouped-Query Attention (GQA)** (Ainslie et al., 2023).
+
+Standard MHA creates an intolerable memory bottleneck during 128k long-context generation ($312.50\text{ GB}$ of KV cache per user in a 70B model!). GQA groups $H_q$ query heads to share $H_{kv}$ key-value heads, reducing cache memory by $8\times$ with zero degradation in reasoning quality.
+
+Both [`08b-lab-attention-brain/attention_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/08b-lab-attention-brain/attention_brain.py) and [`08b-lab-attention-brain/attention_brain_exercise.py`](file:///Users/guofei/workspace/the-math-behind-llm/08b-lab-attention-brain/attention_brain_exercise.py) feature an integrated **Bonus Sub-Exercise**:
+- **BONUS TODO 8**: Implement `get_kv_head_index(q_head_idx, group_size)` to map query head index $h$ to its shared key-value head index ($kv\_idx = h // \text{group\_size}$).
+- **BONUS TODO 9**: Implement `grouped_query_attention(X, W_q, W_k, W_v, W_o, H_q, H_kv, d_head)` to execute generalized GQA, project back to $d_{\text{model}}$, and verify the $8\times$ KV cache reduction!
+
 ---
 
 ## Step 6: Core Takeaway & The Fatal Bottleneck
