@@ -156,7 +156,11 @@
 
 <h2 id="step-3">第 3 步：完整源码与数学解剖</h2>
 
-这是阶段 1 的完整可执行 Python 脚本（已收录于 [`labs/01_micro_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/labs/01_micro_brain.py)）：
+为了让大家通过“亲手手搓”获得最扎实的物理与数学肌肉记忆，本工坊提供两个配套代码文件：
+- **启发式填空练习模板**：[`labs/01_micro_brain_exercise.py`](file:///Users/guofei/workspace/the-math-behind-llm/labs/01_micro_brain_exercise.py)（亦位于 [`04b-lab-micro-brain/micro_brain_exercise.py`](file:///Users/guofei/workspace/the-math-behind-llm/04b-lab-micro-brain/micro_brain_exercise.py)），将核心数学变换留空为带有启发式注释、张量形状与断言校验的 TODO 桩函数；
+- **完整参考答案代码**：[`labs/01_micro_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/labs/01_micro_brain.py)（亦位于 [`04b-lab-micro-brain/micro_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/04b-lab-micro-brain/micro_brain.py)）。
+
+这是阶段 1 的完整可执行 Python 脚本参考实现：
 
 <figure>
 <pre>

@@ -156,7 +156,11 @@ When you strip away external dependencies, **every single equation from Chapters
 
 <h2 id="step-3">Step 3: Complete Source Code &amp; Math Anatomy</h2>
 
-Here is the complete executable Python script for Stage 1 (available directly in [`labs/01_micro_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/labs/01_micro_brain.py)):
+To maximize your learning through active recall, we provide two versions of this lab:
+- **Guided Exercise Template**: [`labs/01_micro_brain_exercise.py`](file:///Users/guofei/workspace/the-math-behind-llm/labs/01_micro_brain_exercise.py) (also in [`04b-lab-micro-brain/micro_brain_exercise.py`](file:///Users/guofei/workspace/the-math-behind-llm/04b-lab-micro-brain/micro_brain_exercise.py)), where the core mathematical transformations are left as guided TODO stubs with heuristic hints and automated unit tests.
+- **Complete Reference Solution**: [`labs/01_micro_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/labs/01_micro_brain.py) (also in [`04b-lab-micro-brain/micro_brain.py`](file:///Users/guofei/workspace/the-math-behind-llm/04b-lab-micro-brain/micro_brain.py)).
+
+Here is the complete executable reference script:
 
 <figure>
 <pre>
