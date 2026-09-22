@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>动手实验 04：用 300 行纯 Python 实现完整交互式大语言模型 - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../17-adam-optimizer/index.zh.html">&larr; 第 17 章：聪明的下山者（动量机制与 AdamW 优化器）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../18-sampling-and-temperature/index.zh.html">第 18 章：给模型加点温度（采样机制、温度系数、Top-k 与 Top-p） &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>动手实验 04：用 300 行纯 Python 实现完整交互式大语言模型</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-1">1. 3岁孩子也能懂的直觉</a> &bull; 
+    <a href="#step-2">2. 连接理论与纯 Python 的数学桥梁</a> &bull; 
+    <a href="#step-3">3. 完整代码实现与解剖</a> &bull; 
+    <a href="#step-4">4. 源自何处？</a> &bull; 
+    <a href="#step-5">5. 具体数字演练与单步算术跟踪</a> &bull; 
+    <a href="#step-6">6. 核心收获与 Python 大脑圆满毕业</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset id="evolution">
+<legend><strong>Python 大脑演化链 &bull; 终极里程碑（第 4 阶段，全链条收官）</strong></legend>
+<p>在过去的三个实验中，我们从 Bengio 2003 微型大脑一步步进化到缩放点积自注意力，再到配备 Pre-RMSNorm、残差高速公路与 SwiGLU 门控的现代 Transformer 块。然而，贪婪解码让模型陷入死板循环，且每次生成新词都需要重算历史序列，造成了 $O(T^2)$ 的推理计算膨胀。</p>
+<p>在第四个终极动手实验中，我们将用约 300 行纯标准库 Python 打造一个<strong>完整工业级交互式大语言模型（The Complete Interactive LLM）</strong>。我们将为 Transformer 注入现代工业化推理引擎（vLLM、Ollama、llama.cpp、HuggingFace TGI）的皇冠明珠技术：<strong>键值缓存加速（KV Cache Acceleration）</strong>以及包含<strong>温度缩放、Top-$k$ 与 Top-$p$（核采样 Nucleus Sampling）的概率采样套件</strong>。</p>
+<pre>
+[Python 大脑演化路线图 &bull; 完整通关之旅]
+[第 1 阶段] 80 行纯 Python：Bengio 2003 MLP 语言模型（嵌入、全连接层、手工反向传播）
+       │
+       ▼ (致命瓶颈：1 词上下文视界；对更早的从句完全健忘)
+[第 2 阶段] 140 行纯 Python：注意力大脑（解锁 Q、K、V 投影与因果注意力机制）
+       │
+       ▼ (致命瓶颈：直接堆叠深层注意力会引发梯度消失与数值爆炸)
+[第 3 阶段] 220 行纯 Python：现代 Transformer 块（Pre-RMSNorm、残差连接与 SwiGLU 门控）
+       │
+       ▼ (致命瓶颈：僵硬贪婪解码导致死板重复的机械文本死循环)
+[第 4 阶段 (终极收官)] 300 行纯 Python：工业级推理引擎（KV 缓存与 Top-p 采样）
+       │
+       ▼ (终极成果：在终端中零依赖运行的完整交互式 LLM 对话引擎！)
+</pre>
+</fieldset>
+<hr />
+<h2 id="step-1">步骤 1：3岁孩子也能懂的直觉（记忆便签墙与温水气泡池）</h2>
+<p>想象你正和一个聪明的朋友围坐在桌旁，一问一答地写一篇长篇科普故事：</p>
+<figure>
+<pre>
+[无缓存朴素推理：O(T^2) 重复劳动与计算浪费]
+第 1 步：读入 [词 1] ──────────────────────────► 生成 [词 2]
+第 2 步：重新读入 [词 1, 词 2] ────────────────► 生成 [词 3]
+第 3 步：重新读入 [词 1, 词 2, 词 3] ──────────► 生成 [词 4] (极度浪费算力！)
+
+[KV 缓存推理：O(1) 单步极速生成]
+预填充阶段 (Prefill)：处理提示词 ──► 墙上贴满 [K1, V1], [K2, V2], [K3, V3]
+解码生成阶段 (Decode)：
+  只计算当前提问 Q4 ──► 快速扫描便签墙 [K1..K3, K4] ──► 生成 [词 5]
+  只计算当前提问 Q5 ──► 快速扫描便签墙 [K1..K4, K5] ──► 生成 [词 6]
+</pre>
+<figcaption><strong>图 17b.1:</strong> KV 缓存避免了对历史词汇键（Key）和值（Value）的重复矩阵乘法，将解码生成从 $O(T^2)$ 瓶颈缩减为 $O(1)$ 流水线。</figcaption>
+</figure>
+
+<ol>
+<li>
+<p><strong>墙上的记忆便签贴纸（KV 缓存 Key-Value Cache）</strong>：
+   假设你在写一篇 1,000 字的作文。如果没有便签纸，每当你写第 1,001 个词时，你必须把前面 1,000 个词从第 1 页全部重读一遍，重新推导一遍每个词到底代表什么！
+   而有了 <strong>KV 缓存</strong>：只要一个词被读过一次，我们就把它对应的“搜索特征（Key）”和“事实内容（Value）”写在一张黄色便签纸上贴在墙上。当第 1,001 个词到来时，我们只需要提出<strong>一个当前问题（$\mathbf{q}_{1001}$）</strong>，抬头看一眼墙上现成的便签贴纸，立刻就能挑选出下一个词！</p>
+</li>
+<li>
+<p><strong>冷热温水池（温度采样 Temperature）</strong>：</p>
+</li>
+</ol>
+<ul>
+<li><strong>极寒冰块（$T \to 0$，贪婪解码）</strong>：水面瞬间结冰，只有最高的一座冰尖露在外面。模型像一个严苛的计算器，每一次输入都只能死板地吐出一模一样的文字。</li>
+<li><strong>沸腾开水（$T > 1.5$）</strong>：热水剧烈翻滚到处飞溅，生僻甚至胡言乱语的冷门词汇到处冒泡。</li>
+<li><strong>适宜温水（$T \approx 0.7$）</strong>：最高概率的合理选项依然占据主导，但水面有柔和的涟漪波澜，允许模型展现生动自然的表达多样性。</li>
+</ul>
+<ol start="3">
+<li><strong>智能伸缩气泡（Top-$p$ 核采样 Nucleus Sampling）</strong>：
+   传统的固定 Top-$k$ 很机械：无论模型是确信无疑还是毫无把握，它都固定保留 $k$ 个词。
+   而 <strong>Top-$p$</strong> 是一个有弹性的肥皂气泡：</li>
+</ol>
+<ul>
+<li>当模型极度自信时（例如“核...聚变”，确定性高达 99%），气泡迅速缩小，只圈住这 <strong>1</strong> 个最精准的词。</li>
+<li>当模型处于开放式发散创造时，气泡自动吹大，把累计概率达到 $p$（比如 90%）的所有合理词汇全部包裹进来，并将气泡外的无关杂词果断剔除。</li>
+</ul>
+<hr />
+<h2 id="step-2">步骤 2：连接理论与纯 Python 的数学桥梁</h2>
+<p>现代工业级大模型推理的关键公式均能无缝转化为纯 Python：</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 17b.1:</strong> 工业级推理算法与纯 Python 列表原语映射表</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="20%">推理环节</th>
+      <th scope="col" align="left" width="14%">对应章节</th>
+      <th scope="col" align="left" width="33%">数学公式</th>
+      <th scope="col" align="left" width="33%">纯 Python 实现（零依赖）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><strong>KV 缓存追加</strong></th>
+      <td>第 17 章</td>
+      <td>$\mathbf{K}_{\text{past}} \leftarrow [\mathbf{K}_{\text{past}}; \mathbf{k}_t], \; \mathbf{V}_{\text{past}} \leftarrow [\mathbf{V}_{\text{past}}; \mathbf{v}_t]$</td>
+      <td><code>cache.k.append(k_t); cache.v.append(v_t)</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>缓存单步注意力</strong></th>
+      <td>第 17 章</td>
+      <td>$\boldsymbol{\alpha} = \operatorname{softmax}\left(\frac{\mathbf{q}_t \mathbf{K}_{\text{past}}^\top}{\sqrt{d_k}}\right) \in \mathbb{R}^{1 \times T_{\text{past}}}$</td>
+      <td><code>scores = [sum(q[d]*k[d] for d in range(D))*scale for k in cache.k]; a = softmax(scores)</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>温度缩放平滑</strong></th>
+      <td>第 18 章</td>
+      <td>$p_i = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}$</td>
+      <td><code>scaled = [z / T for z in logits]; exps = [math.exp(v - max_v) for v in scaled]</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Top-p 核阈值截断</strong></th>
+      <td>第 18 章</td>
+      <td>$\min M \text{ s.t. } \sum_{i=1}^M p_{(i)} \ge p$</td>
+      <td><code>for i, (_, prob) in enumerate(sorted_p): cum += prob; if cum &gt;= p: cutoff = i + 1; break</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>多项式概率采样</strong></th>
+      <td>第 18 章</td>
+      <td>从核分布中抽样 $x \sim \operatorname{Categorical}(\mathbf{p}_{\text{nucleus}})$</td>
+      <td><code>r = random.random(); for tok, p in nucleus: acc += p; if r &lt;= acc: return tok</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-3">步骤 3：完整代码实现与解剖</h2>
+<p>本实验同样提供完全对齐的双轨脚本：</p>
+<ul>
+<li><strong>引导式练习模板</strong>：<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/04_complete_llm_exercise.py"><code>labs/04_complete_llm_exercise.py</code></a>（同步存放于 <a href="file:///Users/guofei/workspace/the-math-behind-llm/17b-lab-complete-llm/complete_llm_exercise.py"><code>17b-lab-complete-llm/complete_llm_exercise.py</code></a>），留出核心采样算法与单步 KV 缓存前向运算，配备完整内置单元测试。</li>
+<li><strong>完整参考实现</strong>：<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/04_complete_llm.py"><code>labs/04_complete_llm.py</code></a>（同步存放于 <a href="file:///Users/guofei/workspace/the-math-behind-llm/17b-lab-complete-llm/complete_llm.py"><code>17b-lab-complete-llm/complete_llm.py</code></a>）。</li>
+</ul>
+<p>完整代码如下：</p>
+<figure>
+<pre>
+# =====================================================================
+# 第 4 阶段：完整交互式大语言模型（300 行纯 Python 实现）
+# 依赖项：零外部库（仅使用标准库 math、random 和 time）
+# =====================================================================
+import math
+import random
+
+corpus = [
+    "why does the sun shine ? the sun shines because of nuclear fusion .",
+    "why is the sky blue ? the sky is blue because of rayleigh scattering .",
+    "what do plants eat ? plants eat sunlight and carbon dioxide .",
+    "where do birds fly ? birds fly high in the warm summer sky .",
+    "who made the world ? nature made the world with physics and math ."
+]
+
+all_words = (" ".join(corpus)).split()
+vocab = sorted(list(set(all_words)))
+word2id = {w: i for i, w in enumerate(vocab)}
+id2word = {i: w for i, w in enumerate(vocab)}
+
+V = len(vocab)          # |V| = 39
+d_model = 12            # 残差流维度
+d_ffn = 24              # SwiGLU 隐藏扩展维度
+lr = 0.15               # 学习率
+scale = 1.0 / math.sqrt(d_model)
+
+dataset = []
+for s in corpus:
+    toks = [word2id[w] for w in s.split()]
+    dataset.append((toks[:-1], toks[1:]))
+
+def init_matrix(rows, cols, scale_init=0.2):
+    return [[random.gauss(0, scale_init) for _ in range(cols)] for _ in range(rows)]
+
+def matmul(A, B):
+    n, m, p = len(A), len(A[0]), len(B[0])
+    return [[sum(A[i][k] * B[k][j] for k in range(m)) for j in range(p)] for i in range(n)]
+
+def transpose(A):
+    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]
+
+def softmax_row(row):
+    max_val = max(row)
+    exp_r = [math.exp(v - max_val) for v in row]
+    sum_r = sum(exp_r)
+    return [v / sum_r for v in exp_r]
+
+def sigmoid(x):
+    return 1.0 / (1.0 + math.exp(-max(min(x, 20.0), -20.0)))
+
+def silu(x):
+    return x * sigmoid(x)
+
+def silu_deriv(x):
+    s = sigmoid(x)
+    return s * (1.0 + x * (1.0 - s))
+
+def rmsnorm_forward(X, gamma, eps=1e-5):
+    T, d = len(X), len(X[0])
+    X_norm = []
+    rms_list = []
+    for i in range(T):
+        ms = sum(v * v for v in X[i]) / d
+        rms = math.sqrt(ms + eps)
+        rms_list.append(rms)
+        X_norm.append([X[i][j] / rms * gamma[j] for j in range(d)])
+    return X_norm, rms_list
+
+def rmsnorm_backward(dX_norm, X, gamma, rms_list):
+    T, d = len(X), len(X[0])
+    dX = []
+    dgamma = [0.0] * d
+    for i in range(T):
+        rms = rms_list[i]
+        sum_gamma_dxn_x = sum(gamma[j] * dX_norm[i][j] * X[i][j] for j in range(d))
+        row_dx = []
+        for j in range(d):
+            dgamma[j] += dX_norm[i][j] * (X[i][j] / rms)
+            term1 = gamma[j] * dX_norm[i][j]
+            term2 = (X[i][j] / (d * rms * rms)) * sum_gamma_dxn_x
+            row_dx.append((term1 - term2) / rms)
+        dX.append(row_dx)
+    return dX, dgamma
+
+random.seed(42)
+params = {
+    "E":           init_matrix(V, d_model),
+    "gamma1":      [1.0] * d_model,
+    "W_q":         init_matrix(d_model, d_model),
+    "W_k":         init_matrix(d_model, d_model),
+    "W_v":         init_matrix(d_model, d_model),
+    "W_o":         init_matrix(d_model, d_model),
+    "gamma2":      [1.0] * d_model,
+    "W_gate":      init_matrix(d_model, d_ffn),
+    "W_up":        init_matrix(d_model, d_ffn),
+    "W_down":      init_matrix(d_ffn, d_model),
+    "gamma_final": [1.0] * d_model,
+    "W_head":      init_matrix(d_model, V),
+}
+
+# 训练循环 (250 轮训练)
+for epoch in range(251):
+    total_loss = 0.0
+    for inputs, targets in dataset:
+        T = len(inputs)
+        X0 = [params["E"][idx][:] for idx in inputs]
+        X0_norm, rms1 = rmsnorm_forward(X0, params["gamma1"])
+
+        Q = matmul(X0_norm, params["W_q"])
+        K = matmul(X0_norm, params["W_k"])
+        V_mat = matmul(X0_norm, params["W_v"])
+
+        scores = matmul(Q, transpose(K))
+        for i in range(T):
+            for j in range(T):
+                scores[i][j] *= scale
+                if j &gt; i:
+                    scores[i][j] = -1e9
+
+        A = [softmax_row(scores[i]) for i in range(T)]
+        O_raw = matmul(A, V_mat)
+        Attn_out = matmul(O_raw, params["W_o"])
+        X1 = [[X0[i][j] + Attn_out[i][j] for j in range(d_model)] for i in range(T)]
+
+        X1_norm, rms2 = rmsnorm_forward(X1, params["gamma2"])
+        H_gate = matmul(X1_norm, params["W_gate"])
+        H_up   = matmul(X1_norm, params["W_up"])
+        H_silu = [[silu(H_gate[i][j]) for j in range(d_ffn)] for i in range(T)]
+        H_swiglu = [[H_silu[i][j] * H_up[i][j] for j in range(d_ffn)] for i in range(T)]
+        FFN_out = matmul(H_swiglu, params["W_down"])
+        X2 = [[X1[i][j] + FFN_out[i][j] for j in range(d_model)] for i in range(T)]
+
+        X2_norm, rms_f = rmsnorm_forward(X2, params["gamma_final"])
+        Z = matmul(X2_norm, params["W_head"])
+        P = [softmax_row(Z[i]) for i in range(T)]
+        loss = sum(-math.log(max(P[i][targets[i]], 1e-12)) for i in range(T)) / T
+        total_loss += loss
+
+        # 反向传播与梯度更新
+        dZ = [[(P[i][v] - (1.0 if v == targets[i] else 0.0)) / T for v in range(V)] for i in range(T)]
+        dW_head = matmul(transpose(X2_norm), dZ)
+        dX2_norm = matmul(dZ, transpose(params["W_head"]))
+
+        dX2, dgamma_f = rmsnorm_backward(dX2_norm, X2, params["gamma_final"], rms_f)
+        dX1_res2 = dX2[:]
+        dFFN_out = dX2[:]
+
+        dW_down = matmul(transpose(H_swiglu), dFFN_out)
+        dH_swiglu = matmul(dFFN_out, transpose(params["W_down"]))
+        dH_up = [[dH_swiglu[i][j] * H_silu[i][j] for j in range(d_ffn)] for i in range(T)]
+        dH_silu = [[dH_swiglu[i][j] * H_up[i][j] for j in range(d_ffn)] for i in range(T)]
+        dH_gate = [[dH_silu[i][j] * silu_deriv(H_gate[i][j]) for j in range(d_ffn)] for i in range(T)]
+
+        dW_gate = matmul(transpose(X1_norm), dH_gate)
+        dW_up   = matmul(transpose(X1_norm), dH_up)
+        dX1_norm = [[sum(dH_gate[i][k] * params["W_gate"][j][k] + dH_up[i][k] * params["W_up"][j][k] for k in range(d_ffn))
+                     for j in range(d_model)] for i in range(T)]
+        dX1_from_norm, dgamma2 = rmsnorm_backward(dX1_norm, X1, params["gamma2"], rms2)
+        dX1 = [[dX1_res2[i][j] + dX1_from_norm[i][j] for j in range(d_model)] for i in range(T)]
+
+        dX0_res1 = dX1[:]
+        dAttn_out = dX1[:]
+        dW_o = matmul(transpose(O_raw), dAttn_out)
+        dO_raw = matmul(dAttn_out, transpose(params["W_o"]))
+        dV_mat = matmul(transpose(A), dO_raw)
+        dA = matmul(dO_raw, transpose(V_mat))
+
+        dScores = [[0.0] * T for _ in range(T)]
+        for i in range(T):
+            sum_dA_A = sum(dA[i][k] * A[i][k] for k in range(T))
+            for j in range(T):
+                if j &lt;= i:
+                    dScores[i][j] = A[i][j] * (dA[i][j] - sum_dA_A) * scale
+
+        dQ = matmul(dScores, K)
+        dK = matmul(transpose(dScores), Q)
+        dW_q = matmul(transpose(X0_norm), dQ)
+        dW_k = matmul(transpose(X0_norm), dK)
+        dW_v = matmul(transpose(X0_norm), dV_mat)
+        dX0_norm = [[sum(dQ[i][k] * params["W_q"][j][k] + dK[i][k] * params["W_k"][j][k] + dV_mat[i][k] * params["W_v"][j][k] for k in range(d_model))
+                     for j in range(d_model)] for i in range(T)]
+        dX0_from_norm, dgamma1 = rmsnorm_backward(dX0_norm, X0, params["gamma1"], rms1)
+        dX0 = [[dX0_res1[i][j] + dX0_from_norm[i][j] for j in range(d_model)] for i in range(T)]
+
+        for i in range(d_model):
+            for v in range(V):
+                params["W_head"][i][v] -= lr * dW_head[i][v]
+            params["gamma_final"][i] -= lr * dgamma_f[i]
+            params["gamma2"][i]      -= lr * dgamma2[i]
+            params["gamma1"][i]      -= lr * dgamma1[i]
+            for k in range(d_model):
+                params["W_o"][i][k] -= lr * dW_o[i][k]
+                params["W_q"][i][k] -= lr * dW_q[i][k]
+                params["W_k"][i][k] -= lr * dW_k[i][k]
+                params["W_v"][i][k] -= lr * dW_v[i][k]
+            for k in range(d_ffn):
+                params["W_gate"][i][k] -= lr * dW_gate[i][k]
+                params["W_up"][i][k]   -= lr * dW_up[i][k]
+        for k in range(d_ffn):
+            for j in range(d_model):
+                params["W_down"][k][j] -= lr * dW_down[k][j]
+        for i in range(T):
+            idx = inputs[i]
+            for j in range(d_model):
+                params["E"][idx][j] -= lr * dX0[i][j]
+
+# 5. KV 缓存推理引擎
+class KVCache:
+    def __init__(self):
+        self.k_cache = []
+        self.v_cache = []
+    def reset(self):
+        self.k_cache = []
+        self.v_cache = []
+
+def prefill(prompt_tokens, cache):
+    cache.reset()
+    T = len(prompt_tokens)
+    X0 = [params["E"][idx][:] for idx in prompt_tokens]
+    X0_norm, _ = rmsnorm_forward(X0, params["gamma1"])
+
+    Q = matmul(X0_norm, params["W_q"])
+    K = matmul(X0_norm, params["W_k"])
+    V_mat = matmul(X0_norm, params["W_v"])
+
+    for i in range(T):
+        cache.k_cache.append(K[i][:])
+        cache.v_cache.append(V_mat[i][:])
+
+    scores = matmul(Q, transpose(K))
+    for i in range(T):
+        for j in range(T):
+            scores[i][j] *= scale
+            if j &gt; i:
+                scores[i][j] = -1e9
+
+    A = [softmax_row(scores[i]) for i in range(T)]
+    O_raw = matmul(A, V_mat)
+    Attn_out = matmul(O_raw, params["W_o"])
+    X1 = [[X0[i][j] + Attn_out[i][j] for j in range(d_model)] for i in range(T)]
+
+    X1_norm, _ = rmsnorm_forward(X1, params["gamma2"])
+    Hg = matmul(X1_norm, params["W_gate"])
+    Hu = matmul(X1_norm, params["W_up"])
+    H_swiglu = [[silu(Hg[i][j]) * Hu[i][j] for j in range(d_ffn)] for i in range(T)]
+    FFN_out = matmul(H_swiglu, params["W_down"])
+    X2 = [[X1[i][j] + FFN_out[i][j] for j in range(d_model)] for i in range(T)]
+
+    X2_norm, _ = rmsnorm_forward(X2, params["gamma_final"])
+    return matmul(X2_norm, params["W_head"])[-1]
+
+def decode_step(tok_id, cache):
+    x0 = [params["E"][tok_id][:]]
+    x0_norm, _ = rmsnorm_forward(x0, params["gamma1"])
+
+    q = matmul(x0_norm, params["W_q"])[0]
+    k = matmul(x0_norm, params["W_k"])[0]
+    v = matmul(x0_norm, params["W_v"])[0]
+
+    cache.k_cache.append(k)
+    cache.v_cache.append(v)
+
+    past_len = len(cache.k_cache)
+    raw_scores = [sum(q[d] * cache.k_cache[j][d] for d in range(d_model)) * scale for j in range(past_len)]
+    attn_weights = softmax_row(raw_scores)
+
+    o_raw = [[sum(attn_weights[j] * cache.v_cache[j][d] for j in range(past_len)) for d in range(d_model)]]
+    attn_out = matmul(o_raw, params["W_o"])[0]
+
+    x1 = [[x0[0][d] + attn_out[d] for d in range(d_model)]]
+    x1_norm, _ = rmsnorm_forward(x1, params["gamma2"])
+
+    hg = matmul(x1_norm, params["W_gate"])[0]
+    hu = matmul(x1_norm, params["W_up"])[0]
+    h_swiglu = [[silu(hg[d]) * hu[d] for d in range(d_ffn)]]
+    ffn_out = matmul(h_swiglu, params["W_down"])[0]
+
+    x2 = [[x1[0][d] + ffn_out[d] for d in range(d_model)]]
+    x2_norm, _ = rmsnorm_forward(x2, params["gamma_final"])
+    return matmul(x2_norm, params["W_head"])[0]
+
+# 6. 概率采样套件（温度、Top-k、Top-p）
+def sample_next_token(logits, temperature=0.7, top_k=5, top_p=0.9):
+    if temperature &lt;= 1e-4:
+        return max(range(len(logits)), key=lambda i: logits[i])
+
+    scaled = [l / temperature for l in logits]
+    max_l = max(scaled)
+    exps = [math.exp(l - max_l) for l in scaled]
+    sum_e = sum(exps)
+    probs = [e / sum_e for e in exps]
+
+    indexed = sorted(list(enumerate(probs)), key=lambda x: x[1], reverse=True)
+    if top_k is not None and top_k &lt; len(indexed):
+        indexed = indexed[:top_k]
+
+    cum = 0.0
+    cutoff = len(indexed)
+    for idx, (_, p) in enumerate(indexed):
+        cum += p
+        if cum &gt;= top_p:
+            cutoff = idx + 1
+            break
+    filtered = indexed[:cutoff]
+    mass = sum(p for _, p in filtered)
+    norm_probs = [p / mass for _, p in filtered]
+
+    r = random.random()
+    acc = 0.0
+    for (tok_id, _), p in zip(filtered, norm_probs):
+        acc += p
+        if r &lt;= acc:
+            return tok_id
+    return filtered[-1][0]
+</pre>
+<figcaption><strong>图 17b.2:</strong> 300 行纯 Python 实现的 KV 缓存预填充、单步解码及 Top-$p$ 概率采样工业级推理引擎。</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-4">步骤 4：源自何处？（工业级大模型服务架构的核心机理）</h2>
+<p>为什么当今所有大模型推理部署框架（如 <strong>vLLM</strong>、<strong>llama.cpp</strong>、<strong>TensorRT-LLM</strong>）都将核心精力集中在 KV 缓存管理和采样策略上？</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 17b.2:</strong> 朴素训练前向与工业级 KV 缓存推理对比</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">工程挑战</th>
+      <th scope="col" align="left" width="38%">朴素生成模式 (无缓存)</th>
+      <th scope="col" align="left" width="40%">工业级 KV 缓存推理引擎</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><strong>计算复杂度</strong></th>
+      <td>$O(T^2)$ 矩阵乘法。生成 $T$ 个新词需要 $O(T^2 \cdot d)$ 次浮点运算，因为历史词汇被反复无谓重算。</td>
+      <td>单步 $O(1)$ 复杂度。生成 $T$ 个新词总耗时严格为 $O(T \cdot d)$，生成速度始终保持均匀恒定。</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>显存与算力权衡</strong></th>
+      <td>显存占用极低（仅需保存单步激活值），但算力（FLOPs）被大量重复矩阵乘法严重占满。</td>
+      <td>将历史 Key 和 Value 缓存在显存中。大模型推理从<strong>计算受限（Compute-Bound）</strong>转为<strong>内存带宽受限（Memory-Bandwidth Bound）</strong>。</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>生成多样性</strong></th>
+      <td>贪婪解码（$T=0$）容易陷入循环死锁（如反复输出“的 的 的”），且无法针对相同提示词生成不同解答。</td>
+      <td>核采样（$p=0.9$）动态将候选词圈定在高置信度区间内，既消除了生僻胡言乱语，又赋予了模型丰富的语言表达力。</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-5">步骤 5：具体数字演练与单步算术跟踪</h2>
+<p>让我们用一个微型 3 词词表，亲手跟踪温度缩放与 Top-$p$ 截断的算术细节：</p>
+<ol>
+<li><strong>Logits 转换为平滑概率（$T = 0.5$）</strong>：
+   假设输出层给出未归一化对数概率 $\mathbf{z} = [2.0, 1.0, 0.0]$。
+   在温度 $T = 0.5$ 下，进行除法缩放：</li>
+</ol>
+
+
+$$
+\mathbf{z}' = \left[\frac{2.0}{0.5}, \frac{1.0}{0.5}, \frac{0.0}{0.5}\right] = [4.0, 2.0, 0.0]
+$$
+
+
+<p>指数化（减去最大值以保证数值稳定）：</p>
+
+
+$$
+e^4 \approx 54.598, \quad e^2 \approx 7.389, \quad e^0 = 1.0 \implies \sum = 62.987
+$$
+
+
+
+
+$$
+\mathbf{p} = \left[\frac{54.598}{62.987}, \frac{7.389}{62.987}, \frac{1.0}{62.987}\right] \approx [0.8668, 0.1173, 0.0159]
+$$
+
+
+<ol start="2">
+<li><strong>Top-$p$ 核阈值截断（$p = 0.90$）</strong>：
+   将概率从高到低排序：</li>
+</ol>
+<ul>
+<li>排名第 1：词 0，概率 $0.8668$。累计概率 $= 0.8668 < 0.90$（保留！）</li>
+<li>排名第 2：词 1，概率 $0.1173$。累计概率 $= 0.8668 + 0.1173 = 0.9841 \ge 0.90$（达到阈值！保留并停止扫描）</li>
+<li>排名第 3：词 2，概率 $0.0159$（处于核气泡之外，直接淘汰！）</li>
+</ul>
+<p>对保留的词重新归一化：</p>
+
+
+$$
+\text{保留总质量} = 0.8668 + 0.1173 = 0.9841
+$$
+
+
+
+
+$$
+p_{\text{norm}}(0) = \frac{0.8668}{0.9841} \approx 0.8808, \quad p_{\text{norm}}(1) = \frac{0.1173}{0.9841} \approx 0.1192
+$$
+
+
+<p>尾部长尾垃圾词被彻底清除，而前序高置信度选项的相对比例得以完美保持！</p>
+<hr />
+<h2 id="step-6">步骤 6：核心收获与 Python 大脑圆满毕业</h2>
+<fieldset>
+<legend><strong>终极教学总结</strong></legend>
+<p>恭喜！你已经仅依靠基础数学方程和纯 Python 标准库，从无到有亲手完整构建出了大语言模型的每一个核心构件。你理解每一个点积投影、每一次注意力路由、每一条残差高架通道以及每一个保存在缓存中的键值张量——它们不再是高深莫测的魔法黑盒，而是清晰透彻、优雅纯粹的数学真理。</p>
+</fieldset>
+<h3>Python 大脑四部曲全景演化回顾</h3>
+<p>在这一系列实验中，你一步一个脚印地走过了深度学习语言模型的四次划时代飞跃：
+1. <strong>实验 01（第 1 阶段 &bull; 80 行）</strong>：Bengio 2003 MLP 语言模型。揭示了<strong>1 词上下文视界的马尔可夫短视健忘症</strong>。
+2. <strong>实验 02（第 2 阶段 &bull; 140 行）</strong>：缩放点积自注意力大脑。跨越时空动态寻址。揭示了<strong>无约束注意力堆叠引发的深层不稳定性</strong>。
+3. <strong>实验 03（第 3 阶段 &bull; 220 行）</strong>：现代 Transformer 块（Pre-RMSNorm、残差通道、SwiGLU）。实现超深层数值稳定。揭示了<strong>机械贪婪解码导致的僵硬重复死锁</strong>。
+4. <strong>实验 04（第 4 阶段 &bull; 300 行）</strong>：完整交互式大语言模型。掌握 $O(1)$ KV 缓存推理加速与富有生命力的 Top-$p$ 核采样。</p>
+<p>现在，你已经拥有了阅读前沿论文、手写高效算子、优化推理集群以及探索下一代智能架构的全部底层直觉与数学硬核实力！</p>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../17-adam-optimizer/index.zh.html">&larr; 第 17 章：聪明的下山者（动量机制与 AdamW 优化器）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../18-sampling-and-temperature/index.zh.html">第 18 章：给模型加点温度（采样机制、温度系数、Top-k 与 Top-p） &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

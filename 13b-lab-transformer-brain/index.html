@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hands-on Lab 03: The Modern Transformer Brain in 220 Lines of Pure Python - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../13-layer-norm-and-rmsnorm/index.html">&larr; Chapter 13: Keeping Everyone Calm (LayerNorm & RMSNorm)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../14-feed-forward-networks/index.html">Chapter 14: The Thinking Chamber (Feed-Forward Networks) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Hands-on Lab 03: The Modern Transformer Brain in 220 Lines of Pure Python</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Math Bridge to Pure Python</a> &bull; 
+    <a href="#step-3">3. Complete Source Code &amp; Math Anatomy</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Execution Trace &amp; Step-by-Step Arithmetic</a> &bull; 
+    <a href="#step-6">6. Core Takeaway &amp; The Fatal Bottleneck</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset id="evolution">
+<legend><strong>The Python Brain Evolution Chain &bull; Stage 3 of 4</strong></legend>
+<p>In Lab 02, we built the Attention Brain and conquered short-term amnesia by routing information dynamically across time. But when researchers attempted to build deep neural networks by simply stacking raw attention layers, they encountered a fatal breakdown: <strong>Depth Instability</strong>. Gradients exploded or collapsed to zero, and repeated unconstrained averaging washed away original token identities.</p>
+<p>In this third hands-on lab, we build <strong>The Modern Transformer Brain</strong> (emulating the production architecture of LLaMA 3, Gemma, Mistral, and DeepSeek) in ~220 lines of pure standard-library Python. Zero external dependencies: no PyTorch, no TensorFlow, no NumPy.</p>
+<pre>
+[The Python Brain Evolution Roadmap]
+[Stage 1] 80 Lines Pure Python: Bengio 2003 MLP Language Model (Embeddings, Dense Layers, Manual Backprop)
+       │
+       ▼ (Fatal Flaw: 1-word context window; instant amnesia on earlier clauses)
+[Stage 2] 140 Lines Pure Python: Attention Brain (Unlocking Q, K, V Projections &amp; Causal Attention)
+       │
+       ▼ (Fatal Flaw: Stacking deep attention blocks triggers vanishing gradients and scale blowups)
+[Stage 3 (Current)] 220 Lines Pure Python: Modern Transformer Block (Pre-RMSNorm, Residuals, &amp; SwiGLU)
+       │
+       ▼ (Fatal Flaw: Plain greedy decoding produces rigid, repetitive text loops)
+[Stage 4 (Chapter 17)] 300 Lines Pure Python Final: Production-Grade Inference Engine (KV Cache &amp; Top-p Sampling)
+</pre>
+</fieldset>
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Soundproof Hall, The Mountain Bypass &amp; The Double-Locked Vault)</h2>
+<p>Imagine the learning brain as a busy music academy where students pass messages along a winding hallway:</p>
+<figure>
+<pre>
+[The Modern Transformer Block Flow]
+
+Incoming Word Identity ──X0──────────────────────────────────────────────┐ (Residual Highway)
+                         │                                               │
+                         ▼                                               │
+               [ Pre-RMSNorm Volume Limiter ]                            │
+                         │                                               │
+                         ▼                                               │
+               [ Multi-Head Causal Attention ]                           │
+                         │                                               │
+                         ▼                                               │
+                         └───────────────────────────► ( + ) ◄───────────┘
+                                                        │
+Intermediate Representation ──X1────────────────────────┴────────────────┐ (Residual Highway)
+                                                        │                │
+                                                        ▼                │
+                                              [ Pre-RMSNorm Limiter ]    │
+                                                        │                │
+                                                        ▼                │
+                                              [ SwiGLU Memory Vault ]    │
+                                                        │                │
+                                                        ▼                │
+                                                        └────► ( + ) ◄───┘
+                                                                │
+                                              X2 ──► [ Final RMSNorm ] ──► [ LM Head ] ──► Next Word
+</pre>
+<figcaption><strong>Figure 13b.1:</strong> The modern Transformer block stabilizes deep networks using two express bypass highways (Residuals) and three volume limiters (Pre-RMSNorm).</figcaption>
+</figure>
+
+<ol>
+<li>
+<p><strong>The Volume Limiter (Pre-RMSNorm)</strong>:
+   If one student shouts at full volume while another whispers, the speakers in the auditorium will either blow out with a loud screech (exploding numbers) or become totally inaudible (vanishing numbers). Before entering any complex room, every signal passes through a volume knob that calculates the average signal power and divides it back to a comfortable, steady volume.</p>
+</li>
+<li>
+<p><strong>The Express Bypass Highway (Residual Connections)</strong>:
+   In an old school building without hallways, every student had to squeeze through every single classroom. If any classroom door got stuck, nobody could escape. The <strong>Residual Highway</strong> adds a clear, open bypass alongside every room:</p>
+</li>
+</ol>
+
+
+$$
+\mathbf{x}_{\text{out}} = \mathbf{x}_{\text{in}} + \text{Room}(\mathbf{x}_{\text{norm}})
+$$
+
+
+<p>Original word identities travel straight down the express road untouched. If the classroom has nothing useful to add, it can output zero, and the message continues down the hall without losing a single bit of information!</p>
+<ol start="3">
+<li><strong>The Double-Locked Memory Vault (SwiGLU FFN)</strong>:
+   Attention only decides <em>who should talk to whom</em>. It does not store factual world encyclopedias. The <strong>Feed-Forward Network (FFN)</strong> is the school's library archive. Modern LLMs use <strong>SwiGLU</strong> (Swish-Gated Linear Unit):</li>
+</ol>
+<ul>
+<li><strong>Up Key ($\mathbf{W}_{\text{up}}$)</strong>: Opens a drawer with candidate facts.</li>
+<li><strong>Gate Key ($\mathbf{W}_{\text{gate}}$)</strong>: Operates a smooth pressure valve ($\text{SiLU}$). It examines the question and decides exactly how wide to open the slot.</li>
+<li><strong>Down Key ($\mathbf{W}_{\text{down}}$)</strong>: Condenses the verified facts back into the express highway.</li>
+</ul>
+<hr />
+<h2 id="step-2">Step 2: The Math Bridge to Pure Python</h2>
+<p>Every equation from Chapters 11, 12, 13, and 14 translates directly into pure Python primitives:</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 13b.1:</strong> Line-by-line translation between modern Transformer block math and pure Python</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="18%">Component</th>
+      <th scope="col" align="left" width="14%">Chapter</th>
+      <th scope="col" align="left" width="34%">Mathematical Formula</th>
+      <th scope="col" align="left" width="34%">Pure Python Implementation (Zero Libs)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><strong>Pre-RMSNorm</strong></th>
+      <td>Chapter 13</td>
+      <td>$\mathbf{x}_{\text{norm}} = \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum x_j^2 + \epsilon}} \odot \boldsymbol{\gamma}$</td>
+      <td><code>rms = math.sqrt(sum(v**2 for v in x)/d + 1e-5); [v/rms*g for v, g in zip(x, gamma)]</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Residual Highway</strong></th>
+      <td>Chapter 12</td>
+      <td>$\mathbf{X}_1 = \mathbf{X}_0 + \operatorname{Sublayer}(\mathbf{X}_{0, \text{norm}})$</td>
+      <td><code>X1 = [[X0[i][j] + sub[i][j] for j in range(d)] for i in range(T)]</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>SiLU Activation</strong></th>
+      <td>Chapter 04</td>
+      <td>$\operatorname{SiLU}(x) = x \cdot \sigma(x) = \frac{x}{1 + e^{-x}}$</td>
+      <td><code>def silu(x): return x / (1.0 + math.exp(-x))</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>SwiGLU Gating</strong></th>
+      <td>Chapter 14</td>
+      <td>$\operatorname{SwiGLU}(\mathbf{x}) = \left(\operatorname{SiLU}(\mathbf{x}\mathbf{W}_{\text{gate}}) \odot (\mathbf{x}\mathbf{W}_{\text{up}})\right)\mathbf{W}_{\text{down}}$</td>
+      <td><code>H_swiglu = [[silu(Hg[i][j]) * Hu[i][j] for j in range(d_ffn)] for i in range(T)]</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Final Projection</strong></th>
+      <td>Chapter 03</td>
+      <td>$\mathbf{Z} = \operatorname{RMSNorm}(\mathbf{X}_2)\mathbf{W}_{\text{head}} \in \mathbb{R}^{T \times |V|}$</td>
+      <td><code>Z = matmul(rmsnorm_forward(X2, gamma_f)[0], W_head)</code></td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Highway Gradient</strong></th>
+      <td>Chapter 12</td>
+      <td>$\frac{\partial \mathcal{L}}{\partial \mathbf{X}_0} = \frac{\partial \mathcal{L}}{\partial \mathbf{X}_1} + \frac{\partial \mathcal{L}}{\partial \mathbf{X}_{0, \text{norm}}}$</td>
+      <td><code>dX0 = [[dX1[i][j] + dX0_norm_back[i][j] for j in range(d)] for i in range(T)]</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-3">Step 3: Complete Source Code &amp; Math Anatomy</h2>
+<p>We provide two synchronized scripts for this lab:</p>
+<ul>
+<li><strong>Guided Exercise Script</strong>: <a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/03_transformer_brain_exercise.py"><code>labs/03_transformer_brain_exercise.py</code></a> (also in <a href="file:///Users/guofei/workspace/the-math-behind-llm/13b-lab-transformer-brain/transformer_brain_exercise.py"><code>13b-lab-transformer-brain/transformer_brain_exercise.py</code></a>), equipped with automated unit test assertions verifying RMSNorm, Residual addition, SiLU, and SwiGLU gating.</li>
+<li><strong>Reference Solution</strong>: <a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/03_transformer_brain.py"><code>labs/03_transformer_brain.py</code></a> (also in <a href="file:///Users/guofei/workspace/the-math-behind-llm/13b-lab-transformer-brain/transformer_brain.py"><code>13b-lab-transformer-brain/transformer_brain.py</code></a>).</li>
+</ul>
+<p>Here is the complete reference script:</p>
+<figure>
+<pre>
+# =====================================================================
+# Stage 3: The Transformer Brain (220 Lines of Pure Python)
+# Dependencies: Zero external libraries (Python built-in standard library only)
+# =====================================================================
+import math
+import random
+
+sentences = [
+    "the cat sat on the mat .",
+    "the dog sat on the rug .",
+    "the cat walked on the mat .",
+    "the dog walked on the rug ."
+]
+
+all_words = (" ".join(sentences)).split()
+vocab = sorted(list(set(all_words)))
+word2id = {w: i for i, w in enumerate(vocab)}
+id2word = {i: w for i, w in enumerate(vocab)}
+
+V = len(vocab)          # |V| = 9
+d_model = 8             # Residual stream dimension
+d_ffn = 16              # SwiGLU hidden expansion dimension
+lr = 0.1                # Learning rate
+scale = 1.0 / math.sqrt(d_model)
+
+dataset = []
+for s in sentences:
+    toks = [word2id[w] for w in s.split()]
+    dataset.append((toks[:-1], toks[1:]))
+
+def init_matrix(rows, cols, scale_init=0.2):
+    return [[random.gauss(0, scale_init) for _ in range(cols)] for _ in range(rows)]
+
+def matmul(A, B):
+    n, m, p = len(A), len(A[0]), len(B[0])
+    return [[sum(A[i][k] * B[k][j] for k in range(m)) for j in range(p)] for i in range(n)]
+
+def transpose(A):
+    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]
+
+def softmax_row(row):
+    max_val = max(row)
+    exp_r = [math.exp(v - max_val) for v in row]
+    sum_r = sum(exp_r)
+    return [v / sum_r for v in exp_r]
+
+def sigmoid(x):
+    return 1.0 / (1.0 + math.exp(-max(min(x, 20.0), -20.0)))
+
+def silu(x):
+    return x * sigmoid(x)
+
+def silu_deriv(x):
+    s = sigmoid(x)
+    return s * (1.0 + x * (1.0 - s))
+
+def rmsnorm_forward(X, gamma, eps=1e-5):
+    T, d = len(X), len(X[0])
+    X_norm = []
+    rms_list = []
+    for i in range(T):
+        ms = sum(v * v for v in X[i]) / d
+        rms = math.sqrt(ms + eps)
+        rms_list.append(rms)
+        X_norm.append([X[i][j] / rms * gamma[j] for j in range(d)])
+    return X_norm, rms_list
+
+def rmsnorm_backward(dX_norm, X, gamma, rms_list):
+    T, d = len(X), len(X[0])
+    dX = []
+    dgamma = [0.0] * d
+    for i in range(T):
+        rms = rms_list[i]
+        sum_gamma_dxn_x = sum(gamma[j] * dX_norm[i][j] * X[i][j] for j in range(d))
+        row_dx = []
+        for j in range(d):
+            dgamma[j] += dX_norm[i][j] * (X[i][j] / rms)
+            term1 = gamma[j] * dX_norm[i][j]
+            term2 = (X[i][j] / (d * rms * rms)) * sum_gamma_dxn_x
+            row_dx.append((term1 - term2) / rms)
+        dX.append(row_dx)
+    return dX, dgamma
+
+random.seed(42)
+params = {
+    "E":           init_matrix(V, d_model),
+    "gamma1":      [1.0] * d_model,
+    "W_q":         init_matrix(d_model, d_model),
+    "W_k":         init_matrix(d_model, d_model),
+    "W_v":         init_matrix(d_model, d_model),
+    "W_o":         init_matrix(d_model, d_model),
+    "gamma2":      [1.0] * d_model,
+    "W_gate":      init_matrix(d_model, d_ffn),
+    "W_up":        init_matrix(d_model, d_ffn),
+    "W_down":      init_matrix(d_ffn, d_model),
+    "gamma_final": [1.0] * d_model,
+    "W_head":      init_matrix(d_model, V),
+}
+
+for epoch in range(201):
+    total_loss = 0.0
+    for inputs, targets in dataset:
+        T = len(inputs)
+        X0 = [params["E"][idx][:] for idx in inputs]
+
+        # 1. Pre-Attention RMSNorm
+        X0_norm, rms1 = rmsnorm_forward(X0, params["gamma1"])
+
+        # 2. Causal Self-Attention
+        Q = matmul(X0_norm, params["W_q"])
+        K = matmul(X0_norm, params["W_k"])
+        V_mat = matmul(X0_norm, params["W_v"])
+
+        scores = matmul(Q, transpose(K))
+        for i in range(T):
+            for j in range(T):
+                scores[i][j] *= scale
+                if j &gt; i:
+                    scores[i][j] = -1e9
+
+        A = [softmax_row(scores[i]) for i in range(T)]
+        O_raw = matmul(A, V_mat)
+        Attn_out = matmul(O_raw, params["W_o"])
+
+        # 3. Residual Highway 1
+        X1 = [[X0[i][j] + Attn_out[i][j] for j in range(d_model)] for i in range(T)]
+
+        # 4. Pre-FFN RMSNorm
+        X1_norm, rms2 = rmsnorm_forward(X1, params["gamma2"])
+
+        # 5. SwiGLU Gated Feed-Forward Network
+        H_gate = matmul(X1_norm, params["W_gate"])
+        H_up   = matmul(X1_norm, params["W_up"])
+        H_silu = [[silu(H_gate[i][j]) for j in range(d_ffn)] for i in range(T)]
+        H_swiglu = [[H_silu[i][j] * H_up[i][j] for j in range(d_ffn)] for i in range(T)]
+        FFN_out = matmul(H_swiglu, params["W_down"])
+
+        # 6. Residual Highway 2
+        X2 = [[X1[i][j] + FFN_out[i][j] for j in range(d_model)] for i in range(T)]
+
+        # 7. Final RMSNorm
+        X2_norm, rms_f = rmsnorm_forward(X2, params["gamma_final"])
+
+        # 8. Output LM Head & Loss
+        Z = matmul(X2_norm, params["W_head"])
+        P = [softmax_row(Z[i]) for i in range(T)]
+        loss = sum(-math.log(max(P[i][targets[i]], 1e-12)) for i in range(T)) / T
+        total_loss += loss
+
+        # Backward Pass & Exact Analytical Backprop
+        dZ = [[(P[i][v] - (1.0 if v == targets[i] else 0.0)) / T for v in range(V)] for i in range(T)]
+        dW_head = matmul(transpose(X2_norm), dZ)
+        dX2_norm = matmul(dZ, transpose(params["W_head"]))
+
+        dX2, dgamma_f = rmsnorm_backward(dX2_norm, X2, params["gamma_final"], rms_f)
+        dX1_res2 = dX2[:]
+        dFFN_out = dX2[:]
+
+        dW_down = matmul(transpose(H_swiglu), dFFN_out)
+        dH_swiglu = matmul(dFFN_out, transpose(params["W_down"]))
+        dH_up = [[dH_swiglu[i][j] * H_silu[i][j] for j in range(d_ffn)] for i in range(T)]
+        dH_silu = [[dH_swiglu[i][j] * H_up[i][j] for j in range(d_ffn)] for i in range(T)]
+        dH_gate = [[dH_silu[i][j] * silu_deriv(H_gate[i][j]) for j in range(d_ffn)] for i in range(T)]
+
+        dW_gate = matmul(transpose(X1_norm), dH_gate)
+        dW_up   = matmul(transpose(X1_norm), dH_up)
+
+        dX1_norm = [[sum(dH_gate[i][k] * params["W_gate"][j][k] + dH_up[i][k] * params["W_up"][j][k] for k in range(d_ffn))
+                     for j in range(d_model)] for i in range(T)]
+        dX1_from_norm, dgamma2 = rmsnorm_backward(dX1_norm, X1, params["gamma2"], rms2)
+        dX1 = [[dX1_res2[i][j] + dX1_from_norm[i][j] for j in range(d_model)] for i in range(T)]
+
+        dX0_res1 = dX1[:]
+        dAttn_out = dX1[:]
+
+        dW_o = matmul(transpose(O_raw), dAttn_out)
+        dO_raw = matmul(dAttn_out, transpose(params["W_o"]))
+        dV_mat = matmul(transpose(A), dO_raw)
+        dA = matmul(dO_raw, transpose(V_mat))
+
+        dScores = [[0.0] * T for _ in range(T)]
+        for i in range(T):
+            sum_dA_A = sum(dA[i][k] * A[i][k] for k in range(T))
+            for j in range(T):
+                if j &lt;= i:
+                    dScores[i][j] = A[i][j] * (dA[i][j] - sum_dA_A) * scale
+
+        dQ = matmul(dScores, K)
+        dK = matmul(transpose(dScores), Q)
+        dW_q = matmul(transpose(X0_norm), dQ)
+        dW_k = matmul(transpose(X0_norm), dK)
+        dW_v = matmul(transpose(X0_norm), dV_mat)
+
+        dX0_norm = [[sum(dQ[i][k] * params["W_q"][j][k] + dK[i][k] * params["W_k"][j][k] + dV_mat[i][k] * params["W_v"][j][k] for k in range(d_model))
+                     for j in range(d_model)] for i in range(T)]
+        dX0_from_norm, dgamma1 = rmsnorm_backward(dX0_norm, X0, params["gamma1"], rms1)
+        dX0 = [[dX0_res1[i][j] + dX0_from_norm[i][j] for j in range(d_model)] for i in range(T)]
+
+        # SGD Parameter Updates
+        for i in range(d_model):
+            for v in range(V):
+                params["W_head"][i][v] -= lr * dW_head[i][v]
+            params["gamma_final"][i] -= lr * dgamma_f[i]
+            params["gamma2"][i]      -= lr * dgamma2[i]
+            params["gamma1"][i]      -= lr * dgamma1[i]
+            for k in range(d_model):
+                params["W_o"][i][k] -= lr * dW_o[i][k]
+                params["W_q"][i][k] -= lr * dW_q[i][k]
+                params["W_k"][i][k] -= lr * dW_k[i][k]
+                params["W_v"][i][k] -= lr * dW_v[i][k]
+            for k in range(d_ffn):
+                params["W_gate"][i][k] -= lr * dW_gate[i][k]
+                params["W_up"][i][k]   -= lr * dW_up[i][k]
+        for k in range(d_ffn):
+            for j in range(d_model):
+                params["W_down"][k][j] -= lr * dW_down[k][j]
+        for i in range(T):
+            idx = inputs[i]
+            for j in range(d_model):
+                params["E"][idx][j] -= lr * dX0[i][j]
+</pre>
+<figcaption><strong>Figure 13b.2:</strong> Complete 220-line implementation of a modern Pre-RMSNorm, SwiGLU-gated Transformer block with exact analytical backpropagation.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From? (The Modern Architecture Evolution)</h2>
+<p>The Transformer used in modern production models (LLaMA 3, Gemma, Mistral, Qwen) differs from the original 2017 paper in three pivotal ways:</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 13b.2:</strong> Historical evolution from Original 2017 Transformer to Modern 2024+ LLMs</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th scope="col" align="left" width="22%">Architectural Feature</th>
+      <th scope="col" align="left" width="38%">Original Transformer (Vaswani 2017)</th>
+      <th scope="col" align="left" width="40%">Modern Production LLM (LLaMA / Gemma)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row" align="left"><strong>Normalization Location</strong></th>
+      <td><strong>Post-LN</strong>: $\operatorname{LN}(\mathbf{x} + \operatorname{Sublayer}(\mathbf{x}))$. Requires delicate warmup learning schedules to prevent early gradient explosion.</td>
+      <td><strong>Pre-LN</strong>: $\mathbf{x} + \operatorname{Sublayer}(\operatorname{Norm}(\mathbf{x}))$. The residual highway remains clean from layer 1 to layer 128, allowing instant training stability.</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Normalization Formula</strong></th>
+      <td><strong>LayerNorm</strong>: Computes both mean $\mu$ and variance $\sigma^2$. Demands two full passes over feature memory.</td>
+      <td><strong>RMSNorm (Zhang 2019)</strong>: Drops the mean offset calculation. Scales purely by root-mean-square power, saving ~7% GPU runtime with zero accuracy loss.</td>
+    </tr>
+    <tr>
+      <th scope="row" align="left"><strong>Feed-Forward Activation</strong></th>
+      <td><strong>ReLU / Standard GELU</strong>: Fixed single-branch non-linear projection: $\operatorname{ReLU}(\mathbf{x} \mathbf{W}_1)\mathbf{W}_2$.</td>
+      <td><strong>SwiGLU (Shazeer 2020)</strong>: Bilinear gating where an explicit Gate projection filters candidate knowledge before downstream routing.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Execution Trace &amp; Step-by-Step Arithmetic</h2>
+<p>Let us trace the numbers for a 2D toy vector passing through our Pre-RMSNorm and Residual Highway:</p>
+<ol>
+<li><strong>RMSNorm Scaling</strong>:
+   Suppose the residual stream holds vector $\mathbf{x} = [3.0, 4.0]$ and gain $\boldsymbol{\gamma} = [1.0, 1.0]$.</li>
+</ol>
+
+
+$$
+\operatorname{MS}(\mathbf{x}) = \frac{3.0^2 + 4.0^2}{2} = \frac{9 + 16}{2} = 12.5
+$$
+
+
+
+
+$$
+\operatorname{RMS}(\mathbf{x}) = \sqrt{12.5} \approx 3.5355
+$$
+
+
+
+
+$$
+\mathbf{x}_{\text{norm}} = \left[\frac{3.0}{3.5355}, \frac{4.0}{3.5355}\right] = [0.8485, 1.1314]
+$$
+
+
+<p>Notice that the length of the vector has been calibrated to unit scale without needing to calculate or shift its mean!</p>
+<ol start="2">
+<li><strong>Residual Highway Protection</strong>:
+   Suppose the Attention sublayer processes $\mathbf{x}_{\text{norm}}$ and outputs delta perturbation $\Delta \mathbf{x} = [0.1, -0.2]$.
+   The updated representation on the highway is simply:</li>
+</ol>
+
+
+$$
+\mathbf{x}_1 = \mathbf{x} + \Delta \mathbf{x} = [3.0 + 0.1, 4.0 - 0.2] = [3.1, 3.8]
+$$
+
+
+<p>During the backward pass, when an error gradient $d\mathbf{x}_1 = [1.0, 1.0]$ arrives, it forks directly into two paths:</p>
+
+
+$$
+d\mathbf{x}_{\text{highway}} = [1.0, 1.0], \quad d\mathbf{x}_{\text{sublayer}} = [1.0, 1.0]
+$$
+
+
+<p>The highway path carries the gradient backward with <strong>zero multiplication by any matrix weights</strong>, completely eliminating vanishing gradients!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway &amp; The Fatal Bottleneck</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p>The Modern Transformer Brain achieves mathematical immortality across hundreds of layers by combining <strong>unobstructed Residual highways</strong> with <strong>Pre-RMSNorm volume limiters</strong>. Meanwhile, <strong>SwiGLU memory vaults</strong> provide dynamic factual retrieval, creating the architecture that powers every frontier language model in the world today.</p>
+</fieldset>
+<h3>The Fatal Bottleneck: Mechanical Generation</h3>
+<p>Our Stage 3 Transformer Brain can now train to arbitrary depth and predict next tokens with near-perfect cross-entropy loss.
+However, observe what happens during generation:</p>
+
+
+$$
+x_{t+1} = \arg\max_{v} P(v \mid x_{\le t})
+$$
+
+
+<p>When we rely on <strong>greedy decoding</strong> (picking the single highest logit every step), language models suffer from:
+1. <strong>Mechanical Repetition Loops</strong>: If the model enters a cyclic sentence structure, greedy decoding traps it in endless loops (<samp>"the cat sat on the mat on the mat on the mat..."</samp>).
+2. <strong>Zero Stylistic Range</strong>: It cannot vary its tone, brainstorm alternatives, or exhibit creativity.
+3. <strong>Inference Inefficiency ($O(T^2)$ Latency)</strong>: At every step $t$, re-computing Attention across all past tokens wastes massive compute, slowing down interactive conversations.</p>
+<p>To turn this trained neural brain into a true interactive dialogue assistant, we require:</p>
+<ul>
+<li><strong>Temperature Scaling, Top-$k$, and Top-$p$ (Nucleus) Sampling</strong>: Chapter 18</li>
+<li><strong>Key-Value (KV) Cache Acceleration</strong>: Chapter 17</li>
+</ul>
+<p>These capabilities will be built in <strong>Stage 4: The Complete LLM (Lab 04)</strong>!</p>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../13-layer-norm-and-rmsnorm/index.html">&larr; Chapter 13: Keeping Everyone Calm (LayerNorm & RMSNorm)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../14-feed-forward-networks/index.html">Chapter 14: The Thinking Chamber (Feed-Forward Networks) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

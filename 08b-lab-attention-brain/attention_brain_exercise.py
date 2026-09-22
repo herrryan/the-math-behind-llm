@@ -127,7 +127,10 @@ def project_qkv(X, W_q, W_k, W_v):
     # Q = ...
     # K = ...
     # V_mat = ...
-    raise NotImplementedError("TODO 1: Implement project_qkv(X, W_q, W_k, W_v)")
+    Q = matmul(X, W_q)
+    K = matmul(X, W_k)
+    V_mat = matmul(X, W_v)
+    return Q, K, V_mat
 
 
 def compute_scaled_scores(Q, K, scale_factor):
