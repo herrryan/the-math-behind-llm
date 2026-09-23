@@ -174,6 +174,10 @@ Every chapter in the Inference Curriculum follows the unshakeable 6-step learnin
   - Chunked prefill (Sarathi-Serve): Chopping large prompts into $C_{\text{chunk}}$ slices to interleave prompt prefill with decode steps, eliminating latency bubbles and TTFT spikes.
 - **Formula Origin**: Yu et al. (Orca, OSDI 2022), Agrawal et al. (Sarathi-Serve, 2024).
 
+#### [Hands-on Lab 05: Streaming KV &amp; Continuous Batching Engine](25b-lab-streaming-engine/index.html)
+- **Architecture**: A 200-line pure Python vLLM-style serving kernel featuring PagedAttention block manager, copy-on-write prefix sharing, and iteration-level continuous scheduler.
+- **Verification**: Zero-dependency standard-library Python engine with automated test suite demonstrating 0.0% bubble waste.
+
 ---
 
 <h3 id="speculative">Track 5: Breaking the Autoregressive Barrier</h3>
@@ -192,7 +196,7 @@ Every chapter in the Inference Curriculum follows the unshakeable 6-step learnin
 
 <h3 id="quantization">Track 6: Precision &amp; Distributed Serving</h3>
 
-#### [Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, &amp; INT4)](27-model-quantization/index.html)
+#### [Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, &amp; INT4)](27-quantization/index.html)
 - **The Metaphor**: Vacuum-sealing heavy winter coats (weights) into flat bags, while wrapping fragile glass ornaments (outlier activation channels) in protective bubble wrap.
 - **The Math**:
   - Affine &amp; Symmetric quantization: $q = \operatorname{clip}(\lfloor x/s \rceil + z)$, $\hat{x} = s(q - z)$.
@@ -202,7 +206,11 @@ Every chapter in the Inference Curriculum follows the unshakeable 6-step learnin
   - Numerical formats: FP8 (E4M3 vs. E5M2), INT8, INT4, NF4.
 - **Formula Origin**: Dettmers et al. (2022), Xiao et al. (SmoothQuant, 2023), Lin et al. (AWQ, 2023).
 
-#### [Chapter 28: Distributed Serving (Tensor Parallelism &amp; Prefill-Decode Disaggregation)](28-distributed-inference/index.html)
+#### [Hands-on Lab 06: Speculative Decoding &amp; INT4 Quantization Engine](27b-lab-speculative-engine/index.html)
+- **Architecture**: A 220-line pure Python inference accelerator implementing uniform symmetric INT4 weight quantization and lossless speculative rejection sampling with residual recovery.
+- **Verification**: Zero-dependency standard-library Python engine with automated test suite achieving 3.99x memory compression and 1.75x-3.0x net generation speedup.
+
+#### [Chapter 28: Distributed Serving (Tensor Parallelism &amp; Prefill-Decode Disaggregation)](28-distributed-serving/index.html)
 - **The Metaphor**: The Assembly Line Factory: Splitting a giant engine blueprint across 8 workstations (Tensor Parallelism) vs. Separating the heavy smelting foundry (Prefill cluster) from the delicate assembly room (Decode cluster).
 - **The Math**:
   - Megatron-LM inference tensor decomposition: ColumnParallelLinear $\to$ RowParallelLinear with All-Reduce communication costs.

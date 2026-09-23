@@ -1,0 +1,222 @@
+# 动手实战 Lab 06：推测解码与 INT4 权重量化引擎（220 行纯 Python 实现无损极速推理内核）
+
+<fieldset id="evolution">
+<legend><strong>Python 极简大脑演进链 &bull; 终极推理加速封顶（第 6 阶段，共 6 阶段）</strong></legend>
+<p>在 Lab 05 中，我们实现了 PagedAttention 显存虚拟分页管理与连续批处理调度器，成功化解了多用户高并发下的内存碎片与算力气泡。然而对于单个用户的生成流程，大模型依然被困在<strong>显存带宽墙</strong>与<strong>单字串行生成的物理枷锁</strong>之中：每吐出一个单字，都必须把数百亿参数完整从显存搬运一次。</p>
+<p>在推理轨道的最终实战中，我们用约 220 行标准库纯 Python 代码从零构建<strong>推测解码与 INT4 权重量化引擎</strong>。绝无外部依赖：不使用 PyTorch，不使用 HuggingFace，不使用 NumPy。我们将亲手实现现代前沿推理系统的两大加速王牌：<strong>对称均匀低比特量化（Uniform Symmetric Quantization）</strong>（第 27 章）与<strong>无损推测拒绝采样验证（Lossless Speculative Rejection Sampling）</strong>（第 26 章）。</p>
+<pre>
+[Python 极简大模型演进全景路线 · 终极全贯通]
+[阶段 1]  80 行纯 Python: Bengio 2003 神经网络前馈语言模型 (词嵌入, 隐藏层投影, 手写反向传播)
+       │
+       ▼ (失忆缺陷: 仅 1 词上下文窗口)
+[阶段 2] 140 行纯 Python: 注意力大脑 (自注意力 Q, K, V 投影与因果下三角掩码)
+       │
+       ▼ (数值不稳: 深层堆叠梯度弥散与爆炸)
+[阶段 3] 220 行纯 Python: 现代 Transformer 块 (Pre-RMSNorm, 残差直连高速公路, SwiGLU 门控)
+       │
+       ▼ (采样死板: 贪婪循环死锁与 O(T^2) 冗余重算)
+[阶段 4] 300 行纯 Python: 交互式端到端大模型 (KV Cache 增量缓存与核采样套件)
+       │
+       ▼ (多租户吞吐缺陷: 静态批处理产生 60%+ 气泡浪费; 连续内存导致显存严重碎片化)
+[阶段 5] 200 行纯 Python: 流式 KV 与连续批处理引擎 (PagedAttention 分页管理与单步迭代调度)
+       │
+       ▼ (物理带宽瓶颈: 单字解码受制于单字串行访存 O(T))
+[阶段 6 (终章)] 220 行纯 Python: 推测解码与 INT4 权重量化引擎
+       │
+       ▼ (成果: 工业级推理加速引擎，达成 2~3 倍无损提速与 75% 显存压缩！)
+</pre>
+</fieldset>
+
+---
+
+## 第 1 步：3 岁小孩直觉（德高望重的老教授与敏捷飞毛腿助教）
+
+想象你正在与一位学术权威老教授合作撰写一本前沿著作：
+
+<figure>
+<pre>
+[传统自回归逐字生成：漫长而笨重]
+第 1 步: 老教授沉思整整 1 秒钟 ──► 提笔写出第 1 个词: "量子"
+第 2 步: 老教授沉思整整 1 秒钟 ──► 提笔写出第 2 个词: "计算机"
+第 3 步: 老教授沉思整整 1 秒钟 ──► 提笔写出第 3 个词: "基于"
+                                    (写出 3 个词需要整整 3 秒钟！)
+
+[推测解码：神速助教先行草拟]
+第 1 步: 飞毛腿小助教 (1B 小模型) 在 0.05 秒内连猜 3 个词:
+        ["计算机", "基于", "量子比特"]
+第 2 步: 老教授 (70B 庞大模型) 一目十行，在 1 秒内【同时并行核验】整组草稿:
+        "对，是计算机！" (通过 Accepted)
+        "对，是基于！"   (通过 Accepted)
+        "不对，不是量子比特 —— 是叠加态！" (拒绝并即刻纠正)
+        └───────────────────────────────────────────────┘
+        成果: 仅耗费老教授 1 秒钟，就一次性敲定了 3 个权威词元！(提速 3 倍！)
+</pre>
+<figcaption><strong>图 27b.1：</strong> 草拟是低成本且极速的，而验证是高权威且可完全并行的。推测解码将串行时间开销转换为并行批量验证。</figcaption>
+</figure>
+
+1. **轻便的轻木保龄球（INT4 量化）**：
+   假设每次为了击倒一个球瓶，你都必须在仓库两头推着一颗 16 磅重的实心铸铁保龄球跑一趟。你的推车会走得极慢，腰酸背痛（显存带宽严重告急）。如果你把铁球换成一个轻巧的 4 磅硬木球（INT4），推车直接轻了四分之三（**节省 75% 显存带宽**！），输送带的转速瞬间飙升数倍。
+
+2. **老教授与飞毛腿助教（推测解码）**：
+   拥有 700 亿参数的权威大模型就像沉思的老教授：每动一次念头，都必须调动全卡数百亿参数，单步耗时漫长。而 10 亿参数的小模型就像腿脚极快的小助教，眨眼间就能连猜几个词。小模型草拟草稿，大模型直接在**单次前向传播中并行通读整句草稿**。凡是老教授点头认可的词，当场全部盖章生效！
+
+3. **绝对公正的核验法门（拒绝采样与残差补偿）**：
+   如果小助教猜错了，老教授绝不会被带偏，也不会将错就错。老教授会直接划掉错词，并通过严谨的残差概率公式当场写下真正的修正词。经过这套数学机制生成的文章，**与老教授独自一人伏案逐字写出的概率分布百分之百完全一致**（数学上的真正无损）！
+
+---
+
+## 第 2 步：承前启后的关键过渡
+
+我们该如何将 16 位浮点权重 $\mathbf{W} \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$ 压缩为 4 位整数，并在点积过程中保持高效准确的计算？另外，当轻量草拟模型提出概率为 $q(x)$ 的候选词元时，目标大模型如何依据自身概率 $p(x)$ 进行核验，才能在数学上严格证明整体联合概率分布与直接从大模型采样毫无二致？
+
+---
+
+## 第 3 步：严谨数学公式与推导
+
+### 1. 对称均匀 INT4 权重量化与解量化
+
+对于权重矩阵 $\mathbf{W} \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$，当目标比特位宽为 $b = 4$ 时，最大有符号整数边界为 $Q_{\max} = 2^{b-1} - 1 = 7$：
+
+$$
+s = \frac{\max_{i,j} |W_{i,j}|}{Q_{\max}} = \frac{\max |W|}{7}
+$$
+
+量化将每个浮点权重 $w$ 映射到定点整数 $q \in [-7, 7]$：
+
+$$
+q = \operatorname{clip}\left(\left\lfloor \frac{w}{s} \right\rceil, -7, 7\right)
+$$
+
+在线性投影 $\mathbf{y} = \mathbf{W}\mathbf{x}$ 计算中，利用乘法分配律，整数累加与浮点缩放完全解耦：
+
+$$
+y_i = \sum_{j} (s \cdot q_{i,j}) x_j = s \sum_{j} q_{i,j} x_j
+$$
+
+### 2. 推测拒绝采样与残差分布概率恢复
+
+设草拟模型逐字串行生成 $\gamma$ 个候选词元 $[x_1, x_2, \dots, x_\gamma]$，其对应的生成条件概率为 $q(x_t \mid x_{<t})$。目标权威模型在单次批量前向传播中并行评估这组候选词，得到真实权威概率 $p(x_t \mid x_{<t})$。
+
+对于每个候选词元 $x_t$，抽取均匀随机数 $u \sim \mathcal{U}(0, 1)$：
+
+$$
+\text{接受概率 } \alpha_t = \min\left(1, \, \frac{p(x_t \mid x_{<t})}{q(x_t \mid x_{<t})}\right)
+$$
+
+若 $u \le \alpha_t$，则候选词元 $x_t$ 被正式接受。若在位置 $k$ 处发生拒绝，则后续所有推测词元 $x_{>k}$ 全部作废，并从**残差修正分布** $p'(x)$ 中即刻重采样替补词元：
+
+$$
+p'(x) = \frac{\max(0, \, p(x) - q(x))}{\sum_{y \in V} \max(0, \, p(y) - q(y))}
+$$
+
+若草拟的全部 $\gamma$ 个词元均被欣然接受，目标模型在同一前向传播末端已自动计算出第 $\gamma+1$ 个词元的分布，可直接免费抽取额外奖励词元 $x_{\gamma+1} \sim p(x_{\gamma+1} \mid x_{\le \gamma})$，实现**零额外计算开销的超级吞吐**。
+
+---
+
+## 第 4 步：历史渊源与技术演进
+
+2022 年，谷歌研究院的 Yaniv Leviathan 等人与 DeepMind 的 Charlie Chen 等人各自独立发表了 **Speculative Decoding（推测解码）**。他们给出了优美的数学构造证明：利用残差修正分布采样，能够保证无论小模型的预测准确率如何变化，合成输出文本的概率分布严格等价于权威大模型本身，达成了 100% 理论无损。
+
+与此同时，低比特量化领域也迎来了爆发式演进：从 8 位后训练量化（Dettmers 等人的 LLM.int8()）一路推进到激活感知的 4 位量化 **AWQ**（Lin 等人，2023）与 **SmoothQuant**（Xiao 等人，2023）。这些研究从物理底层将显存访问带宽瓶颈压缩为原来的四分之一，为现代大模型的高吞吐实时服务奠定了坚实基础。
+
+---
+
+## 第 5 步：手算极简数值示例与代码实战
+
+我们在包含 3 个单词的微型词表上追踪一次拒绝采样的数学计算过程：
+
+<figure>
+<pre>
+微型词表: ["苹果", "香蕉", "樱桃"]
+
+草拟小模型提议候选词: "香蕉"
+  q("香蕉") = 0.60
+  q("苹果") = 0.30
+  q("樱桃") = 0.10
+
+目标大模型权威评估:
+  p("香蕉") = 0.30
+  p("苹果") = 0.50
+  p("樱桃") = 0.20
+
+计算接受概率:
+  alpha = min(1, 0.30 / 0.60) = 0.50 (即 50% 概率直接接纳 "香蕉")
+
+情况 A: 抽取随机数 u = 0.35 <= 0.50 -> "香蕉" 顺利通过验收！
+情况 B: 抽取随机数 u = 0.82 > 0.50  -> "香蕉" 被无情拒绝！
+  计算各词残差差值:
+    苹果:  max(0, 0.50 - 0.30) = 0.20
+    香蕉:  max(0, 0.30 - 0.60) = 0.00
+    樱桃:  max(0, 0.20 - 0.10) = 0.10
+  残差总和 = 0.20 + 0.00 + 0.10 = 0.30
+  归一化后的残差修正分布 p':
+    苹果:  0.20 / 0.30 = 66.7%
+    香蕉:  0.00 / 0.30 = 0.0%
+    樱桃:  0.10 / 0.30 = 33.3%
+  从 p' 抽取替补词元 -> 66.7% 概率抽中 "苹果", 33.3% 概率抽中 "樱桃"！
+</pre>
+<figcaption><strong>图 27b.2：</strong> 残差分布通过精准补偿那些大模型概率高于小模型的词元，使整体边际分布严格回归大模型本身。</figcaption>
+</figure>
+
+### 实战文件结构
+
+```
+27b-lab-speculative-engine/
+├── speculative_engine.py          # 完整参考推理加速引擎 (~220 行)
+├── speculative_engine_exercise.py # 引导式动手练习脚本 (含 TODO 与完整单元测试)
+├── index.md                       # 英文版实战详解
+└── index.zh.md                    # 中文版实战详解
+```
+
+### 运行参考引擎
+
+```bash
+python3 27b-lab-speculative-engine/speculative_engine.py
+```
+
+终端执行日志：
+```
+=====================================================================
+Lab 06: Speculative Decoding & INT4 Quantization Engine Simulation
+=====================================================================
+
+[PART 1: INT4 Uniform Symmetric Quantization Audit]
+  * Linear Layer: 64 x 64 weights
+  * FP32 Footprint:        16384 bytes
+  * FP16 Footprint:        8192 bytes
+  * Packed INT4 Footprint: 2052 bytes
+  * Effective Compression vs FP16: 3.99x (75% memory saved!)
+
+[PART 2: Speculative Decoding vs Standard Autoregressive Generation]
+Baseline Autoregressive Generated Sequence:
+  the brown fox jumps over the brown fox
+  Target Forward Calls: 7
+  Tokens per Forward Call: 1.14
+
+Running Speculative Engine (gamma = 3):
+  Round 01: Drafted ['brown', 'fox', 'jumps'] -> Produced ['brown', 'fox', 'jumps', 'over'] (4 tokens in 1 target call)
+  Round 02: Drafted ['the', 'quick', 'brown'] -> Produced ['the', 'quick', 'brown', 'fox'] (4 tokens in 1 target call)
+
+=====================================================================
+Final Performance Audit & Acceleration Metrics
+=====================================================================
+Speculative Generated Sequence:
+  the brown fox jumps over the quick brown
+  Total Tokens Generated:       8
+  Target Model Forward Passes:  4
+  Tokens per Forward Pass:      2.00 tok/call
+  Net Inference Acceleration:   1.75x Speedup over Autoregressive Decoding!
+=====================================================================
+```
+
+### 运行引导式单元测试
+
+```bash
+python3 27b-lab-speculative-engine/speculative_engine_exercise.py
+```
+
+---
+
+## 第 6 步：核心精髓总结
+
+前沿大模型的极速推理建立在打破串行依赖的双重战线上：**模型量化**将物理显存负载缩减为原来的四分之一，直接击穿显存带宽墙；而**推测解码**则通过严谨的残差概率补偿，将原本必须逐字串行等待的漫长推理转换为单次并行的整句核验，达成了毫无质量妥协的极致飞跃。

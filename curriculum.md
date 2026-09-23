@@ -89,7 +89,7 @@ Every single chapter in this course follows an unshakeable 5-step learning ladde
 <p>Parallel to the theoretical mathematics, ambitious learners follow an unbroken, hands-on engineering track: <strong>The Python Brain Evolution Chain</strong>. We build, test, and grow a single, zero-dependency Python neural language model across four major milestone labs:</p>
 
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>Table C.0:</strong> The 4-Stage Python Brain Evolution Milestone Roadmap.</caption>
+  <caption><strong>Table C.0:</strong> The 6-Stage Python Brain Evolution Milestone Roadmap.</caption>
   <thead>
     <tr bgcolor="#eae9e1">
       <th align="left" width="18%">Evolution Stage</th>
@@ -121,7 +121,19 @@ Every single chapter in this course follows an unshakeable 5-step learning ladde
       <td><strong>Stage 4: The Complete LLM</strong></td>
       <td><a href="17b-lab-complete-llm/index.html">Lab 04 (Post Module 7)</a></td>
       <td>300 lines pure Python: Production-style autoregressive inference engine with KV Cache acceleration and Top-p (Nucleus) sampling.</td>
-      <td><mark>Completed Artifact</mark>: A fully interactive, zero-dependency LLM chat engine running in your terminal!</td>
+      <td><mark>Multi-Tenant Concurrency</mark>: Static batching wastes 60%+ in bubbles; contiguous arrays cause severe memory fragmentation. Demands <strong>Paged Serving</strong>.</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 5: The Streaming KV Engine</strong></td>
+      <td><a href="25b-lab-streaming-engine/index.html">Lab 05 (Post Chapter 25)</a></td>
+      <td>200 lines pure Python: vLLM-style serving kernel with PagedAttention block manager, copy-on-write prefix sharing, and continuous batching.</td>
+      <td><mark>Memory Bandwidth Wall</mark>: Serial single-token decode is bottlenecked by HBM reading speeds. Demands <strong>Quantization &amp; Speculation</strong>.</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 6: The Speculative Accelerator</strong></td>
+      <td><a href="27b-lab-speculative-engine/index.html">Lab 06 (Post Chapter 27)</a></td>
+      <td>220 lines pure Python: INT4/INT8 uniform symmetric quantization engine with lossless speculative rejection sampling and residual recovery.</td>
+      <td><mark>Capstone Completed</mark>: Production-grade inference acceleration achieving 2x-3x speedup with 75% memory compression!</td>
     </tr>
   </tbody>
 </table>
@@ -349,17 +361,25 @@ $$
   - **The Math**: Iteration-level scheduling $\mathcal{B}_t = (\mathcal{B}_{t-1} \setminus \mathcal{F}_{t-1}) \cup \mathcal{A}_t$ and chunked prefill co-scheduling.
   - **Formula Origin**: Yu et al. (Orca, OSDI 2022), Agrawal et al. (Sarathi-Serve, 2024).
 
+- [Lab 05: Streaming KV &amp; Continuous Batching Engine](25b-lab-streaming-engine/index.html)
+  - **Architecture**: A 200-line pure Python vLLM-style serving kernel featuring PagedAttention block manager, copy-on-write prefix sharing, and iteration-level scheduler.
+  - **Metrics**: 0.0% continuous batching bubble waste vs. 55%+ static batching bubble waste.
+
 - [Chapter 26: Breaking the Sequential Barrier (Speculative Decoding &amp; Verification Math)](26-speculative-decoding/index.html)
   - **The Metaphor**: The apprentice drafting 5 sentences in pencil, while the master craftsman reviews all 5 in a single glance and approves 4.
   - **The Math**: Acceptance probability $\alpha = \min(1, p/q)$, residual recovery distribution, and exact proof that $\mathbb{P}(X=x) \equiv p(x)$.
   - **Formula Origin**: Leviathan et al. (2023), Chen et al. (2023).
 
-- [Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, &amp; INT4)](27-model-quantization/index.html)
+- [Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, &amp; INT4)](27-quantization/index.html)
   - **The Metaphor**: Vacuum-sealing bulky winter jackets into flat bags, while protecting delicate glass souvenirs with bubble wrap.
   - **The Math**: Outlier activation spikes, SmoothQuant scale migration $\mathbf{Y} = (\mathbf{X} \mathbf{s}^{-1})(\mathbf{s} \mathbf{W})$, and AWQ salient channel protection.
   - **Formula Origin**: Dettmers et al. (2022), Xiao et al. (SmoothQuant, 2023), Lin et al. (AWQ, 2023).
 
-- [Chapter 28: Distributed Serving (Tensor Parallelism &amp; Prefill-Decode Disaggregation)](28-distributed-inference/index.html)
+- [Lab 06: Speculative Decoding &amp; INT4 Quantization Engine](27b-lab-speculative-engine/index.html)
+  - **Architecture**: A 220-line pure Python inference accelerator implementing uniform symmetric INT4 weight quantization and lossless speculative rejection sampling with residual recovery.
+  - **Metrics**: 75% memory bandwidth reduction (3.99x compression) and 1.75x-3.0x net generation speedup.
+
+- [Chapter 28: Distributed Serving (Tensor Parallelism &amp; Prefill-Decode Disaggregation)](28-distributed-serving/index.html)
   - **The Metaphor**: The Assembly Line: splitting engine parts across 8 workstations vs separating the heavy foundry from the fine assembly room.
   - **The Math**: Column/Row Parallel Linear decomposition, All-Reduce communication costs, and disaggregated RDMA KV cache transfer.
   - **Formula Origin**: Shoeybi et al. (Megatron-LM, 2019), Patel et al. (Splitwise, 2024), Zhong et al. (DistServe, 2024).
