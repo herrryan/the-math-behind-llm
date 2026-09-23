@@ -197,8 +197,13 @@ class BrainEngine:
 
     def __init__(self, personality: str = "clippy", llm_api_url: Optional[str] = None):
         self.personality = personality if personality in PERSONALITIES else "clippy"
-        self.llm_api_url = llm_api_url or os.environ.get("PET_LLM_URL", "http://localhost:11434/v1/chat/completions")
-        self.model_name = os.environ.get("PET_LLM_MODEL", "qwen2.5:0.5b")
+        self.explicit_url = llm_api_url or os.environ.get("PET_LLM_URL", None)
+        self.candidate_urls = [
+            "http://localhost:8765/v1/chat/completions",  # Standalone Python model server (serve_model.py)
+            "http://localhost:11434/v1/chat/completions", # Ollama
+            "http://localhost:1234/v1/chat/completions",  # LM Studio
+        ]
+        self.model_name = os.environ.get("PET_LLM_MODEL", "default")
         self.last_response = ""
 
     def set_personality(self, personality_key: str):
@@ -210,33 +215,36 @@ class BrainEngine:
 
     def _query_local_llm(self, prompt: str) -> Optional[str]:
         """Try querying local OpenAI-compatible endpoint with a short timeout."""
-        try:
-            req_data = {
-                "model": self.model_name,
-                "messages": [
-                    {"role": "system", "content": PERSONALITIES[self.personality]["system_prompt"]},
-                    {"role": "user", "content": prompt},
-                ],
-                "max_tokens": 60,
-                "temperature": 0.8,
-            }
-            data_bytes = json.dumps(req_data).encode("utf-8")
-            req = urllib.request.Request(
-                self.llm_api_url,
-                data=data_bytes,
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=1.5) as response:
-                if response.status == 200:
-                    resp_json = json.loads(response.read().decode("utf-8"))
-                    text = resp_json["choices"][0]["message"]["content"].strip()
-                    # Clean up quotes
-                    if text.startswith('"') and text.endswith('"'):
-                        text = text[1:-1]
-                    return text
-        except Exception:
-            pass
+        urls_to_try = [self.explicit_url] if self.explicit_url else self.candidate_urls
+
+        req_data = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "system", "content": PERSONALITIES[self.personality]["system_prompt"]},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": 60,
+            "temperature": 0.8,
+        }
+        data_bytes = json.dumps(req_data).encode("utf-8")
+
+        for url in urls_to_try:
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=data_bytes,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=0.8) as response:
+                    if response.status == 200:
+                        resp_json = json.loads(response.read().decode("utf-8"))
+                        text = resp_json["choices"][0]["message"]["content"].strip()
+                        if text.startswith('"') and text.endswith('"'):
+                            text = text[1:-1]
+                        return text
+            except Exception:
+                continue
         return None
 
     def think(self, context: Dict[str, Any]) -> str:

@@ -37,6 +37,39 @@ from brain import BrainEngine, PERSONALITIES
 CONFIG_PATH = Path.home() / ".ai_desktop_pet_config.json"
 
 
+def make_window_always_on_top_macos(widget: QWidget):
+    """Force macOS NSWindow to float above all apps, spaces, and full-screen windows."""
+    if sys.platform != "darwin":
+        return
+    try:
+        import ctypes
+        import ctypes.util
+        view_ptr = int(widget.winId())
+        objc = ctypes.cdll.LoadLibrary(ctypes.util.find_library('objc'))
+        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        objc.objc_msgSend.restype = ctypes.c_void_p
+        objc.sel_registerName.restype = ctypes.c_void_p
+
+        sel_window = objc.sel_registerName(b'window')
+        ns_window = objc.objc_msgSend(ctypes.c_void_p(view_ptr), sel_window)
+        if not ns_window:
+            return
+
+        # Lift window level above all normal floating windows (1000 = kCGOverlayWindowLevelKey)
+        sel_setLevel = objc.sel_registerName(b'setLevel:')
+        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long]
+        objc.objc_msgSend.restype = None
+        objc.objc_msgSend(ns_window, sel_setLevel, 1000)
+
+        # Set collection behavior: canJoinAllSpaces (1) | stationary (16) | fullScreenAuxiliary (256)
+        sel_setCollectionBehavior = objc.sel_registerName(b'setCollectionBehavior:')
+        objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ulong]
+        behavior = 1 | 16 | 256
+        objc.objc_msgSend(ns_window, sel_setCollectionBehavior, behavior)
+    except Exception:
+        pass
+
+
 class SpeechBubble(QWidget):
     """Comic speech bubble floating near the pet with interactive chat."""
 
@@ -150,6 +183,7 @@ class SpeechBubble(QWidget):
         self.adjustSize()
         self.show()
         self.raise_()
+        make_window_always_on_top_macos(self)
 
         self.type_timer.start(25)  # 25ms per character for smooth typing
         if auto_hide_sec > 0:
@@ -280,9 +314,14 @@ class DesktopPet(QWidget):
         msg = welcome_msgs.get(self.brain.personality, "你好呀！我是你的桌面精灵！")
         self.say(msg)
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        make_window_always_on_top_macos(self)
+
     def say(self, text: str, duration_sec: float = 8.0):
         self._update_bubble_position()
         self.bubble.show_message(text, auto_hide_sec=duration_sec)
+        make_window_always_on_top_macos(self)
 
     def _update_bubble_position(self):
         # Position bubble above or to the left of the pet

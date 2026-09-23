@@ -54,9 +54,60 @@ uv run --with pyqt6 python3 desktop_pet.py
 
 ---
 
-## 进阶：接入本地 0.5B 自训大模型
+## 进阶：直接在 Python 代码中 Serve 本地大模型
 
-如果你本地运行了 Ollama，只需要在终端中设置环境变量后启动：
+除了 Ollama，你可以**直接用 Python 代码本地加载并 Serve 模型**（支持 Apple Silicon GPU / MPS 加速、PyTorch、MLX 或纯 Python 模拟）：
+
+### 方式 1：一键启动内置 Python Model Server
+
+我们提供了开箱即用的 [`serve_model.py`](file:///Users/guofei/workspace/the-math-behind-llm/desktop-pet/serve_model.py)，它提供标准 OpenAI 兼容的 `/v1/chat/completions` 接口（端口 `8765`）：
+
+```bash
+# 1. 快速测试模式（无需下载权重，0 依赖，响应 0ms）：
+python3 desktop-pet/serve_model.py --engine mock
+
+# 2. 真实神经模型模式（使用 PyTorch 在 Mac GPU/MPS 上加载 Qwen 0.5B 或你微调的 checkpoint）：
+uv run --with "transformers>=4.40.0" --with "torch" python3 desktop-pet/serve_model.py \
+    --engine transformers \
+    --model Qwen/Qwen2.5-0.5B-Instruct
+
+# 3. Apple MLX 极速模式（Mac 原生 4-bit 量化加速）：
+uv run --with "mlx-lm" python3 desktop-pet/serve_model.py \
+    --engine mlx \
+    --model mlx-community/Qwen2.5-0.5B-Instruct-4bit
+```
+
+启动后，桌面精灵在检测到 `http://localhost:8765` 在线时会**全自动优先使用你的 Python 模型服务端**，无需任何额外配置！
+
+---
+
+### 方式 2：在 Python 代码里直接 Import 模型进行推理
+
+如果你希望把大模型逻辑完全内嵌在自己的 Python 脚本或后台任务中：
+
+```python
+from serve_model import LocalNeuralModel
+
+# 1. 加载模型（支持 mock / transformers / mlx）
+bot = LocalNeuralModel(engine="mock") 
+# 或者加载真实 PyTorch 模型：
+# bot = LocalNeuralModel(engine="transformers", model_name_or_path="Qwen/Qwen2.5-0.5B-Instruct")
+
+# 2. 直接在 Python 中执行对话生成
+messages = [
+    {"role": "system", "content": "你是一只贴心的桌面宠物，用简短可爱的语气回答。"},
+    {"role": "user", "content": "主人在敲代码时遇到了段错误，怎么安慰？"}
+]
+
+reply = bot.generate(messages, max_tokens=50, temperature=0.7)
+print("精灵回复:", reply)
+```
+
+---
+
+### 方式 3：接入外部 Ollama / LM Studio
+
+如果你更习惯使用现有工具链：
 
 ```bash
 # 启动 Ollama 本地超轻量模型 (占用显存/内存仅 300MB)
@@ -68,4 +119,11 @@ export PET_LLM_MODEL="qwen2.5:0.5b"
 ./desktop-pet/run.sh
 ```
 
-一旦接入，桌面精灵的所有气泡台词都将由本地 0.5B 神经模型根据你的实时上下文实时生成！
+---
+
+## 窗口置顶机制（macOS 特别优化）
+
+为了确保精灵在切换全屏应用或跨桌面 Space 时永不消失，本程序通过 `ctypes` 调用了 macOS Cocoa 原生 API：
+- **`setLevel: 1000`**：提升至 `kCGOverlayWindowLevel`，始终悬浮在所有窗口之上；
+- **`canJoinAllSpaces` + `fullScreenAuxiliary`**：无论你在触控板如何左右横滑桌面（Spaces），或者全屏看代码，精灵都会如影随形跟随在屏幕角落。
+
