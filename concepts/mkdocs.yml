@@ -81,3 +81,13 @@ nav:
       - 概念 20 - 从野生天才到得力助手: module-7/20-alignment-rlhf-dpo.md
   - 模块 8 - 终章通盘大复盘:
       - 概念 21 - 一个 Token 的奇幻漂流记: module-8/21-token-journey-symphony.md
+  - 模块 9 - 极致推理与算力破局:
+      - 概念 22 - 暴风吸入与逐字斟酌: module-9/22-prefill-and-decode.md
+      - 概念 23 - 显存记事本与带宽墙: module-9/23-kv-cache-and-memory-wall.md
+      - 概念 24 - 虚拟显存货架: module-9/24-paged-attention.md
+      - 概念 25 - 芯片片上的闪电速记: module-9/25-flash-attention.md
+      - 概念 26 - 撕开厚书的百人侦探队: module-9/26-flash-decoding.md
+      - 概念 27 - 永不停歇的过山车站台: module-9/27-continuous-batching.md
+      - 概念 28 - 老教授与飞毛腿助教: module-9/28-speculative-decoding.md
+      - 概念 29 - 瘦身保龄球与黄金气泡膜: module-9/29-quantization.md
+      - 概念 30 - 后厨切菜与前厅倒茶: module-9/30-distributed-serving.md
