@@ -103,6 +103,58 @@ def rmsnorm_backward(dX_norm, X, gamma, rms_list):
         dX.append(row_dx)
     return dX, dgamma
 
+# ---------------------------------------------------------------------
+# Rotary Position Embedding (RoPE) Primitives
+# ---------------------------------------------------------------------
+def apply_rope(vec, pos):
+    """
+    Rotary Position Embedding (RoPE) Forward Pass:
+    Rotates 2D coordinate pairs (vec[2k], vec[2k+1]) by angle = pos * theta_k.
+
+    Math:
+        theta_k = 1.0 / (10000.0 ** (2k / d))
+        R(m*theta) = [cos(m*theta)  -sin(m*theta)]
+                     [sin(m*theta)   cos(m*theta)]
+
+    Intuition:
+        Instead of adding a static position vector to the word embedding,
+        RoPE spins the Query and Key dial like a clock hand. When q_m dots
+        with k_n, the dot product naturally isolates relative distance (m - n):
+            <R(m*theta) q, R(n*theta) k> = q^T R((m-n)*theta) k
+    """
+    d = len(vec)
+    rotated = vec[:]
+    for i in range(0, d, 2):
+        theta = 1.0 / (10000.0 ** (i / d))
+        angle = pos * theta
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+        x0, x1 = vec[i], vec[i + 1]
+        rotated[i]     = x0 * cos_a - x1 * sin_a
+        rotated[i + 1] = x0 * sin_a + x1 * cos_a
+    return rotated
+
+def apply_rope_backward(d_rotated, pos):
+    """
+    RoPE Backward Pass (Gradient Chain Rule):
+    Because 2D rotation matrices are orthogonal, the inverse is the transpose:
+        R(theta)^T = R(-theta)
+    Differentiating through rotation:
+        dL/dx = R(pos * theta)^T * (dL/dy) = R(-pos * theta) * d_rotated
+    """
+    d = len(d_rotated)
+    d_unrotated = d_rotated[:]
+    for i in range(0, d, 2):
+        theta = 1.0 / (10000.0 ** (i / d))
+        angle = pos * theta
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+        g0, g1 = d_rotated[i], d_rotated[i + 1]
+        d_unrotated[i]     =  g0 * cos_a + g1 * sin_a
+        d_unrotated[i + 1] = -g0 * sin_a + g1 * cos_a
+    return d_unrotated
+
+
 # =====================================================================
 # 3. Sampling Suite: Temperature, Top-k, and Top-p (Nucleus)
 # =====================================================================
@@ -185,12 +237,17 @@ def layer_forward(X_in, layer_params, cache=None):
     K = matmul(X_norm1, layer_params["W_k"])
     V_mat = matmul(X_norm1, layer_params["W_v"])
 
+    # RoPE: Rotate Q and K vectors based on their token index i
+    Q_rope = [apply_rope(Q[i], pos=i) for i in range(T)]
+    K_rope = [apply_rope(K[i], pos=i) for i in range(T)]
+
+    # Store rotated K_rope and unrotated V_mat into KV Cache
     if cache is not None:
         for i in range(T):
-            cache.k_cache.append(K[i][:])
+            cache.k_cache.append(K_rope[i][:])
             cache.v_cache.append(V_mat[i][:])
 
-    scores = matmul(Q, transpose(K))
+    scores = matmul(Q_rope, transpose(K_rope))
     for i in range(T):
         for j in range(T):
             scores[i][j] *= scale
@@ -216,7 +273,8 @@ def layer_forward(X_in, layer_params, cache=None):
 
     cache_data = {
         "X_in": X_in, "X_norm1": X_norm1, "rms1": rms1,
-        "Q": Q, "K": K, "V_mat": V_mat, "scores": scores, "A": A,
+        "Q": Q, "K": K, "Q_rope": Q_rope, "K_rope": K_rope,
+        "V_mat": V_mat, "scores": scores, "A": A,
         "O_raw": O_raw, "Attn_out": Attn_out, "X_mid": X_mid,
         "X_norm2": X_norm2, "rms2": rms2, "Hg": Hg, "Hu": Hu,
         "H_swiglu": H_swiglu, "FFN_out": FFN_out
@@ -231,17 +289,24 @@ def layer_decode_step(x_in, layer_params, cache):
     # 1. Pre-RMSNorm 1
     x_norm1, _ = rmsnorm_forward(x_in, layer_params["gamma1"])
 
-    # 2. Projections & Cache Append
+    # 2. Projections
     q = matmul(x_norm1, layer_params["W_q"])[0]
     k = matmul(x_norm1, layer_params["W_k"])[0]
     v = matmul(x_norm1, layer_params["W_v"])[0]
-    cache.k_cache.append(k[:])
+
+    # 3. Apply RoPE at current sequence position (absolute position = len(cache.k_cache))
+    current_pos = len(cache.k_cache)
+    q_rope = apply_rope(q, pos=current_pos)
+    k_rope = apply_rope(k, pos=current_pos)
+
+    # 4. Append rotated K and unrotated V to KV cache
+    cache.k_cache.append(k_rope[:])
     cache.v_cache.append(v[:])
 
-    # 3. Attention against all cached keys
+    # 5. Attention against all cached keys using q_rope
     raw_scores = []
     for cached_k in cache.k_cache:
-        score = sum(q[j] * cached_k[j] for j in range(d_model)) * scale
+        score = sum(q_rope[j] * cached_k[j] for j in range(d_model)) * scale
         raw_scores.append(score)
     attn_weights = softmax_row(raw_scores)
 
@@ -253,14 +318,14 @@ def layer_decode_step(x_in, layer_params, cache):
     attn_out = matmul([o_raw], layer_params["W_o"])[0]
     x_mid = [[x_in[0][j] + attn_out[j] for j in range(d_model)]]
 
-    # 4. Pre-RMSNorm 2 & SwiGLU FFN
+    # 6. Pre-RMSNorm 2 & SwiGLU FFN
     x_norm2, _ = rmsnorm_forward(x_mid, layer_params["gamma2"])
     Hg = matmul(x_norm2, layer_params["W_gate"])
     Hu = matmul(x_norm2, layer_params["W_up"])
     H_swiglu = [[silu(Hg[0][j]) * Hu[0][j] for j in range(d_ffn)]]
     FFN_out = matmul(H_swiglu, layer_params["W_down"])[0]
 
-    # 5. Residual Connection 2
+    # 7. Residual Connection 2
     x_out = [[x_mid[0][j] + FFN_out[j] for j in range(d_model)]]
     return x_out
 
@@ -313,8 +378,8 @@ def layer_backward(dX_out, layer_params, cache_data):
     X_in = cache_data["X_in"]
     X_norm1 = cache_data["X_norm1"]
     rms1 = cache_data["rms1"]
-    Q = cache_data["Q"]
-    K = cache_data["K"]
+    Q_rope = cache_data["Q_rope"]
+    K_rope = cache_data["K_rope"]
     V_mat = cache_data["V_mat"]
     A = cache_data["A"]
     O_raw = cache_data["O_raw"]
@@ -341,7 +406,7 @@ def layer_backward(dX_out, layer_params, cache_data):
     dX_mid_from_norm, dgamma2 = rmsnorm_backward(dX_norm2, X_mid, layer_params["gamma2"], rms2)
     dX_mid = [[dX_mid_res2[i][j] + dX_mid_from_norm[i][j] for j in range(d_model)] for i in range(T)]
 
-    # --- Backprop through Self-Attention ---
+    # --- Backprop through Self-Attention & RoPE ---
     dX_in_res1 = dX_mid[:]
     dAttn_out = dX_mid[:]
 
@@ -357,8 +422,13 @@ def layer_backward(dX_out, layer_params, cache_data):
             if j <= i:
                 dScores[i][j] = A[i][j] * (dA[i][j] - sum_dA_A) * scale
 
-    dQ = matmul(dScores, K)
-    dK = matmul(transpose(dScores), Q)
+    dQ_rope = matmul(dScores, K_rope)
+    dK_rope = matmul(transpose(dScores), Q_rope)
+
+    # Unrotate gradients through RoPE: R(pos*theta)^T = R(-pos*theta)
+    dQ = [apply_rope_backward(dQ_rope[i], pos=i) for i in range(T)]
+    dK = [apply_rope_backward(dK_rope[i], pos=i) for i in range(T)]
+
     dW_q = matmul(transpose(X_norm1), dQ)
     dW_k = matmul(transpose(X_norm1), dK)
     dW_v = matmul(transpose(X_norm1), dV_mat)
