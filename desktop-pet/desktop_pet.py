@@ -47,7 +47,7 @@ class SpeechBubble(QWidget):
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.SubWindow
+            Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -182,11 +182,11 @@ class DesktopPet(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Window Flags: Frameless, Always on Top, SubWindow (doesn't steal dock focus)
+        # Window Flags: Frameless, Always on Top, Tool (floating panel on macOS)
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.SubWindow
+            Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
@@ -229,13 +229,24 @@ class DesktopPet(QWidget):
 
         # Set size and initial position
         self.resize(110, 110)
-        init_x = self.config.get("x", 1200)
-        init_y = self.config.get("y", 750)
+
+        # Calculate smart default position based on primary screen available geometry
+        from PyQt6.QtGui import QGuiApplication
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            avail = screen.availableGeometry()
+            default_x = avail.x() + avail.width() - 190
+            default_y = avail.y() + avail.height() - 210
+        else:
+            default_x, default_y = 1200, 750
+
+        init_x = self.config.get("x", default_x)
+        init_y = self.config.get("y", default_y)
         self.move(init_x, init_y)
         self._update_bubble_position()
 
-        # Say hello on launch
-        QTimer.singleShot(800, self._say_welcome)
+        # Say hello immediately on launch
+        QTimer.singleShot(200, self._say_welcome)
 
     def _load_config(self) -> dict:
         if CONFIG_PATH.exists():
@@ -244,7 +255,7 @@ class DesktopPet(QWidget):
                     return json.load(f)
             except Exception:
                 pass
-        return {"x": 1200, "y": 750, "personality": "clippy"}
+        return {"personality": "clippy"}
 
     def _save_config(self):
         data = {
@@ -662,6 +673,8 @@ def main():
 
     pet = DesktopPet()
     pet.show()
+    pet.raise_()
+    pet.activateWindow()
 
     sys.exit(app.exec())
 
