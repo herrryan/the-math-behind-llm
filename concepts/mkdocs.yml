@@ -1,7 +1,7 @@
 site_name: 大模型底层核心概念（零数学通识课）
 site_description: 彻底剥离高深数学公式，用纯粹直觉、生活隐喻与实体模型讲透大语言模型全栈核心概念
 site_author: Antigravity Education Team
-site_url: https://github.com/herrryan/the-math-behind-llm
+site_url: https://herrryan.github.io/the-math-behind-llm/
 
 theme:
   name: material
