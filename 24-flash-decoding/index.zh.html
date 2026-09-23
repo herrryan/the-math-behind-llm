@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 24 章：解码并行化（FlashDecoding 与 Split-K 注意力切分） - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../23-flash-attention/index.zh.html">&larr; 第 23 章：访存加速革命（FlashAttention 与在线 Softmax 数学）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../25-continuous-batching/index.zh.html">第 25 章：细胞级调度（连续批处理与分块预填充数学） &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>第 24 章：解码并行化（FlashDecoding 与 Split-K 注意力切分）</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-2">2. 承前启后的关键过渡</a> &bull; 
+    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
+    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
+    <a href="#step-5">5. 手算极简数值示例</a> &bull; 
+    <a href="#step-6">6. 核心精髓总结</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>步骤 1：3 岁小孩直觉</strong></legend>
+<p>想象你开了一家侦探事务所，大厅里整整齐齐坐着 132 位极其敏锐的大侦探。</p>
+<p>一位客户焦急地冲进大门，掏出一张只有 5 个字的问题纸条，并在桌上重重放下一本厚达 10,000 页的家族历史巨著：<em>“帮我在这本 10,000 页的巨著中，找到回答我问题的线索！”</em></p>
+<p>在传统的自回归解码注意力中：
+你把整整 10,000 页的厚书，<strong>扔给了其中仅仅 1 位侦探</strong>！那位可怜的侦探孤零零地坐在桌前，一页一页翻了足足 2 个小时；而与此同时，房间里的另外 131 位侦探只能翘着二郎腿发呆闲坐，眼巴巴看着他一个人汗流浃背！整整 99% 的高级侦探人力被彻底浪费了。</p>
+<p>后来，一位聪明的探长发明了 <strong>FlashDecoding（Split-K 撕书战术）</strong>：
+<em>“把这本 10,000 页的厚书，当场撕成 100 本每本只有 100 页的轻薄小册子！把第 1 册分给 1 号侦探，第 2 册分给 2 号侦探……整整 100 位侦探同时翻看各自手头的 100 页！”</em></p>
+<p>仅仅花了 10 秒钟，所有 100 位侦探就在各自的小册子里找出了最匹配的线索和置信度打分。他们走到黑板前，各自写下一行摘要，探长只用最后 1 秒钟就全局归约出了最精确的唯一答案！</p>
+<p>通过让 100 多位侦探在同一秒钟协同全力工作，整个破案时间从 2 小时骤减到了 10 秒！</p>
+</fieldset>
+<hr />
+<h2 id="step-2">步骤 2：承前启后的关键过渡</h2>
+<p>我们如何把“将 10,000 页厚书撕成 100 份分发给多名侦探”的物理直觉，转化为 GPU 底层 CUDA 线程块（Thread Blocks）的并行网格配置，又如何在独立的处理器核心之间将局部的 Softmax 统计量合并为全局严格无损的结果？</p>
+<p>在自回归解码阶段，输入的 Query 向量仅仅对应于当前生成的<strong>单个最新词元</strong>：</p>
+
+
+$$
+\mathbf{q} \in \mathbb{R}^{B \times 1 \times H \times d_{\text{head}}}
+$$
+
+
+<p>而历史积累的 KV Cache 已经蔓延到了庞大的时序长度 $T_{\text{ctx}}$：</p>
+
+
+$$
+\mathbf{K}, \mathbf{V} \in \mathbb{R}^{B \times T_{\text{ctx}} \times H \times d_{\text{head}}}
+$$
+
+
+<p>前一章介绍的 FlashAttention 在并行调度时，其任务网格仅沿着两个维度展开：<strong>并发批次大小（$B$）</strong> 与 <strong>注意力头数（$H$）</strong>。
+总并行线程块数量为 $B \times H$。</p>
+<p>这在长文本解码时引发了严重的硬件闲置危机：</p>
+<ul>
+<li>一张现代 NVIDIA H100 GPU 拥有高达 <strong>132 个流式多处理器（SM）</strong>。</li>
+<li>当处理单用户长文本请求（$B = 1$），且模型采用现代分组查询注意力（例如 GQA 的 KV 头数 $H_{\text{kv}} = 8$）时：</li>
+</ul>
+
+
+$$
+\text{分发的并行线程块数} = 1 \times 8 = 8
+$$
+
+
+<p>在拥有 132 个 SM 的强大显卡上，居然只有区区 8 个 SM 在干活！剩余 124 个 SM 的占空比直接归零（硬件利用率不足 $6\%$），只能干等那 8 个核心慢吞吞地扫描长达数万词元的历史缓存。</p>
+<p>承前启后的核心过渡问题是：</p>
+
+
+$$
+\text{如何将长达数万词元的历史 KV 缓存沿着时序维度（即 Key/Value 维度，亦称 K 维度）进行切分，分发到全卡所有空闲 SM 上并行计算，并在数学上严格无损地规约合并？}
+$$
+
+
+<hr />
+<h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        FLASHDECODING SPLIT-K 并行注意力执行流水线                      │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 单个最新词元查询：  q [1 x d]                                                          │
+│ 历史长上下文 KV 缓存（T_ctx = 64k） ──► 沿着时序（K 维度）均匀切分为 S 个独立分块     │
+│                                                                                        │
+│ 阶段 1：全卡 SM 并行计算局部注意力（跨 S 个独立 CUDA 线程块并行派发）                 │
+│   SM 0:   q @ K[0:C].T       ──► 局部 FlashAttn ──► (m_0, d_0, o_0) [1 x d]            │
+│   SM 1:   q @ K[C:2C].T      ──► 局部 FlashAttn ──► (m_1, d_1, o_1) [1 x d]            │
+│   ...                                                                                  │
+│   SM S-1: q @ K[(S-1)C:SC].T ──► 局部 FlashAttn ──► (m_{S-1}, d_{S-1}, o_{S-1})        │
+│                                                                                        │
+│ 阶段 2：极轻量级并行规约（Log-Sum-Exp Reduction 快速合并内核）                        │
+│   全局最大值:     m* = max(m_0, m_1, ..., m_{S-1})                                     │
+│   全局归一化分母: d* = sum_{s} d_s * exp(m_s - m*)                                     │
+│   全局输出向量:   o* = (1 / d*) * sum_{s} exp(m_s - m*) * o_s  [1 x d]                │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>图 24.1:</strong> FlashDecoding 将长序列 KV 缓存沿 K 维度切分为 S 份，由全卡 SM 并发计算局部注意力后，执行快速 Log-Sum-Exp 规约合并。</figcaption>
+</figure>
+
+<h3>1. KV 缓存的时序切分（Split-K Partitioning）</h3>
+<p>设历史上下文总长度为 $T_{\text{ctx}}$，切分的并行份数为 $S$（系统通常选择使 $B \times H \times S \ge \text{全卡 SM 核心总数}$）。
+每个切片所包含的时序词元数定义为：</p>
+
+
+$$
+C = \left\lceil \frac{T_{\text{ctx}}}{S} \right\rceil
+$$
+
+
+<p>对于第 $s$ 个切片（$s \in \{0, 1, \dots, S - 1\}$）：</p>
+<ul>
+<li>该切片的键张量切片：$\mathbf{K}^{(s)} = \mathbf{K}[s \cdot C : (s+1) \cdot C, :] \in \mathbb{R}^{C \times d_{\text{head}}}$</li>
+<li>该切片的值张量切片：$\mathbf{V}^{(s)} = \mathbf{V}[s \cdot C : (s+1) \cdot C, :] \in \mathbb{R}^{C \times d_{\text{head}}}$</li>
+</ul>
+<hr />
+<h3>2. 阶段 1：全卡 SM 并发计算局部注意力</h3>
+<p>系统将这 $S$ 个切片分发至不同的 GPU 流式多处理器（SM）上并发执行。</p>
+<p>负责切片 $s$ 的线程块在本地 SRAM 中计算局部注意力未归一化打分：</p>
+
+
+$$
+\mathbf{s}^{(s)} = \frac{\mathbf{q} (\mathbf{K}^{(s)})^\top}{\sqrt{d_{\text{head}}}} \in \mathbb{R}^{1 \times C}
+$$
+
+
+<p>并在片上高速产出该切片的局部三元统计量：
+1. <strong>局部打分最大值</strong>：</p>
+
+
+$$
+m^{(s)} = \max_{j=1}^C s_j^{(s)}
+$$
+
+
+<ol start="2">
+<li><strong>局部未归一化指数和</strong>：</li>
+</ol>
+
+
+$$
+d^{(s)} = \sum_{j=1}^C \exp\left(s_j^{(s)} - m^{(s)}\right)
+$$
+
+
+<ol start="3">
+<li><strong>局部未归一化输出向量</strong>：</li>
+</ol>
+
+
+$$
+\mathbf{o}^{(s)} = \sum_{j=1}^C \exp\left(s_j^{(s)} - m^{(s)}\right) \mathbf{v}_j^{(s)} \in \mathbb{R}^{1 \times d_{\text{head}}}
+$$
+
+
+<p>这 $S$ 组轻量级三元组 $\left(m^{(s)}, d^{(s)}, \mathbf{o}^{(s)}\right)$ 被写回临时的微小显存缓冲区。由于 $S$ 数量很小（例如 $S=64$），此缓冲区仅占数十 KB，开销微乎其微。</p>
+<hr />
+<h3>3. 阶段 2：极速跨切片全局规约算子</h3>
+<p>系统启动一个极速规约内核，读取 $S$ 组局部统计量，完成全局精确 Softmax 还原。</p>
+<h4>步骤 A：寻找全局真·最大值</h4>
+
+
+$$
+m^* = \max_{s=0}^{S-1} m^{(s)}
+$$
+
+
+<h4>步骤 B：重对齐全局分母和</h4>
+<p>每个局部指数和是以各自的局部最大值 $m^{(s)}$ 为参考基准计算的。将其统一平移至全局最大值 $m^*$：</p>
+
+
+$$
+d^* = \sum_{s=0}^{S-1} d^{(s)} \cdot \exp\left(m^{(s)} - m^*\right)
+$$
+
+
+<h4>步骤 C：全局加权归一化输出</h4>
+<p>最终的全局注意力表征向量 $\mathbf{o}^* \in \mathbb{R}^{1 \times d_{\text{head}}}$ 严格计算为：</p>
+
+
+$$
+\mathbf{o}^* = \frac{1}{d^*} \sum_{s=0}^{S-1} \exp\left(m^{(s)} - m^*\right) \mathbf{o}^{(s)}
+$$
+
+
+<p>通过将串行翻书拆解为全卡并发规约，GPU 核心占空比瞬间拉满，且数学结果与未切分的全局计算<strong>分毫不差</strong>。</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 24.1:</strong> 长文本解码阶段性能对比：传统 FlashAttention 对比 FlashDecoding（批大小=1，KV头数=8，H100 配备 132 个 SM）。</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">评估指标</th>
+      <th align="center">标准 FlashAttention（解码期）</th>
+      <th align="center">FlashDecoding（Split-K 并行）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>并行展开维度</strong></td>
+      <td align="center">批大小 $\times$ 头数（$B \times H$）</td>
+      <td align="center">批大小 $\times$ 头数 $\times$ 时序切片（$B \times H \times S$）</td>
+    </tr>
+    <tr>
+      <td><strong>并发线程块数（$B=1, H=8$）</strong></td>
+      <td align="center">仅 8 个线程块</td>
+      <td align="center"><strong>$8 \times 32 = 256$ 个并发线程块</strong></td>
+    </tr>
+    <tr>
+      <td><strong>GPU SM 核心占空比</strong></td>
+      <td align="center">$\frac{8}{132} \approx 6.0\%$（极度饥饿闲置）</td>
+      <td align="center"><strong>100%（全卡 132 个 SM 全速满载）</strong></td>
+    </tr>
+    <tr>
+      <td><strong>超长上下文解码耗时（64k 长度）</strong></td>
+      <td align="center">随上下文长度线性恶化</td>
+      <td align="center"><strong>提速高达 8 倍！</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
+<dl>
+  <dt><time datetime="2023 年">2023 年</time> &mdash; <strong>Flash-Decoding 诞生</strong>（<cite>Tri Dao 等，Dao-AILab</cite>）</dt>
+  <dd>在 FlashAttention 成为大模型训练标配后，团队发现推理生成在面对长上下文时出现严重的 SM 算力饥饿。他们正式推出了针对解码期长序列的 Split-K 并行机制，将长上下文自回归生成延迟砍掉了整整 8 倍。</dd>
+  <dt><time datetime="2024 年">2024 年</time> &mdash; <strong>FlashDecoding++ 演进</strong>（<cite>清华大学系统研究团队</cite>）</dt>
+  <dd>通过引入统一的静态先验最大值，省去了多核规约时的全局同步障碍，在异构硬件加速卡上进一步榨干了解码推理的极致性能。</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">步骤 5：手算极简数值示例</h2>
+<p>我们用一个包含 4 个历史时序词元（$T_{\text{ctx}} = 4$）的极简案例，切分为 $S = 2$ 个切片（每切片 $C = 2$），手算验证 Split-K 规约的精确性。</p>
+<p>设查询向量为 $\mathbf{q} = [1.0, 0.0]$，头维度 $d = 2$。
+已知当前查询与 4 个历史词元计算出的未归一化注意力打分为：</p>
+
+
+$$
+\mathbf{s} = [s_0, s_1, s_2, s_3] = [1.0, \; 3.0, \; 2.0, \; 4.0]
+$$
+
+
+<p>历史缓存中的 Value 向量分别为：</p>
+
+
+$$
+\mathbf{v}_0 = [1, 0], \quad \mathbf{v}_1 = [0, 1], \quad \mathbf{v}_2 = [1, 1], \quad \mathbf{v}_3 = [2, 0]
+$$
+
+
+<hr />
+<h3>阶段 1：分块并行计算</h3>
+<h4>切片 0（词元 0 和 1）：打分 $[1.0, 3.0]$</h4>
+<ol>
+<li>局部最大值：$m^{(0)} = \max(1.0, 3.0) = 3.0$</li>
+<li>指数计算：</li>
+</ol>
+
+
+$$
+e^{1.0 - 3.0} = e^{-2} \approx 0.1353, \quad e^{3.0 - 3.0} = e^0 = 1.0000
+$$
+
+
+<ol start="3">
+<li>局部指数和：</li>
+</ol>
+
+
+$$
+d^{(0)} = 0.1353 + 1.0000 = 1.1353
+$$
+
+
+<ol start="4">
+<li>局部未归一化输出向量：</li>
+</ol>
+
+
+$$
+\mathbf{o}^{(0)} = 0.1353 \cdot [1, 0] + 1.0000 \cdot [0, 1] = [0.1353, \; 1.0000]
+$$
+
+
+<hr />
+<h4>切片 1（词元 2 和 3）：打分 $[2.0, 4.0]$</h4>
+<ol>
+<li>局部最大值：$m^{(1)} = \max(2.0, 4.0) = 4.0$</li>
+<li>指数计算：</li>
+</ol>
+
+
+$$
+e^{2.0 - 4.0} = e^{-2} \approx 0.1353, \quad e^{4.0 - 4.0} = e^0 = 1.0000
+$$
+
+
+<ol start="3">
+<li>局部指数和：</li>
+</ol>
+
+
+$$
+d^{(1)} = 0.1353 + 1.0000 = 1.1353
+$$
+
+
+<ol start="4">
+<li>局部未归一化输出向量：</li>
+</ol>
+
+
+$$
+\mathbf{o}^{(1)} = 0.1353 \cdot [1, 1] + 1.0000 \cdot [2, 0] = [0.1353 + 2.0, \; 0.1353 + 0] = [2.1353, \; 0.1353]
+$$
+
+
+<hr />
+<h3>阶段 2：全局规约合并</h3>
+<p>汇总两个切片的局部摘要：
+切片 0：$(m^{(0)}=3.0, \; d^{(0)}=1.1353, \; \mathbf{o}^{(0)}=[0.1353, 1.0])$
+切片 1：$(m^{(1)}=4.0, \; d^{(1)}=1.1353, \; \mathbf{o}^{(1)}=[2.1353, 0.1353])$</p>
+<ol>
+<li><strong>确定全局最大值</strong>：</li>
+</ol>
+
+
+$$
+m^* = \max(3.0, 4.0) = 4.0
+$$
+
+
+<ol start="2">
+<li><strong>计算对齐重缩放因子</strong>：</li>
+</ol>
+
+
+$$
+\alpha_0 = e^{m^{(0)} - m^*} = e^{3.0 - 4.0} = e^{-1} \approx 0.3679
+$$
+
+
+
+
+$$
+\alpha_1 = e^{m^{(1)} - m^*} = e^{4.0 - 4.0} = e^0 = 1.0000
+$$
+
+
+<ol start="3">
+<li><strong>计算全局真实分母和</strong>：</li>
+</ol>
+
+
+$$
+d^* = \alpha_0 d^{(0)} + \alpha_1 d^{(1)} = (0.3679 \times 1.1353) + (1.0 \times 1.1353) \approx 0.4177 + 1.1353 = 1.5530
+$$
+
+
+<ol start="4">
+<li><strong>合成最终全局输出向量</strong>：</li>
+</ol>
+
+
+$$
+\mathbf{o}^* = \frac{1}{d^*} \left(\alpha_0 \mathbf{o}^{(0)} + \alpha_1 \mathbf{o}^{(1)}\right)
+$$
+
+
+
+
+$$
+\alpha_0 \mathbf{o}^{(0)} = 0.3679 \times [0.1353, 1.0000] = [0.0498, 0.3679]
+$$
+
+
+
+
+$$
+\alpha_1 \mathbf{o}^{(1)} = 1.0000 \times [2.1353, 0.1353] = [2.1353, 0.1353]
+$$
+
+
+
+
+$$
+\text{加权求和} = [0.0498 + 2.1353, \; 0.3679 + 0.1353] = [2.1851, \; 0.5032]
+$$
+
+
+
+
+$$
+\mathbf{o}^* = \left[\frac{2.1851}{1.5530}, \; \frac{0.5032}{1.5530}\right] \approx [1.4070, \; 0.3240]
+$$
+
+
+<p>这一结果与不切分的单体 Softmax 全局计算完全精确一致，但计算过程却由两个独立的 GPU 核心以全并行速度瞬间达成！</p>
+<hr />
+<h2 id="step-6">步骤 6：核心精髓总结</h2>
+<fieldset>
+<legend><strong>核心教学要点</strong></legend>
+<p>FlashAttention 凭借批次与头维度的并行在训练阶段所向披靡，但在单词元逐字 <strong>解码（Decode）</strong> 阶段，由于任务粒度太小，会导致 GPU 的绝大部分多处理器核心（SM）陷入灾难性的算力闲置。</p>
+<p><strong>FlashDecoding</strong> 开创了 <strong>Split-K 时序切分并行</strong>，将漫长的历史 KV 缓存横向切片分发给全卡所有核心并行吞吐，随后通过精确的 Log-Sum-Exp 规约完成无损重构，在长文本场景下释放了高达 $8\times$ 的自回归解码性能。</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../23-flash-attention/index.zh.html">&larr; 第 23 章：访存加速革命（FlashAttention 与在线 Softmax 数学）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../25-continuous-batching/index.zh.html">第 25 章：细胞级调度（连续批处理与分块预填充数学） &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

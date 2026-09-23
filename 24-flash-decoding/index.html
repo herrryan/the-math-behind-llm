@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 24: Decode Parallelism (FlashDecoding & Split-K Attention) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../23-flash-attention/index.html">&larr; Chapter 23: The IO-Aware Speedup (FlashAttention & Online Softmax)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../25-continuous-batching/index.html">Chapter 25: Cellular Scheduling (Continuous Batching & Chunked Prefill) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 24: Decode Parallelism (FlashDecoding &amp; Split-K Attention)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>Step 1: 3-Year-Old Intuition</strong></legend>
+<p>Imagine you have an office with 132 smart detectives sitting at their desks.</p>
+<p>A client rushes into the office with a single mystery question and hands over a 10,000-page historical book: <em>"Find the clue that answers my question!"</em></p>
+<p>In traditional decode attention:
+You assign the entire 10,000-page book to <strong>just one detective</strong>. That poor detective sits at their desk flipping page by page through all 10,000 pages for 2 hours. Meanwhile, the other 131 detectives sit at their desks playing with their thumbs and watching the one person sweat! 99% of your workforce is completely idle.</p>
+<p>Then, a clever captain invents <strong>FlashDecoding (Split-K)</strong>:
+<em>"Tear the 10,000-page book into 100 thin chapters of 100 pages each! Hand Chapter 1 to Detective 1, Chapter 2 to Detective 2, Chapter 3 to Detective 3, all the way to Detective 100. Everyone search your 100 pages at the exact same second!"</em></p>
+<p>In just 10 seconds, all 100 detectives find the best clue in their own chapter. They walk to the whiteboard, write down their top clue and their confidence score, and in 1 final second, the captain merges the clues to find the absolute truth.</p>
+<p>By putting all 132 detectives to work at the exact same time, the task finishes in seconds instead of hours.</p>
+</fieldset>
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>How do we convert tearing a 10,000-page book into GPU CUDA thread blocks, and how can independent streaming multiprocessors (<abbr title="Streaming Multiprocessor">SM</abbr>s) compute attention on isolated chunks of time without losing the global Softmax denominator?</p>
+<p>In the decode phase, the query is just a single token:</p>
+
+
+$$
+\mathbf{q} \in \mathbb{R}^{B \times 1 \times H \times d_{\text{head}}}
+$$
+
+
+<p>while the past KV cache has grown to length $T_{\text{ctx}}$:</p>
+
+
+$$
+\mathbf{K}, \mathbf{V} \in \mathbb{R}^{B \times T_{\text{ctx}} \times H \times d_{\text{head}}}
+$$
+
+
+<p>FlashAttention parallelizes computation across two dimensions: <strong>Batch size ($B$)</strong> and <strong>Number of heads ($H$)</strong>.
+Total parallel thread blocks = $B \times H$.</p>
+<p>Now observe the hardware crisis:</p>
+<ul>
+<li>An NVIDIA H100 GPU has <strong>132 Streaming Multiprocessors (SMs)</strong>.</li>
+<li>For a single-user request ($B = 1$) on a model with Grouped-Query Attention ($H_{\text{kv}} = 8$):</li>
+</ul>
+
+
+$$
+\text{Thread Blocks} = 1 \times 8 = 8
+$$
+
+
+<p>Only 8 out of 132 SMs are doing work! The remaining 124 SMs sit completely idle ($< 6\%$ GPU occupancy) while those 8 SMs crawl through a 64k-token context.</p>
+<p>The bridging question is:</p>
+
+
+$$
+\text{How can we parallelize along the historical sequence dimension } T_{\text{ctx}} \text{ (the Key/Value dimension), and how do we mathematically stitch the partial Softmax results together across CUDA blocks?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        FLASHDECODING SPLIT-K ATTENTION PIPELINE                        │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ Single Query Token:  q [1 x d]                                                         │
+│ Historical KV Cache (T_ctx = 64k) ──► Split into S Chunks along Time (K) Dimension     │
+│                                                                                        │
+│ PHASE 1: PARALLEL CHUNK ATTENTION (Dispatched across S independent GPU SMs)            │
+│   SM 0:   q @ K[0:C].T       ──► Local FlashAttn ──► (m_0, d_0, o_0) [1 x d]           │
+│   SM 1:   q @ K[C:2C].T      ──► Local FlashAttn ──► (m_1, d_1, o_1) [1 x d]           │
+│   ...                                                                                  │
+│   SM S-1: q @ K[(S-1)C:SC].T ──► Local FlashAttn ──► (m_{S-1}, d_{S-1}, o_{S-1})      │
+│                                                                                        │
+│ PHASE 2: PARALLEL LOG-SUM-EXP REDUCTION (Final Fast Merge Kernel)                      │
+│   Global Max:         m* = max(m_0, m_1, ..., m_{S-1})                                 │
+│   Global Denominator: d* = sum_{s} d_s * exp(m_s - m*)                                 │
+│   Final Output:       o* = (1 / d*) * sum_{s} exp(m_s - m*) * o_s  [1 x d]             │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 24.1:</strong> FlashDecoding splits the historical KV cache into S chunks along the sequence dimension, running local FlashAttention across S independent GPU SMs in parallel, followed by a fast reduction merge.</figcaption>
+</figure>
+
+<h3>1. Split-K Partitioning of the KV Cache</h3>
+<p>Let $T_{\text{ctx}}$ be the total context length, and let $S$ be the number of parallel splits (typically chosen such that $B \times H \times S \ge \text{Total SMs}$).
+The sequence is divided into $S$ contiguous chunks of size:</p>
+
+
+$$
+C = \left\lceil \frac{T_{\text{ctx}}}{S} \right\rceil
+$$
+
+
+<p>For each chunk $s \in \{0, 1, \dots, S - 1\}$:</p>
+<ul>
+<li>The chunk key slice is $\mathbf{K}^{(s)} = \mathbf{K}[s \cdot C : (s+1) \cdot C, :] \in \mathbb{R}^{C \times d_{\text{head}}}$</li>
+<li>The chunk value slice is $\mathbf{V}^{(s)} = \mathbf{V}[s \cdot C : (s+1) \cdot C, :] \in \mathbb{R}^{C \times d_{\text{head}}}$</li>
+</ul>
+<hr />
+<h3>2. Phase 1: Independent Local Chunk Attention</h3>
+<p>Each of the $S$ chunks is assigned to a separate CUDA thread block running on an independent Streaming Multiprocessor.</p>
+<p>Thread block $s$ calculates the local raw attention scores:</p>
+
+
+$$
+\mathbf{s}^{(s)} = \frac{\mathbf{q} (\mathbf{K}^{(s)})^\top}{\sqrt{d_{\text{head}}}} \in \mathbb{R}^{1 \times C}
+$$
+
+
+<p>It computes three local summary statistics:
+1. <strong>Local Maximum Score</strong>:</p>
+
+
+$$
+m^{(s)} = \max_{j=1}^C s_j^{(s)}
+$$
+
+
+<ol start="2">
+<li><strong>Local Unnormalized Denominator</strong>:</li>
+</ol>
+
+
+$$
+d^{(s)} = \sum_{j=1}^C \exp\left(s_j^{(s)} - m^{(s)}\right)
+$$
+
+
+<ol start="3">
+<li><strong>Local Unnormalized Output Vector</strong>:</li>
+</ol>
+
+
+$$
+\mathbf{o}^{(s)} = \sum_{j=1}^C \exp\left(s_j^{(s)} - m^{(s)}\right) \mathbf{v}_j^{(s)} \in \mathbb{R}^{1 \times d_{\text{head}}}
+$$
+
+
+<p>These $S$ triplets $\left(m^{(s)}, d^{(s)}, \mathbf{o}^{(s)}\right)$ are written to small temporary buffers in GPU memory. Because $S$ is small (e.g., $S = 64$), this buffer is negligible in size ($\approx \text{a few kilobytes}$).</p>
+<hr />
+<h3>3. Phase 2: Mathematical Reduction Across Splits</h3>
+<p>A lightweight reduction kernel reads the $S$ summary triplets and reconstructs the globally exact Softmax attention output.</p>
+<h4>Step A: Global Maximum Finding</h4>
+
+
+$$
+m^* = \max_{s=0}^{S-1} m^{(s)}
+$$
+
+
+<h4>Step B: Global Denominator Reconstruction</h4>
+<p>To combine denominators computed with different local reference baselines $m^{(s)}$, each local sum is scaled by $e^{m^{(s)} - m^*}$:</p>
+
+
+$$
+d^* = \sum_{s=0}^{S-1} d^{(s)} \cdot \exp\left(m^{(s)} - m^*\right)
+$$
+
+
+<h4>Step C: Global Output Rescaling</h4>
+<p>The final, globally normalized attention vector $\mathbf{o}^* \in \mathbb{R}^{1 \times d_{\text{head}}}$ is:</p>
+
+
+$$
+\mathbf{o}^* = \frac{1}{d^*} \sum_{s=0}^{S-1} \exp\left(m^{(s)} - m^*\right) \mathbf{o}^{(s)}
+$$
+
+
+<p>This reduction is mathematically identical to running attention across the entire sequence as a single monolithic block, but achieves <strong>near-100% GPU SM occupancy</strong>.</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 24.1:</strong> Decode Phase Comparison: FlashAttention vs. FlashDecoding (Batch=1, Heads=8, H100 with 132 SMs).</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">Metric</th>
+      <th align="center">Standard FlashAttention (Decode)</th>
+      <th align="center">FlashDecoding (Split-K)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Parallelism Dimensions</strong></td>
+      <td align="center">Batch $\times$ Heads ($B \times H$)</td>
+      <td align="center">Batch $\times$ Heads $\times$ Splits ($B \times H \times S$)</td>
+    </tr>
+    <tr>
+      <td><strong>Active GPU Blocks ($B=1, H=8$)</strong></td>
+      <td align="center">8 blocks</td>
+      <td align="center"><strong>$8 \times 32 = 256$ blocks</strong></td>
+    </tr>
+    <tr>
+      <td><strong>GPU SM Occupancy</strong></td>
+      <td align="center">$\frac{8}{132} \approx 6.0\%$ (Severely starved)</td>
+      <td align="center"><strong>100% (All 132 SMs fully saturated)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Decode Latency (64k context)</strong></td>
+      <td align="center">High (linear in sequence length)</td>
+      <td align="center"><strong>Up to 8x Faster Generation!</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="2023">2023</time> &mdash; <strong>Flash-Decoding for Long-Context Inference</strong> (<cite>Tri Dao, Daniel Haziza, Francisco Massa, Grigory Sizov, Dao-AILab</cite>)</dt>
+  <dd>Following the widespread adoption of FlashAttention for training, the team noticed that inference generation at long contexts failed to saturate modern GPUs. They introduced Split-K sequence parallelization, reducing long-context decode latency by up to 8x.</dd>
+  <dt><time datetime="2024">2024</time> &mdash; <strong>FlashDecoding++</strong> (<cite>Hong et al., Tsinghua University</cite>)</dt>
+  <dd>Eliminated the reduction synchronization overhead by maintaining static universal maximum priors, further accelerating autoregressive serving on heterogeneous GPUs.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us trace Split-K attention on a sequence of length $T_{\text{ctx}} = 4$ split into $S = 2$ chunks of size $C = 2$.</p>
+<p>Let head dimension $d = 2$, and suppose query $\mathbf{q} = [1.0, 0.0]$.
+Suppose the calculated unscaled scores across the 4 historical tokens are:</p>
+
+
+$$
+\mathbf{s} = [s_0, s_1, s_2, s_3] = [1.0, \; 3.0, \; 2.0, \; 4.0]
+$$
+
+
+<p>and their corresponding cached values are:</p>
+
+
+$$
+\mathbf{v}_0 = [1, 0], \quad \mathbf{v}_1 = [0, 1], \quad \mathbf{v}_2 = [1, 1], \quad \mathbf{v}_3 = [2, 0]
+$$
+
+
+<hr />
+<h3>Phase 1: Local Chunk Computation</h3>
+<h4>Chunk 0 (Tokens 0 and 1): Scores $[1.0, 3.0]$</h4>
+<ol>
+<li>Local max: $m^{(0)} = \max(1.0, 3.0) = 3.0$</li>
+<li>Exponentials:</li>
+</ol>
+
+
+$$
+e^{1.0 - 3.0} = e^{-2} \approx 0.1353, \quad e^{3.0 - 3.0} = e^0 = 1.0000
+$$
+
+
+<ol start="3">
+<li>Local denominator:</li>
+</ol>
+
+
+$$
+d^{(0)} = 0.1353 + 1.0000 = 1.1353
+$$
+
+
+<ol start="4">
+<li>Local unnormalized output:</li>
+</ol>
+
+
+$$
+\mathbf{o}^{(0)} = 0.1353 \cdot [1, 0] + 1.0000 \cdot [0, 1] = [0.1353, \; 1.0000]
+$$
+
+
+<hr />
+<h4>Chunk 1 (Tokens 2 and 3): Scores $[2.0, 4.0]$</h4>
+<ol>
+<li>Local max: $m^{(1)} = \max(2.0, 4.0) = 4.0$</li>
+<li>Exponentials:</li>
+</ol>
+
+
+$$
+e^{2.0 - 4.0} = e^{-2} \approx 0.1353, \quad e^{4.0 - 4.0} = e^0 = 1.0000
+$$
+
+
+<ol start="3">
+<li>Local denominator:</li>
+</ol>
+
+
+$$
+d^{(1)} = 0.1353 + 1.0000 = 1.1353
+$$
+
+
+<ol start="4">
+<li>Local unnormalized output:</li>
+</ol>
+
+
+$$
+\mathbf{o}^{(1)} = 0.1353 \cdot [1, 1] + 1.0000 \cdot [2, 0] = [0.1353 + 2.0, \; 0.1353 + 0] = [2.1353, \; 0.1353]
+$$
+
+
+<hr />
+<h3>Phase 2: Reduction Kernel</h3>
+<p>Now merge the two chunk summaries:
+Chunk 0: $(m^{(0)}=3.0, \; d^{(0)}=1.1353, \; \mathbf{o}^{(0)}=[0.1353, 1.0])$
+Chunk 1: $(m^{(1)}=4.0, \; d^{(1)}=1.1353, \; \mathbf{o}^{(1)}=[2.1353, 0.1353])$</p>
+<ol>
+<li><strong>Global Maximum</strong>:</li>
+</ol>
+
+
+$$
+m^* = \max(3.0, 4.0) = 4.0
+$$
+
+
+<ol start="2">
+<li><strong>Rescaling Factors</strong>:</li>
+</ol>
+
+
+$$
+\alpha_0 = e^{m^{(0)} - m^*} = e^{3.0 - 4.0} = e^{-1} \approx 0.3679
+$$
+
+
+
+
+$$
+\alpha_1 = e^{m^{(1)} - m^*} = e^{4.0 - 4.0} = e^0 = 1.0000
+$$
+
+
+<ol start="3">
+<li><strong>Global Denominator</strong>:</li>
+</ol>
+
+
+$$
+d^* = \alpha_0 d^{(0)} + \alpha_1 d^{(1)} = (0.3679 \times 1.1353) + (1.0 \times 1.1353) \approx 0.4177 + 1.1353 = 1.5530
+$$
+
+
+<ol start="4">
+<li><strong>Final Globally Normalized Output</strong>:</li>
+</ol>
+
+
+$$
+\mathbf{o}^* = \frac{1}{d^*} \left(\alpha_0 \mathbf{o}^{(0)} + \alpha_1 \mathbf{o}^{(1)}\right)
+$$
+
+
+
+
+$$
+\alpha_0 \mathbf{o}^{(0)} = 0.3679 \times [0.1353, 1.0000] = [0.0498, 0.3679]
+$$
+
+
+
+
+$$
+\alpha_1 \mathbf{o}^{(1)} = 1.0000 \times [2.1353, 0.1353] = [2.1353, 0.1353]
+$$
+
+
+
+
+$$
+\text{Sum} = [0.0498 + 2.1353, \; 0.3679 + 0.1353] = [2.1851, \; 0.5032]
+$$
+
+
+
+
+$$
+\mathbf{o}^* = \left[\frac{2.1851}{1.5530}, \; \frac{0.5032}{1.5530}\right] \approx [1.4070, \; 0.3240]
+$$
+
+
+<p>This matches standard attention perfectly while executing across two independent GPU cores!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p>While FlashAttention was designed for training where prompts parallelize across tokens, single-token <strong>Decode</strong> severely underutilizes GPU silicon due to lack of thread-block parallelism.</p>
+<p><strong>FlashDecoding</strong> introduces <strong>Split-K parallelism</strong>, carving the historical KV cache across the time dimension to unleash 100% GPU occupancy during generation and accelerating long-context decoding by up to $8\times$.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../23-flash-attention/index.html">&larr; Chapter 23: The IO-Aware Speedup (FlashAttention & Online Softmax)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../25-continuous-batching/index.html">Chapter 25: Cellular Scheduling (Continuous Batching & Chunked Prefill) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

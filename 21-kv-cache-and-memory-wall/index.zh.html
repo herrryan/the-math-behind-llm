@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 21 章：显存之墙（KV Cache 机制与 GQA / MLA 压缩数学） - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../20-prefill-vs-decode/index.zh.html">&larr; 第 20 章：双阶引擎（预填充 vs 解码与屋顶模型）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../22-paged-attention/index.zh.html">第 22 章：分页注意力与虚拟显存（PagedAttention 与零碎片革命） &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>第 21 章：显存之墙（KV Cache 机制与 GQA / MLA 压缩数学）</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-2">2. 承前启后的关键过渡</a> &bull; 
+    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
+    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
+    <a href="#step-5">5. 手算极简数值示例</a> &bull; 
+    <a href="#step-6">6. 核心精髓总结</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>步骤 1：3 岁小孩直觉</strong></legend>
+<p>想象你是一个在黑板前写长篇作文的小学生。</p>
+<p>如果你手头没有任何便签草稿本，那么每当你打算写下第 50 个词时，你都必须立刻停笔，跑去图书馆把前 1 到 49 个词从头到尾重读一遍，重新理解整篇文章的含义，然后再写下第 50 个词。写第 51 个词时，你又得跑一趟图书馆把前 50 个词再重读一遍。还没写完 10 页纸，你的双腿就已经累瘫，放学铃声响了，你连一个自然段都没写完。</p>
+<p>为了拯救你的双腿，老师给了你一个随身小本子——这就是 <strong>键值缓存（KV Cache）</strong>。
+每当你写完一个新词，你就把这个词的线索卡片（Key）与上下文含义（Value）直接抄在桌上的小本子里。写第 51 个词时，你只需看一眼桌上的小本子，再也不用往图书馆跑了。</p>
+<p>但这引发了一个新的危机：如果你的作文写了 100 页呢？
+你的课桌上堆满了成千上万本草稿本。渐渐地，草稿本从地板一直堆到天花板，挤满了整间教室，你连坐进椅子的空间都没有了！这堵由堆积如山的草稿本筑起的物理高墙，就是 <strong>显存之墙（The Memory Wall）</strong>。</p>
+</fieldset>
+<hr />
+<h2 id="step-2">步骤 2：承前启后的关键过渡</h2>
+<p>我们如何把小学生桌上的“便签草稿本”，转化成严谨的张量切片、计算其在 GPU 显存（<abbr title="高带宽显存">HBM</abbr>）中的精确字节数，并通过数学投影将草稿本缩小 8 倍而不丢失文章记忆？</p>
+<p>在 Transformer 自回归生成中，前序已经生成的词元向量 $\mathbf{x}_1, \dots, \mathbf{x}_{t-1}$ 一旦确定就永远不会改变。如果不作缓存，每次计算第 $t$ 步时都需要对所有前序词元重复计算键（Key）和值（Value）投影，生成长度为 $T$ 的文本总共需要 $O(T^3)$ 的立方级总算力，导致长文本生成在计算上彻底瘫痪。</p>
+<p>承前启后的关键过渡问题是：</p>
+
+
+$$
+\text{如何将历史键和值优雅地持久化存储，使得每步生成的计算复杂度从 } O(t^2) \text{ 降至 } O(t)\text{？这一缓存结构在物理显存中究竟占据多大空间？}
+$$
+
+
+<hr />
+<h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        自回归生成中的 KV CACHE 动态累加                                │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 时间步 t：                                                                             │
+│ 当前最新词元：     x_t ──► [ W_q ] ──► q_t  [1 x d_head]                               │
+│                    x_t ──► [ W_k ] ──► k_t  [1 x d_head] ──┐                           │
+│                    x_t ──► [ W_v ] ──► v_t  [1 x d_head] ──┼──┐                        │
+│                                                            │  │                        │
+│ 历史 KV 缓存：                                             ▼  │                        │
+│   K_{1:t-1} [(t-1) x d_head] ─────────────► 张量拼接(Cat) ─► K_{1:t} [t x d_head]      │
+│                                                               │                        │
+│   V_{1:t-1} [(t-1) x d_head] ─────────────► 张量拼接(Cat) ─► V_{1:t} [t x d_head] ◄─┘  │
+│                                                               │                        │
+│ 注意力输出向量：                                              ▼                        │
+│   o_t = softmax( (q_t @ K_{1:t}.T) / sqrt(d_head) ) @ V_{1:t}  [1 x d_head]           │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>图 21.1:</strong> KV Cache 迭代追加机制。在时间步 t，仅需投影最新词元的单行 q, k, v 向量；k 和 v 追加存入历史缓存矩阵中。</figcaption>
+</figure>
+
+<h3>1. 无缓存生成的计算灾难</h3>
+<p>在标准自注意力中，对于长度为 $t$ 的完整序列：</p>
+
+
+$$
+\mathbf{Q}_t = \mathbf{X}_{1:t} \mathbf{W}_Q, \quad \mathbf{K}_t = \mathbf{X}_{1:t} \mathbf{W}_K, \quad \mathbf{V}_t = \mathbf{X}_{1:t} \mathbf{W}_V
+$$
+
+
+
+
+$$
+\mathbf{O}_t = \operatorname{softmax}\left(\frac{\mathbf{Q}_t \mathbf{K}_t^\top}{\sqrt{d_k}}\right) \mathbf{V}_t
+$$
+
+
+<p>若不保存中间激活值，在生成第 $t$ 个词时，前序所有词元的注意力投影都要从头算起。对于长度为 $T$ 的生成序列：</p>
+
+
+$$
+\text{总浮点运算量} = \sum_{t=1}^T 2 P \cdot t \propto O(T^2 \cdot d_{\text{model}})
+$$
+
+
+<p>叠加自注意力内部矩阵乘法后，整条序列生成的总体时间复杂度高达 $O(T^3)$。</p>
+<h3>2. KV Cache 递归递推公式</h3>
+<p>由于前序词元 $\mathbf{x}_1, \dots, \mathbf{x}_{t-1}$ 的表示形式具有时间不变性：</p>
+
+
+$$
+\mathbf{k}_\tau = \mathbf{x}_\tau \mathbf{W}_K, \quad \mathbf{v}_\tau = \mathbf{x}_\tau \mathbf{W}_V \quad (\forall \tau < t)
+$$
+
+
+<p>在时间步 $t$，模型<strong>仅仅</strong>对最新的单行词元向量 $\mathbf{x}_t \in \mathbb{R}^{1 \times d_{\text{model}}}$ 进行一次矩阵乘法投影：</p>
+
+
+$$
+\mathbf{q}_t = \mathbf{x}_t \mathbf{W}_Q \in \mathbb{R}^{1 \times d_{\text{head}}}
+$$
+
+
+
+
+$$
+\mathbf{k}_t = \mathbf{x}_t \mathbf{W}_K \in \mathbb{R}^{1 \times d_{\text{head}}}
+$$
+
+
+
+
+$$
+\mathbf{v}_t = \mathbf{x}_t \mathbf{W}_V \in \mathbb{R}^{1 \times d_{\text{head}}}
+$$
+
+
+<p>随后将 $\mathbf{k}_t$ 与 $\mathbf{v}_t$ 沿着时序维度拼接（Concatenate）追加到历史缓存中：</p>
+
+
+$$
+\mathbf{K}_{1:t} = \begin{bmatrix} \mathbf{K}_{1:t-1} \\ \mathbf{k}_t \end{bmatrix} \in \mathbb{R}^{t \times d_{\text{head}}}, \quad \mathbf{V}_{1:t} = \begin{bmatrix} \mathbf{V}_{1:t-1} \\ \mathbf{v}_t \end{bmatrix} \in \mathbb{R}^{t \times d_{\text{head}}}
+$$
+
+
+<p>当前步的注意力输出仅需一次向量-矩阵乘法：</p>
+
+
+$$
+\mathbf{o}_t = \operatorname{softmax}\left(\frac{\mathbf{q}_t \mathbf{K}_{1:t}^\top}{\sqrt{d_{\text{head}}}}\right) \mathbf{V}_{1:t} \in \mathbb{R}^{1 \times d_{\text{head}}}
+$$
+
+
+<p>单步计算复杂度瞬间从 $O(t^2)$ 压降至 $O(t)$！</p>
+<hr />
+<h3>3. KV Cache 显存容量精确计算公式</h3>
+<p>设：</p>
+<ul>
+<li>$n_{\text{layers}}$：模型的 Transformer 堆叠总层数。</li>
+<li>$n_{\text{kv\_heads}}$：每层中 Key/Value 注意力头的实际数量。</li>
+<li>$d_{\text{head}}$：每个注意力头的内部特征维度。</li>
+<li>$T_{\text{ctx}}$：总上下文长度（提示词词元数 + 已生成词元数）。</li>
+<li>$b$：并发批处理大小（服务同时处理的并发请求数）。</li>
+<li>$p$：每个浮点数所占用的字节数（FP16/BF16 取 $p = 2$，FP8 取 $p = 1$，INT4 取 $p = 0.5$）。</li>
+</ul>
+<p>KV Cache 所消耗的物理显存总量 $\text{RAM}_{\text{KV}}$ 精确为：</p>
+
+
+$$
+\text{RAM}_{\text{KV}} = 2 \times n_{\text{layers}} \times n_{\text{kv\_heads}} \times d_{\text{head}} \times T_{\text{ctx}} \times b \times p \quad [\text{Bytes}]
+$$
+
+
+<p>公式开头的常数 $2$ 严格对应于同时缓存的两张独立张量：<strong>键（Key）张量与值（Value）张量</strong>。</p>
+<hr />
+<h3>4. 显存墙危机：128k 超长上下文下的显存暴击</h3>
+<p>以当今工业界主流标杆模型 <strong>LLaMA-3-70B</strong> 为例：</p>
+<ul>
+<li>模型层数：$n_{\text{layers}} = 80$</li>
+<li>隐藏维度：$d_{\text{model}} = 8192$</li>
+<li>Query 头数：$H_q = 64$</li>
+<li>每一头的维度：$d_{\text{head}} = 128$</li>
+<li>数值精度：16 位半精度（$p = 2\text{ 字节}$）</li>
+<li>上下文窗口：$T_{\text{ctx}} = 128{,}000\text{ 词元}$</li>
+</ul>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 21.1:</strong> 单用户并发（$b=1$）在 128k 上下文下，各注意力架构的 KV Cache 显存占用对比（LLaMA-3-70B 规模）。</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">注意力架构</th>
+      <th align="center">Query 头数（$H_q$）</th>
+      <th align="center">KV 头数（$H_{\text{kv}}$）</th>
+      <th align="center">缓存压缩比例</th>
+      <th align="right">单用户 128k 缓存显存开销</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>标准多头注意力（MHA）</strong></td>
+      <td align="center">64</td>
+      <td align="center">64</td>
+      <td align="center">$1\times$（基线）</td>
+      <td align="right"><strong>312.50 GB</strong>（直接撑爆显存！）</td>
+    </tr>
+    <tr>
+      <td><strong>分组查询注意力（GQA）</strong></td>
+      <td align="center">64</td>
+      <td align="center">8</td>
+      <td align="center"><strong>$8\times$ 压缩</strong></td>
+      <td align="right"><strong>39.06 GB</strong>（单卡可容纳）</td>
+    </tr>
+    <tr>
+      <td><strong>多查询注意力（MQA）</strong></td>
+      <td align="center">64</td>
+      <td align="center">1</td>
+      <td align="center"><strong>$64\times$ 压缩</strong></td>
+      <td align="right"><strong>4.88 GB</strong></td>
+    </tr>
+    <tr>
+      <td><strong>多头潜在注意力（MLA）</strong></td>
+      <td align="center">128</td>
+      <td align="center">潜在维度 $d_c=512$</td>
+      <td align="center"><strong>低秩潜在投影</strong></td>
+      <td align="right"><strong>~11.20 GB</strong>（DeepSeek-V2/V3）</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>如果采用传统的标准多头注意力（MHA），仅仅为一个拥有 128k 长度的用户提供服务，<strong>光是存放 KV Cache 就需要 312.5 GB 显存</strong>！这相当于需要将近 4 张 80GB 的 NVIDIA A100 GPU 仅仅用来装载这一名用户的对话记忆！</p>
+<hr />
+<h3>5. 架构级压缩救星：MQA、GQA 与 DeepSeek MLA</h3>
+<p>为了击碎这堵显存墙，学术界与工业界相继发明了三代革命性的架构级压缩方案：</p>
+<h4>A. 分组查询注意力（GQA）</h4>
+<p>不再为每个 Query 头独立分配专属的 Key/Value 头，而是将 $H_q$ 个 Query 头均匀划分为 $H_{\text{kv}}$ 个组（组大小 $G = H_q / H_{\text{kv}}$）：</p>
+
+
+$$
+\text{kv\_idx}(h) = \left\lfloor \frac{h}{G} \right\rfloor
+$$
+
+
+<p>在保留 Query 多样化表征能力的同时，将 KV 缓存体积直接削减至原来的 $\frac{1}{G}$（LLaMA-3 中直降 8 倍）。</p>
+<h4>B. DeepSeek 多头潜在注意力（MLA）</h4>
+<p>DeepSeek-V2 与 DeepSeek-V3 彻底革新了缓存范式。模型不再独立缓存各个头的 Key 和 Value，而是将隐藏状态 $\mathbf{x}_t \in \mathbb{R}^{d_{\text{model}}}$ 投影至一个极小维度的共享低秩潜在向量 $\mathbf{c}_t^{KV} \in \mathbb{R}^{d_c}$（其中 $d_c \ll H_q \cdot d_{\text{head}}$）：</p>
+
+
+$$
+\mathbf{c}_t^{KV} = \mathbf{x}_t \mathbf{W}_{DKV} \in \mathbb{R}^{1 \times d_c}
+$$
+
+
+<p>在推理时，服务引擎<strong>仅仅在显存中缓存低维潜在向量 $\mathbf{c}_t^{KV}$</strong>（外加一个解耦的 64 维 RoPE 旋转位置编码向量 $\mathbf{k}_t^R$）。多头 Key 和 Value 的还原利用矩阵结合律直接吸收进 Query 端的投影运算中：</p>
+
+
+$$
+\mathbf{q}_{t, h} \mathbf{k}_{\tau, h}^\top = \mathbf{q}_{t, h} (\mathbf{c}_\tau^{KV} \mathbf{W}_{UK, h})^\top = (\mathbf{q}_{t, h} \mathbf{W}_{UK, h}^\top) \mathbf{c}_\tau^{KV \top}
+$$
+
+
+<p>通过只存低维隐变量 $\mathbf{c}_t^{KV}$，DeepSeek MLA 将 KV 显存占用压低到传统 MHA 的极小零头，以极高效率支撑起百万级超长上下文。</p>
+<hr />
+<h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
+<dl>
+  <dt><time datetime="2019 年">2019 年</time> &mdash; <strong>多查询注意力（MQA）诞生</strong>（<cite>Noam Shazeer，Google</cite>）</dt>
+  <dd>Transformer 奠基人之一 Noam Shazeer 发表著名论文《Fast Transformer Decoding: One Write-Head is All You Need》，首次证明所有 Query 头可以共享单一对 KV 头，大幅砍去 95% 的解码访存开销。</dd>
+  <dt><time datetime="2023 年">2023 年</time> &mdash; <strong>分组查询注意力（GQA）成为通用标准</strong>（<cite>Ainslie 等，Google Research</cite>）</dt>
+  <dd>Google 团队提出 GQA，完美平衡了 MHA 的强表征能力与 MQA 的低显存开销，随即被 LLaMA-2-70B、LLaMA-3、Mistral 及 Gemma 2 普遍采纳。</dd>
+  <dt><time datetime="2024 年">2024 年</time> &mdash; <strong>多头潜在注意力（MLA）横空出世</strong>（<cite>DeepSeek-AI</cite>）</dt>
+  <dd>DeepSeek 在 DeepSeek-V2 与 V3 中推出 MLA，将低秩矩阵压缩技术深度融入注意力内核，从根本上重塑了长上下文大模型推理的显存经济学。</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">步骤 5：手算极简数值示例</h2>
+<p>我们通过一组极简参数，手算 KV Cache 的拼接过程与注意力分数计算。</p>
+<h3>微型模型配置</h3>
+<ul>
+<li>层数：$n_{\text{layers}} = 1$</li>
+<li>Query 头数：$H_q = 2$</li>
+<li>Key/Value 头数：$H_{\text{kv}} = 1$（组大小 $G = 2$）</li>
+<li>头维度：$d_{\text{head}} = 2$</li>
+<li>精度：16 位半精度（$p = 2\text{ 字节}$）</li>
+</ul>
+<hr />
+<h3>第 1 步：摄入提示词词元 1（$t = 1$）</h3>
+<p>词元 1 投影生成其 Key 和 Value 向量：</p>
+
+
+$$
+\mathbf{k}_1 = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix}, \quad \mathbf{v}_1 = \begin{bmatrix} 0.5 & 1.5 \end{bmatrix}
+$$
+
+
+<p>初始化缓存矩阵：</p>
+
+
+$$
+\mathbf{K}_{1:1} = \begin{bmatrix} 1.0 & 2.0 \end{bmatrix} \in \mathbb{R}^{1 \times 2}, \quad \mathbf{V}_{1:1} = \begin{bmatrix} 0.5 & 1.5 \end{bmatrix} \in \mathbb{R}^{1 \times 2}
+$$
+
+
+
+
+$$
+\text{显存开销} = (1 \text{ 词元} \times 2 \text{ 维度} \times 2 \text{ 张量}) \times 2 \text{ 字节} = 8\text{ Bytes}
+$$
+
+
+<hr />
+<h3>第 2 步：生成新词元 2（$t = 2$）</h3>
+<p>词元 2 到达，仅投影自身单行向量：</p>
+
+
+$$
+\mathbf{k}_2 = \begin{bmatrix} 3.0 & 0.0 \end{bmatrix}, \quad \mathbf{v}_2 = \begin{bmatrix} 2.0 & 1.0 \end{bmatrix}
+$$
+
+
+<p>将其追加拼接进缓存：</p>
+
+
+$$
+\mathbf{K}_{1:2} = \begin{bmatrix} 1.0 & 2.0 \\ 3.0 & 0.0 \end{bmatrix} \in \mathbb{R}^{2 \times 2}, \quad \mathbf{V}_{1:2} = \begin{bmatrix} 0.5 & 1.5 \\ 2.0 & 1.0 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
+$$
+
+
+
+
+$$
+\text{当前缓存显存} = (2 \text{ 词元} \times 2 \text{ 维度} \times 2 \text{ 张量}) \times 2 \text{ 字节} = 16\text{ Bytes}
+$$
+
+
+<p>设 Query 头 1 在当前步产生的查询向量为：</p>
+
+
+$$
+\mathbf{q}_{2, 1} = \begin{bmatrix} 1.0 & 0.0 \end{bmatrix}
+$$
+
+
+<p>跨历史缓存计算注意力未归一化打分：</p>
+
+
+$$
+\mathbf{s} = \frac{\mathbf{q}_{2, 1} \mathbf{K}_{1:2}^\top}{\sqrt{2}} = \frac{\begin{bmatrix} 1.0 & 0.0 \end{bmatrix} \begin{bmatrix} 1.0 & 3.0 \\ 2.0 & 0.0 \end{bmatrix}}{\sqrt{2}} = \frac{\begin{bmatrix} 1.0 & 3.0 \end{bmatrix}}{\sqrt{2}} \approx \begin{bmatrix} 0.707 & 2.121 \end{bmatrix}
+$$
+
+
+<p>执行 Softmax 概率归一化：</p>
+
+
+$$
+e^{0.707} \approx 2.028, \quad e^{2.121} \approx 8.339 \implies \text{分母和} = 10.367
+$$
+
+
+
+
+$$
+\mathbf{a} = \operatorname{softmax}(\mathbf{s}) \approx \begin{bmatrix} \frac{2.028}{10.367} & \frac{8.339}{10.367} \end{bmatrix} \approx \begin{bmatrix} 0.196 & 0.804 \end{bmatrix}
+$$
+
+
+<p>对缓存中的 Value 矩阵进行加权聚合：</p>
+
+
+$$
+\mathbf{o}_{2, 1} = \mathbf{a} \mathbf{V}_{1:2} = \begin{bmatrix} 0.196 & 0.804 \end{bmatrix} \begin{bmatrix} 0.5 & 1.5 \\ 2.0 & 1.0 \end{bmatrix} = \begin{bmatrix} 0.098 + 1.608 & 0.294 + 0.804 \end{bmatrix} = \begin{bmatrix} 1.706 & 1.098 \end{bmatrix}
+$$
+
+
+<p>见证奇迹的时刻：<strong>我们完全没有重新计算词元 1 的 Key 与 Value！</strong> 历史信息直接从缓存读出，没有任何多余的重复算力开销。</p>
+<hr />
+<h2 id="step-6">步骤 6：核心精髓总结</h2>
+<fieldset>
+<legend><strong>核心教学要点</strong></legend>
+<p><strong>KV Cache</strong> 实现了典型的“以空间换时间”，将大模型自回归解码的单步算力开销从灾难性的 $O(t^2)$ 砍至线性的 $O(t)$。</p>
+<p>但由于缓存体积随上下文长度 $T_{\text{ctx}}$ 刚性线性膨胀，长文本推理必然遭遇冰冷残酷的 <strong>显存之墙（Memory Wall）</strong>。现代前沿架构通过 <strong>分组查询注意力（GQA）</strong> 与 <strong>多头潜在注意力（MLA）</strong>，在算法结构层面对缓存实施了 $8\times$ 至 $20\times$ 的降维压缩，成为了撑起百万级长窗口服务的最核心支柱。</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../20-prefill-vs-decode/index.zh.html">&larr; 第 20 章：双阶引擎（预填充 vs 解码与屋顶模型）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../22-paged-attention/index.zh.html">第 22 章：分页注意力与虚拟显存（PagedAttention 与零碎片革命） &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

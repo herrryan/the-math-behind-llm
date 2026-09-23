@@ -14,7 +14,8 @@
     <a href="#module-5">Module 5</a> &bull;
     <a href="#module-6">Module 6</a> &bull;
     <a href="#module-7">Module 7</a> &bull;
-    <a href="#module-8">Module 8</a>
+    <a href="#module-8">Module 8</a> &bull;
+    <a href="#module-9">Module 9 (Inference)</a>
   </p>
 </nav>
 
@@ -304,8 +305,64 @@ Below is the complete roadmap of 19 chapters across 9 intuitive modules, coverin
 - [Chapter 19: Teaching Good Manners (RLHF, Reward Modeling, and DPO)](19-rlhf-and-dpo/index.html)
   - **The Metaphor**: Giving gold stars for kind answers, gentle penalties for rude answers, and keeping the child from forgetting who they are.
   - **The Math**: Reward objective with KL penalty $\mathbb{E}[r_\theta(x, y)] - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$, and Direct Preference Optimization (DPO) closed-form loss:
-    $$\mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]$$
+
+$$
+\mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right]
+$$
+
   - **Formula Origin**: Bradley-Terry preference models (1952) and Rafailov et al. (2023) analytically bypassing the reinforcement learning actor-critic loop.
+
+---
+
+<h3 id="module-9">Module 9: The Physics of LLM Inference (Serving, Hardware, &amp; Acceleration)</h3>
+*The computational laws, memory walls, and kernel mathematics of real-time generation.*
+
+*(For the complete standalone track curriculum, see the dedicated [LLM Inference Master Curriculum](inference_curriculum.md).)*
+
+- [Chapter 20: The Dual-Phase Engine (Prefill vs. Decode &amp; The Roofline Model)](20-prefill-vs-decode/index.html)
+  - **The Metaphor**: The Moving Truck (packing 1,000 boxes into a truck in one push) vs. The Delivery Courier (driving back and forth between warehouse and home to deliver one letter per trip).
+  - **The Math**: Operational intensity $I = \text{FLOPs} / \text{Bytes}$, critical ridge point $I^* = P_{\text{peak}} / B_{\text{peak}}$, compute-bound vs memory-bandwidth-bound regimes.
+  - **Formula Origin**: Williams, Waterman, &amp; Patterson (2009) Roofline Model applied to Transformer decoding.
+
+- [Chapter 21: The Memory Wall (KV Cache Mechanics &amp; GQA / MLA Compression)](21-kv-cache-and-memory-wall/index.html)
+  - **The Metaphor**: The Accountant's Scratchpad vs. Re-reading the entire book from page one for every new word written.
+  - **The Math**: KV Cache recurrence $\mathbf{K}_{1:t} = [\mathbf{K}_{1:t-1}; \mathbf{k}_t]$, memory scaling $2 \times L \times H_{\text{kv}} \times d_{\text{head}} \times T \times b \times p$, and low-rank projection $\mathbf{c}_t^{KV} = \mathbf{x}_t \mathbf{W}_{DKV}$.
+  - **Formula Origin**: Shazeer (2019) MQA, Ainslie et al. (2023) GQA, DeepSeek-AI (2024) MLA.
+
+- [Chapter 22: PagedAttention &amp; Virtual Memory (vLLM &amp; Zero Fragmentation)](22-paged-attention/index.html)
+  - **The Metaphor**: Reserving an entire 500-room hotel for a guest who might stay 1 day vs. Assigning room keys one night at a time as guests arrive.
+  - **The Math**: Virtual block mapping $\mathcal{T}(r, b_{\text{logical}}) = b_{\text{physical}}$, elimination of memory fragmentation, and Copy-on-Write (CoW) branching.
+  - **Formula Origin**: Kwon et al. (vLLM, SOSP 2023) porting OS virtual memory concepts to GPU KV cache tensors.
+
+- [Chapter 23: The IO-Aware Speedup (FlashAttention &amp; Online Softmax)](23-flash-attention/index.html)
+  - **The Metaphor**: Cooking on the kitchen counter (SRAM) instead of running to the basement pantry (HBM) for every single chopped vegetable.
+  - **The Math**: Online Softmax running statistics $(m, d)$ and SRAM block tiling, cutting memory IO from $O(T^2)$ to $O(T^2 d / M_{\text{SRAM}})$.
+  - **Formula Origin**: Milakov &amp; Gimelshtein (2018), Tri Dao et al. (2022, 2023, 2024 - FlashAttention 1, 2, 3).
+
+- [Chapter 24: Decode Parallelism (FlashDecoding &amp; Split-K Attention)](24-flash-decoding/index.html)
+  - **The Metaphor**: 100 builders watching 1 builder dig a trench vs. giving every builder their own shovel to dig in parallel and merging the trench.
+  - **The Math**: Split-K sequence partitioning into $S$ parallel chunks across SMs, partial attention $(m^{(s)}, \ell^{(s)}, \mathbf{o}^{(s)})$, and log-sum-exp reduction.
+  - **Formula Origin**: Tri Dao et al. (Flash-Decoding, 2023).
+
+- [Chapter 25: Cellular Scheduling (Continuous Batching &amp; Chunked Prefill)](25-continuous-batching/index.html)
+  - **The Metaphor**: The Subway Train vs. The Rollercoaster: doors open at every stop to let passengers on and off without halting the ride.
+  - **The Math**: Iteration-level scheduling $\mathcal{B}_t = (\mathcal{B}_{t-1} \setminus \mathcal{F}_{t-1}) \cup \mathcal{A}_t$ and chunked prefill co-scheduling.
+  - **Formula Origin**: Yu et al. (Orca, OSDI 2022), Agrawal et al. (Sarathi-Serve, 2024).
+
+- [Chapter 26: Breaking the Sequential Barrier (Speculative Decoding &amp; Verification Math)](26-speculative-decoding/index.html)
+  - **The Metaphor**: The apprentice drafting 5 sentences in pencil, while the master craftsman reviews all 5 in a single glance and approves 4.
+  - **The Math**: Acceptance probability $\alpha = \min(1, p/q)$, residual recovery distribution, and exact proof that $\mathbb{P}(X=x) \equiv p(x)$.
+  - **Formula Origin**: Leviathan et al. (2023), Chen et al. (2023).
+
+- [Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, &amp; INT4)](27-model-quantization/index.html)
+  - **The Metaphor**: Vacuum-sealing bulky winter jackets into flat bags, while protecting delicate glass souvenirs with bubble wrap.
+  - **The Math**: Outlier activation spikes, SmoothQuant scale migration $\mathbf{Y} = (\mathbf{X} \mathbf{s}^{-1})(\mathbf{s} \mathbf{W})$, and AWQ salient channel protection.
+  - **Formula Origin**: Dettmers et al. (2022), Xiao et al. (SmoothQuant, 2023), Lin et al. (AWQ, 2023).
+
+- [Chapter 28: Distributed Serving (Tensor Parallelism &amp; Prefill-Decode Disaggregation)](28-distributed-inference/index.html)
+  - **The Metaphor**: The Assembly Line: splitting engine parts across 8 workstations vs separating the heavy foundry from the fine assembly room.
+  - **The Math**: Column/Row Parallel Linear decomposition, All-Reduce communication costs, and disaggregated RDMA KV cache transfer.
+  - **Formula Origin**: Shoeybi et al. (Megatron-LM, 2019), Patel et al. (Splitwise, 2024), Zhong et al. (DistServe, 2024).
 
 ---
 

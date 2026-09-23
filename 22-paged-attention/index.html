@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 22: PagedAttention & Virtual Memory (vLLM & Zero Fragmentation) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../21-kv-cache-and-memory-wall/index.html">&larr; Chapter 21: The Memory Wall (KV Cache Mechanics & GQA / MLA Compression)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../23-flash-attention/index.html">Chapter 23: The IO-Aware Speedup (FlashAttention & Online Softmax) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 22: PagedAttention &amp; Virtual Memory (vLLM &amp; Zero Fragmentation)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>Step 1: 3-Year-Old Intuition</strong></legend>
+<p>Imagine you run a hotel with 500 rooms.</p>
+<p>A travel guide walks into the lobby and shouts: <em>"My tour group just arrived! We might need 5 rooms, or we might need all 500 rooms if all our relatives show up. And all our rooms MUST be in a single unbroken straight line on the exact same floor!"</em></p>
+<p>Because you must give them an unbroken line of rooms for their maximum possible size, you lock all 500 rooms on floors 1 through 5 just for them. But in reality, only 10 tourists ever show up! 490 hotel rooms sit completely empty and locked. Outside your hotel, a huge crowd of other tired travelers is waiting in the rain, but you have to turn them away because the rooms are "reserved." That is traditional <strong>Contiguous Memory Allocation</strong>.</p>
+<p>Then, a clever hotel manager invents a smart computer keycard: <strong>PagedAttention</strong>.
+The manager tells the guide: <em>"You don't need to lock 500 rooms upfront, and your rooms don't need to be side by side! Here is room 102. When your next friend arrives, I will give them room 307. When the next friend arrives, I will give them room 412. My computer knows exactly who belongs to your group, and your friends can visit each other instantly."</em></p>
+<p>Suddenly, not a single room is wasted. Every empty room can take a guest, and the hotel accommodates 4 times as many travelers on the exact same budget!</p>
+</fieldset>
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>How do we convert this hotel manager's dynamic keycard system into tensor operations that allow GPU attention kernels to read non-contiguous blocks of memory with zero overhead?</p>
+<p>In standard deep learning frameworks (like native PyTorch), a tensor must reside in a <strong>single contiguous chunk of physical memory</strong>. If a user's request might generate up to $T_{\text{max}} = 2048$ tokens, the serving engine is forced to pre-allocate an unbroken memory buffer of shape $[B, 2, n_{\text{layers}}, n_{\text{kv\_heads}}, T_{\text{max}}, d_{\text{head}}]$.</p>
+<p>Because the actual generation length is unknown in advance, this creates two devastating forms of memory waste:
+1. <strong>Internal Fragmentation</strong>: Memory reserved for future tokens that the model never ended up generating.
+2. <strong>External Fragmentation</strong>: Memory gaps between requests that are too small to fit a new $T_{\text{max}}$ allocation.</p>
+<p>In production, <strong>60% to 80% of GPU memory was wasted on empty padding</strong>. The bridging question is:</p>
+
+
+$$
+\text{How can an attention kernel calculate } \operatorname{softmax}\left(\frac{\mathbf{q} \mathbf{K}^\top}{\sqrt{d}}\right)\mathbf{V} \text{ when the vectors of } \mathbf{K} \text{ and } \mathbf{V} \text{ are scattered across random, non-contiguous physical DRAM blocks?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        PAGEDATTENTION VIRTUAL MEMORY ARCHITECTURE                      │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ Request 1 (Prompt: 7 tokens, Block Size B = 4)                                         │
+│ Logical KV Blocks:                                                                     │
+│   Logical Block 0: [ Token 0, Token 1, Token 2, Token 3 ]  (Full)                      │
+│   Logical Block 1: [ Token 4, Token 5, Token 6,   ___   ]  (Offset = 3)                │
+│                                                                                        │
+│ Page Table (Request 1):                                                                │
+│   Logical Block 0 ──► Physical Block 7                                                 │
+│   Logical Block 1 ──► Physical Block 2                                                 │
+│                                                                                        │
+│ Physical Memory Pool (DRAM Frames in GPU HBM):                                         │
+│   [ Block 0 ]   [ Block 1 ]   [ Block 2: Req 1 (Tokens 4-6) ]   [ Block 3 ]            │
+│   [ Block 4 ]   [ Block 5 ]   [ Block 6 ]                       [ Block 7: Req 1 (0-3)]│
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 22.1:</strong> PagedAttention maps contiguous logical token sequences to non-contiguous physical blocks in GPU DRAM, eliminating memory fragmentation.</figcaption>
+</figure>
+
+<h3>1. Logical vs. Physical Memory Partitioning</h3>
+<p>Let the key-value sequence of a request be partitioned into fixed-size chunks called <strong>Logical Blocks</strong> of size $B$ tokens (typically $B = 16$ or $B = 32$).</p>
+<p>For any token at sequence position $t \in \{0, 1, \dots, T - 1\}$:</p>
+<ul>
+<li><strong>Logical Block Index</strong>:</li>
+</ul>
+
+
+$$
+b_{\text{logical}} = \left\lfloor \frac{t}{B} \right\rfloor
+$$
+
+
+<ul>
+<li><strong>Block Offset</strong>:</li>
+</ul>
+
+
+$$
+o = t \bmod B
+$$
+
+
+<p>Physical GPU memory is pre-allocated once into a flat pool of <strong>Physical Blocks</strong> $\mathcal{P} = \{P_0, P_1, \dots, P_{N-1}\}$. Each physical block has shape:</p>
+
+
+$$
+P_i \in \mathbb{R}^{B \times 2 \times n_{\text{kv\_heads}} \times d_{\text{head}}}
+$$
+
+
+<h3>2. The Page Table Mapping Function</h3>
+<p>For each active request $r$, the serving runtime maintains a dynamic array called the <dfn id="def-page-table">Page Table</dfn> $\mathcal{T}_r$:</p>
+
+
+$$
+\mathcal{T}_r(b_{\text{logical}}) = P_{\text{physical}} \in \mathcal{P}
+$$
+
+
+<p>The physical memory address $\text{Addr}(t)$ of the Key or Value vector for token $t$ is calculated via:</p>
+
+
+$$
+\text{Addr}(t) = \text{BaseAddr}\left(\mathcal{T}_r\left(\left\lfloor \frac{t}{B} \right\rfloor\right)\right) + (t \bmod B) \times S_{\text{token}}
+$$
+
+
+<p>where $S_{\text{token}} = 2 \times n_{\text{kv\_heads}} \times d_{\text{head}} \times p$ is the byte stride per token.</p>
+<hr />
+<h3>3. The PagedAttention Kernel Execution</h3>
+<p>In standard attention, $\mathbf{q}_t$ multiplies a single contiguous matrix $\mathbf{K}$.
+In PagedAttention, the GPU kernel loops over the request's page table entries, fetching blocks dynamically from arbitrary memory locations without copying them into a temporary buffer:</p>
+
+
+$$
+\mathbf{o}_t = \sum_{j=0}^{\lceil t / B \rceil - 1} \operatorname{softmax}\left(\frac{\mathbf{q}_t \mathbf{K}_{P_j}^\top}{\sqrt{d_{\text{head}}}}\right) \mathbf{V}_{P_j}
+$$
+
+
+<p>where $P_j = \mathcal{T}_r(j)$ is the physical block holding logical tokens $j \cdot B$ through $\min((j+1)B - 1, t)$.</p>
+<hr />
+<h3>4. Mathematical Elimination of Memory Fragmentation</h3>
+<p>Let $T$ be the actual sequence length of a request, and $B$ be the block size.</p>
+<ul>
+<li>
+<p><strong>External Fragmentation</strong>:
+  Because any free physical block in $\mathcal{P}$ can be assigned to any request regardless of physical location, <strong>external fragmentation is exactly $0\%$</strong>.</p>
+</li>
+<li>
+<p><strong>Internal Fragmentation</strong>:
+  Internal fragmentation occurs exclusively in the very last logical block of a sequence:</p>
+</li>
+</ul>
+
+
+$$
+\text{Wasted Slots} = (B - 1) - (T - 1) \bmod B \le B - 1
+$$
+
+
+<p>The fractional memory waste $W_{\text{internal}}$ is bounded by:</p>
+
+
+$$
+W_{\text{internal}} < \frac{B}{T}
+$$
+
+
+<p>For a typical serving configuration with block size $B = 16$ and context length $T = 2048$:</p>
+
+
+$$
+W_{\text{internal}} < \frac{16}{2048} \approx 0.78\%
+$$
+
+
+<p>PagedAttention reduces memory waste from <strong>over 60% down to under 1%</strong>!</p>
+<hr />
+<h3>5. Dynamic Memory Sharing via Copy-on-Write (CoW)</h3>
+<p>In advanced generation workflows (such as parallel sampling, beam search, or system prompt prefix caching), multiple requests share identical prompt prefixes.</p>
+<p>PagedAttention enables zero-memory copying via <strong>Copy-on-Write</strong>:</p>
+<ul>
+<li>Each physical block maintains a reference counter $\text{ref\_count}(P_i) \in \mathbb{N}$.</li>
+<li>When two requests share the same prompt tokens, their page tables point to the <strong>exact same physical block</strong>:</li>
+</ul>
+
+
+$$
+\mathcal{T}_{r_1}(0) = \mathcal{T}_{r_2}(0) = P_7 \implies \text{ref\_count}(P_7) = 2
+$$
+
+
+<ul>
+<li>If Request 1 later appends a new token to this block, the engine checks $\text{ref\_count}$. If $\text{ref\_count} > 1$, it allocates a new physical block $P_{\text{new}}$, copies the $B$ tokens over, decrements $\text{ref\_count}(P_7)$, and updates Request 1's page table.</li>
+</ul>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 22.1:</strong> Comparison of Contiguous Memory Serving vs. PagedAttention.</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">Metric</th>
+      <th align="left">Contiguous Pre-allocation</th>
+      <th align="left">PagedAttention (vLLM)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Allocation Strategy</strong></td>
+      <td>Over-allocates for worst-case $T_{\text{max}}$</td>
+      <td>Dynamically allocates blocks of size $B$ on demand</td>
+    </tr>
+    <tr>
+      <td><strong>Internal Fragmentation</strong></td>
+      <td>60% – 80% (massive padding waste)</td>
+      <td><strong>&lt; 1%</strong> (bounded by $(B-1)/T$)</td>
+    </tr>
+    <tr>
+      <td><strong>External Fragmentation</strong></td>
+      <td>Severe (gaps between requests)</td>
+      <td><strong>0%</strong> (arbitrary non-contiguous blocks)</td>
+    </tr>
+    <tr>
+      <td><strong>Prefix Sharing</strong></td>
+      <td>Requires full duplicate copy in memory</td>
+      <td><strong>Zero copy</strong> (shared page table pointers)</td>
+    </tr>
+    <tr>
+      <td><strong>Serving Throughput</strong></td>
+      <td>1x (baseline)</td>
+      <td><strong>2x – 4x higher throughput</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="1962">1962</time> &mdash; <strong>Virtual Memory &amp; Paging</strong> (<cite>Ferranti Atlas Computer, Manchester</cite>)</dt>
+  <dd>Tom Kilburn and his team invented paged virtual memory, separating an application's contiguous logical address space from non-contiguous physical core memory.</dd>
+  <dt><time datetime="2023">2023</time> &mdash; <strong>PagedAttention &amp; vLLM</strong> (<cite>Woosuk Kwon et al., UC Berkeley, SOSP 2023</cite>)</dt>
+  <dd>Recognizing that LLM KV cache management was suffering from the exact same memory fragmentation that operating systems solved 60 years earlier, Woosuk Kwon and the UC Berkeley Sky Computing Lab designed PagedAttention and built the <strong>vLLM</strong> open-source inference system, revolutionizing LLM serving industry-wide.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us walk through the dynamic memory allocation of two requests step-by-step.</p>
+<h3>System Configuration</h3>
+<ul>
+<li>Block size: $B = 2\text{ tokens}$</li>
+<li>Total Physical Memory Pool: 4 blocks $\{P_0, P_1, P_2, P_3\}$</li>
+<li>Each block stores 2 tokens of Key and Value tensors.</li>
+</ul>
+<hr />
+<h3>Step 1: Request 1 Arrives with a 3-Token Prompt</h3>
+<p>Request 1 enters with prompt: <code>"the dog barked"</code> ($T = 3$).</p>
+<ul>
+<li>Number of required blocks: $\lceil 3 / 2 \rceil = 2\text{ blocks}$.</li>
+<li>Runtime allocates free blocks $P_1$ and $P_3$ from the pool.</li>
+</ul>
+<p>The Page Table for Request 1 is initialized:</p>
+
+
+$$
+\mathcal{T}_1 = [P_1, \; P_3]
+$$
+
+
+<p>Physical storage breakdown:</p>
+<ul>
+<li><strong>$P_1$ (Logical Block 0)</strong>: Stores token 0 (<code>"the"</code>) and token 1 (<code>"dog"</code>). <strong>Full</strong> (2/2 slots).</li>
+<li><strong>$P_3$ (Logical Block 1)</strong>: Stores token 2 (<code>"barked"</code>). <strong>Partial</strong> (1/2 slots). 1 slot is free.</li>
+</ul>
+
+
+$$
+\text{Internal Fragmentation} = \frac{1\text{ empty slot}}{4\text{ allocated slots}} = 25\%
+$$
+
+
+<hr />
+<h3>Step 2: Request 1 Generates Token 3 (<code>"loudly"</code>)</h3>
+<p>The model generates token 3.</p>
+<ul>
+<li>Sequence position: $t = 3$.</li>
+<li>Logical block: $\lfloor 3 / 2 \rfloor = 1$.</li>
+<li>Offset: $3 \bmod 2 = 1$.</li>
+</ul>
+<p>Logical block 1 is already mapped to $P_3$, and slot 1 is free!
+The kernel writes token 3 directly into $P_3$ at offset 1 without allocating any new memory.</p>
+<ul>
+<li>$P_3$ is now completely full (2/2 slots).</li>
+</ul>
+
+
+$$
+\text{Internal Fragmentation} = 0\%
+$$
+
+
+<hr />
+<h3>Step 3: Request 1 Generates Token 4 (<code>"."</code>)</h3>
+<p>The model generates token 4.</p>
+<ul>
+<li>Sequence position: $t = 4$.</li>
+<li>Logical block: $\lfloor 4 / 2 \rfloor = 2$.</li>
+</ul>
+<p>Logical block 2 does not exist in $\mathcal{T}_1$ yet!
+The manager fetches the next free block from the pool ($P_0$) and appends it to Request 1's page table:</p>
+
+
+$$
+\mathcal{T}_1 = [P_1, \; P_3, \; P_0]
+$$
+
+
+<p>Token 4 is written into $P_0$ at offset 0.
+The KV tensors are scattered across physical blocks $P_1 \to P_3 \to P_0$, yet the model attends across them seamlessly!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p><strong>PagedAttention</strong> solves the LLM memory crisis by borrowing the greatest triumph of operating system design: <strong>Virtual Memory Paging</strong>.</p>
+<p>By mapping contiguous logical token sequences to non-contiguous physical DRAM blocks via page tables, PagedAttention slashes memory waste from 80% to under 1%, doubling to quadrupling serving capacity on identical hardware.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../21-kv-cache-and-memory-wall/index.html">&larr; Chapter 21: The Memory Wall (KV Cache Mechanics & GQA / MLA Compression)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../23-flash-attention/index.html">Chapter 23: The IO-Aware Speedup (FlashAttention & Online Softmax) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

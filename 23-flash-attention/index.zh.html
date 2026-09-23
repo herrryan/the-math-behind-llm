@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 23 章：访存加速革命（FlashAttention 与在线 Softmax 数学） - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../22-paged-attention/index.zh.html">&larr; 第 22 章：分页注意力与虚拟显存（PagedAttention 与零碎片革命）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../24-flash-decoding/index.zh.html">第 24 章：解码并行化（FlashDecoding 与 Split-K 注意力切分） &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>第 23 章：访存加速革命（FlashAttention 与在线 Softmax 数学）</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-2">2. 承前启后的关键过渡</a> &bull; 
+    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
+    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
+    <a href="#step-5">5. 手算极简数值示例</a> &bull; 
+    <a href="#step-6">6. 核心精髓总结</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>步骤 1：3 岁小孩直觉</strong></legend>
+<p>想象你是一位在餐厅厨房里制作蔬菜沙拉的大厨。</p>
+<p>在你面前的案板上有一块精致小巧的木质切菜板（<strong>片上高速缓存 SRAM</strong>），而在遥远的地下室里，有一座巨大的冷库仓库（<strong>显存 HBM</strong>）。</p>
+<p>传统的做沙拉方法（<strong>标准注意力 Standard Attention</strong>）：
+1. 你切了一根胡萝卜，顺着楼梯跑下地下室，把胡萝卜片放在冷库架子上，再气喘吁吁地爬上来。
+2. 你又切了一根黄瓜，顺着楼梯再跑下地下室，把黄瓜片放在架子上，再爬上来。
+3. 然后你第三次跑下地下室，在冷库里把沙拉酱淋在所有蔬菜上，再爬上来。
+4. 最后你第四次跑下地下室，把拌好的沙拉装盘，端回楼上的餐厅餐桌。
+这一趟下来，你爬了上百次楼梯！你的双腿酸痛无比，整整 95% 的做饭时间全被浪费在上下楼梯的跑路上，真正切菜的时间寥寥无几。</p>
+<p>后来，一位米其林三星主厨发明了 <strong>FlashAttention（闪速注意力）</strong>：
+<em>“别再傻傻往地下室跑了！一开始从冷库抱一小筐蔬菜上楼放在案板上。在你的小切菜板上切好、淋酱、拌匀，在脑海里动态维护酱汁比例，拌好一小盘就直接端给客人，中途一次都不要往地下室跑！”</em></p>
+<p>FlashAttention 没有更改沙拉食谱里的任何一粒盐——它端出的沙拉风味和原版完全一模一样，但因为省去了成百上千次上下楼梯的漫长折返，出菜速度直接暴增了 4 倍！</p>
+</fieldset>
+<hr />
+<h2 id="step-2">步骤 2：承前启后的关键过渡</h2>
+<p>我们如何把厨房里“在小案板上拌沙拉”与“频繁跑地下室冷库”的物理比喻，映射到 GPU 的显存层级架构中，又如何让计算机在未读完全部数据时提前计算出精确的数学 $\operatorname{softmax}$？</p>
+<p>在现代 GPU 芯片内部，存储体系具有极其严苛的层级落差：
+1. <strong>片上静态存储（SRAM / 共享内存与寄存器）</strong>：容量极其微小（NVIDIA H100 仅约 50 MB 左右），但带宽恐怖至极（高达惊人的 ~19 TB/s）。
+2. <strong>片外高带宽显存（HBM / 主显存）</strong>：容量极其庞大（80 GB 至 192 GB），但带宽显著落后（仅约 3.35 TB/s）。</p>
+<p>在标准注意力算子中，计算 $\mathbf{O} = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d}}\right)\mathbf{V}$ 时，必须将中间产物——尺寸为 $T \times T$ 的注意力打分矩阵 $\mathbf{S}$ 和归一化概率矩阵 $\mathbf{P}$ 完整写入慢速的 HBM 显存，随后又反复读出多次：</p>
+
+
+$$
+\text{HBM 显存读写吞吐量} = O(T^2) \text{ 个浮点数}
+$$
+
+
+<p>当上下文长度 $T = 8192$ 时，$T \times T$ 矩阵在每个头上包含高达 6700 万个浮点数！GPU 绝大多数时间都在显存总线上疲于奔命地搬运这个庞然大物。</p>
+<p>承前启后的核心过渡问题是：</p>
+
+
+$$
+\text{在完全不向慢速 HBM 写入 } T \times T \text{ 矩阵的前提下，我们如何在极其微小的 SRAM 缓存中分块（Tile-by-Tile）流式计算出数学上完全无损的 Softmax 注意力输出？}
+$$
+
+
+<hr />
+<h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        标准注意力 VS. FLASHATTENTION 访存数据流                        │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 标准注意力（3 次慢速 HBM 往返）：                                                      │
+│   Q, K (HBM) ──► 载入 SRAM ──► S = Q @ K.T ──► 将 S [T x T] 写入慢速 HBM               │
+│   S (HBM)    ──► 重新载入 SRAM ──► P = softmax(S) ──► 将 P [T x T] 写入慢速 HBM        │
+│   P, V (HBM) ──► 重新载入 SRAM ──► O = P @ V ──────► 将 O [T x d] 写入 HBM             │
+│   慢速 HBM 总访存量: O(T^2 + T * d) 字节                                               │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ FLASHATTENTION（1 次 HBM 流式遍历，SRAM 分块切片与在线 Softmax）：                    │
+│   仅载入微小切片 Q_i [Br x d] 到高速 SRAM                                              │
+│   循环遍历切片 K_j, V_j [Bc x d]：                                                     │
+│     在 SRAM 内部即时计算局部 S_ij = Q_i @ K_j.T                                        │
+│     在线动态更新归一化标量 (m, d)，即时修正并累加 SRAM 中的局部输出 O_i                │
+│   直接将最终结果 O_i 写回 HBM（绝对不在 HBM 中落地任何 S 或 P 矩阵！）                 │
+│   慢速 HBM 总访存量: O(T^2 * d^2 / M_SRAM) 字节（带来 2x 至 4x 实际墙钟加速！）        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>图 23.1:</strong> 标准注意力反复将庞大的 T x T 矩阵写回慢速片外 HBM；FlashAttention 利用 SRAM 分块与在线 Softmax 在片上高速完成全部注意力运算。</figcaption>
+</figure>
+
+<h3>1. 经典 Softmax 的全局依赖瓶颈</h3>
+<p>对于一行未归一化的注意力打分向量 $\mathbf{s} = [s_1, \dots, s_T] \in \mathbb{R}^{1 \times T}$，传统的数值稳定 Softmax 必须经历两轮全局扫描：
+1. 寻找全局最大值：$m = \max_{j=1}^T s_j$
+2. 计算全局分母和：$d = \sum_{j=1}^T e^{s_j - m}$
+3. 归一化输出概率：$p_j = \frac{e^{s_j - m}}{d}$</p>
+<p>这一公式要求<strong>必须在显存中同时保留整行所有 $T$ 个打分</strong>，否则根本算不出全局分母 $d$。</p>
+<hr />
+<h3>2. 在线 Softmax（Online Softmax）递推公式</h3>
+<p>Milakov 与 Gimelshtein（2018）证明：Softmax 可以跨任意分块流式增量计算，且数学上绝对精确。</p>
+<p>设打分序列被切分为前后相邻的两个小数据块：$\mathbf{s}^{(1)}$ 与 $\mathbf{s}^{(2)}$。
+假设我们已经处理完第 1 块，在片上 SRAM 中暂存了局部统计量：</p>
+<ul>
+<li>局部最大值：$m^{(1)} = \max_j s_j^{(1)}$</li>
+<li>局部指数和：$d^{(1)} = \sum_j e^{s_j^{(1)} - m^{(1)}}$</li>
+</ul>
+<p>当第 2 块带着自身的局部统计量 $(m^{(2)}, d^{(2)})$ 到达时，全局统计量 $(m^{\text{new}}, d^{\text{new}})$ 可通过如下恒等式瞬间完成流式合并：</p>
+
+
+$$
+m^{\text{new}} = \max\left(m^{(1)}, \; m^{(2)}\right)
+$$
+
+
+
+
+$$
+d^{\text{new}} = d^{(1)} \cdot e^{m^{(1)} - m^{\text{new}}} + d^{(2)} \cdot e^{m^{(2)} - m^{\text{new}}}
+$$
+
+
+<p>注意其中的缩放修正项 $e^{m^{(1)} - m^{\text{new}}}$：由于找到了更大的新最大值，旧的指数和只需乘上一个常数比例因子，就能无损校正为新基准下的和，<strong>完全不需要重新读取第 1 块的任何原始打分</strong>！</p>
+<hr />
+<h3>3. FlashAttention 输出向量的在线重缩放公式</h3>
+<p>在累加注意力输出 $\mathbf{O} = \mathbf{P} \mathbf{V}$ 时：</p>
+<p>设 $\mathbf{o}^{(1)}$ 为第 1 块累加出的未归一化局部输出向量。当第 2 块（$K_2, V_2$）在 SRAM 中计算完毕后，全新的累加向量 $\mathbf{o}^{\text{new}}$ 更新为：</p>
+
+
+$$
+\mathbf{o}^{\text{new}} = \mathbf{o}^{(1)} \left(\frac{d^{(1)} e^{m^{(1)} - m^{\text{new}}}}{d^{\text{new}}}\right) + \left(\frac{e^{-m^{\text{new}}}}{d^{\text{new}}}\right) \left(e^{\mathbf{S}^{(2)}} \mathbf{V}^{(2)}\right)
+$$
+
+
+<p>通过在 SRAM 中仅仅维护两个微小的标量统计量 $(m, d)$ 以及当前累加的输出向量 $\mathbf{o} \in \mathbb{R}^{1 \times d_{\text{head}}}$：</p>
+<ul>
+<li>庞大的 $T \times T$ 矩阵<strong>从始至终从未在慢速 HBM 显存中存在过</strong>。</li>
+<li>反向传播与服务期的中间显存占用从 $O(T^2)$ 骤降至 $O(T)$。</li>
+<li>慢速显存访存量削减了数倍，在物理上带来了 <strong>2 到 4 倍的端到端真实推理加速</strong>。</li>
+</ul>
+<hr />
+<h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
+<dl>
+  <dt><time datetime="2018 年">2018 年</time> &mdash; <strong>在线 Softmax 算法</strong>（<cite>Maxim Milakov &amp; Natalia Gimelshtein，NVIDIA</cite>）</dt>
+  <dd>首次推导出无需物化全部中间指数即可单趟（Single-pass）完成 Softmax 计算的数学递推公式。</dd>
+  <dt><time datetime="2022 年">2022 年</time> &mdash; <strong>FlashAttention 震撼问世</strong>（<cite>Tri Dao 等，斯坦福大学</cite>）</dt>
+  <dd>Tri Dao 及其合作者开创性地将“IO 访存复杂度”（IO-Awareness）引入深度学习算子设计。通过 SRAM 分块切片技术与在线 Softmax 融合，彻底粉碎了长序列注意力机制的二次方显存与带宽屏障。</dd>
+  <dt><time datetime="2023–2024 年">2023–2024 年</time> &mdash; <strong>FlashAttention-2 与 FlashAttention-3</strong>（<cite>Tri Dao 团队</cite>）</dt>
+  <dd>通过重构外层循环提升 Warp 核心占空比（FA-2），并深度利用 NVIDIA Hopper H100 架构的异步传输与 FP8 张量核心指令（FA-3），将 GPU 真实浮点利用率推升到了峰值的 75%。</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">步骤 5：手算极简数值示例</h2>
+<p>我们用一个包含 4 个打分的序列，切分成两个大小为 2 的小块，手算验证在线 Softmax 与经典全局 Softmax 的数值精确等价性。</p>
+<p>设原始打分向量为：</p>
+
+
+$$
+\mathbf{s} = [s_1, s_2, s_3, s_4] = [2.0, \; 4.0, \; 1.0, \; 5.0]
+$$
+
+
+<hr />
+<h3>方法 A：传统两趟全局 Softmax 计算</h3>
+<ol>
+<li>全局最大值：$m = \max(2, 4, 1, 5) = 5.0$</li>
+<li>减去最大值：$[2-5, 4-5, 1-5, 5-5] = [-3, -1, -4, 0]$</li>
+<li>计算指数项：</li>
+</ol>
+
+
+$$
+e^{-3} \approx 0.0498, \quad e^{-1} \approx 0.3679, \quad e^{-4} \approx 0.0183, \quad e^0 = 1.0000
+$$
+
+
+<ol start="4">
+<li>计算全局分母和：</li>
+</ol>
+
+
+$$
+d = 0.0498 + 0.3679 + 0.0183 + 1.0000 = 1.4360
+$$
+
+
+<ol start="5">
+<li>归一化最终概率：</li>
+</ol>
+
+
+$$
+\mathbf{p} = \left[\frac{0.0498}{1.4360}, \frac{0.3679}{1.4360}, \frac{0.0183}{1.4360}, \frac{1.0000}{1.4360}\right] \approx [0.0347, \; 0.2562, \; 0.0127, \; 0.6964]
+$$
+
+
+<hr />
+<h3>方法 B：FlashAttention 在线分块 Softmax（块大小 = 2）</h3>
+<h4>第 1 块：$\mathbf{s}^{(1)} = [2.0, \; 4.0]$</h4>
+<ol>
+<li>局部最大值：$m^{(1)} = \max(2, 4) = 4.0$</li>
+<li>局部指数和：</li>
+</ol>
+
+
+$$
+d^{(1)} = e^{2 - 4} + e^{4 - 4} = e^{-2} + e^0 \approx 0.1353 + 1.0000 = 1.1353
+$$
+
+
+<hr />
+<h4>第 2 块：$\mathbf{s}^{(2)} = [1.0, \; 5.0]$</h4>
+<ol>
+<li>局部最大值：$m^{(2)} = \max(1, 5) = 5.0$</li>
+<li>局部指数和：</li>
+</ol>
+
+
+$$
+d^{(2)} = e^{1 - 5} + e^{5 - 5} = e^{-4} + e^0 \approx 0.0183 + 1.0000 = 1.0183
+$$
+
+
+<hr />
+<h4>在线合并步骤（Online Merge）</h4>
+<p>在完全不重新读取第 1 块的前提下，直接计算全局新统计量 $(m^{\text{new}}, d^{\text{new}})$：</p>
+<ol>
+<li>全局新最大值：</li>
+</ol>
+
+
+$$
+m^{\text{new}} = \max(m^{(1)}, m^{(2)}) = \max(4.0, 5.0) = 5.0
+$$
+
+
+<ol start="2">
+<li>全局新分母和：</li>
+</ol>
+
+
+$$
+d^{\text{new}} = d^{(1)} \cdot e^{m^{(1)} - m^{\text{new}}} + d^{(2)} \cdot e^{m^{(2)} - m^{\text{new}}}
+$$
+
+
+
+
+$$
+d^{\text{new}} = 1.1353 \cdot e^{4.0 - 5.0} + 1.0183 \cdot e^{5.0 - 5.0}
+$$
+
+
+
+
+$$
+d^{\text{new}} = 1.1353 \cdot e^{-1} + 1.0183 \cdot 1.0 = (1.1353 \times 0.36788) + 1.0183
+$$
+
+
+
+
+$$
+d^{\text{new}} = 0.4177 + 1.0183 = 1.4360
+$$
+
+
+<p>合并后的分母和 $d^{\text{new}} = 1.4360$ 与方法 A 的全局计算结果<strong>在小数点后 4 位上完全精确一致</strong>！</p>
+<hr />
+<h2 id="step-6">步骤 6：核心精髓总结</h2>
+<fieldset>
+<legend><strong>核心教学要点</strong></legend>
+<p><strong>FlashAttention</strong> 向我们揭示了一个颠覆性的系统真理：现代 GPU 深度学习算子的速度瓶颈早已不是浮点计算次数（FLOPs），而是数据在慢速显存（HBM）与高速缓存（SRAM）之间的 <strong>IO 访存复杂度</strong>。</p>
+<p>通过将 Softmax 重构为流式在线递推公式并在 SRAM 中分块计算，FlashAttention 在数学无损的前提下彻底消除了 $O(T^2)$ 的中间显存读写，解锁了 2 至 4 倍的端到端真实性能飞跃。</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../22-paged-attention/index.zh.html">&larr; 第 22 章：分页注意力与虚拟显存（PagedAttention 与零碎片革命）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../24-flash-decoding/index.zh.html">第 24 章：解码并行化（FlashDecoding 与 Split-K 注意力切分） &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

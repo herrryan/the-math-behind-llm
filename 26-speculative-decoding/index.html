@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 26: Breaking the Sequential Barrier (Speculative Decoding & Verification Math) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../25-continuous-batching/index.html">&larr; Chapter 25: Cellular Scheduling (Continuous Batching & Chunked Prefill)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../27-quantization/index.html">Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, & INT4) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 26: Breaking the Sequential Barrier (Speculative Decoding &amp; Verification Math)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>Step 1: 3-Year-Old Intuition</strong></legend>
+<p>Imagine a brilliant, world-famous professor and an energetic, fast-talking young apprentice.</p>
+<p>The professor (<strong>Target Model - 70B</strong>) is a genius, but is very old and walks very slowly. Every single word the professor says takes a full minute of deep contemplation.</p>
+<p>The apprentice (<strong>Draft Model - 1B</strong>) is not quite as wise, but speaks at 100 miles per hour. In just 1 second, the apprentice blurts out 4 quick guesses:
+<em>"The... cat... sat... on..."</em></p>
+<p>Now, instead of thinking about one word at a time, the professor takes one single slow breath, looks at all 4 guesses together in parallel, and checks them:</p>
+<ul>
+<li>Word 1 (<em>"The"</em>): <em>"Yes, I agree."</em></li>
+<li>Word 2 (<em>"cat"</em>): <em>"Yes, I agree."</em></li>
+<li>Word 3 (<em>"sat"</em>): <em>"Yes, I agree."</em></li>
+<li>Word 4 (<em>"on"</em>): <em>"Yes, I agree! And I will add the next word: 'the'."</em></li>
+</ul>
+<p>In that one single minute where the professor normally produces only 1 word, the team just produced <strong>5 verified words</strong>!</p>
+<p>And here is the magic trick: If the apprentice makes a mistake, the professor catches it, crosses it out, and writes the correct word. The final published essay is <strong>100% mathematically indistinguishable from an essay written by the genius professor working alone</strong>.</p>
+</fieldset>
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>How do we convert this apprentice-professor partnership into parallel tensor verification, and what exact probability formula guarantees that accepting and rejecting speculative tokens produces the <strong>exact same probability distribution</strong> as the massive target model?</p>
+<p>Autoregressive generation is strictly sequential by definition:</p>
+
+
+$$
+x_t \sim P(X_t \mid x_1, \dots, x_{t-1})
+$$
+
+
+<p>You cannot evaluate step $t+1$ until token $x_t$ is chosen. This sequential dependency is why decode is bounded by memory bandwidth.</p>
+<p>However, <strong>verification is completely parallel</strong>!
+If a small, cheap draft model speculatively drafts $\gamma$ tokens ahead:</p>
+
+
+$$
+\tilde{x}_1, \tilde{x}_2, \dots, \tilde{x}_\gamma
+$$
+
+
+<p>the large target model can ingest all $\gamma$ tokens in a single parallel <strong>Prefill-style forward pass</strong>!</p>
+<p>The bridging question is:</p>
+
+
+$$
+\text{How do we formulate an acceptance/rejection rule such that after filtering the draft tokens, the sampled sequence has the exact probability distribution } p(x) \text{ of the target model with zero quality degradation?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        SPECULATIVE DECODING VERIFICATION PIPELINE                      │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ Draft Model (1B, Fast):                                                                │
+│   Autoregressively generates γ = 4 draft tokens: [ x_1, x_2, x_3, x_4 ]                │
+│   Draft probabilities: q(x_1), q(x_2), q(x_3), q(x_4)                                  │
+│                                                                                        │
+│ Target Model (70B, Slow &amp; Powerful):                                                  │
+│   Runs 1 single parallel forward pass over all 4 tokens simultaneously (Prefill-style) │
+│   Target probabilities: p(x_1), p(x_2), p(x_3), p(x_4)                                  │
+│                                                                                        │
+│ Speculative Rejection Sampler:                                                         │
+│   Token 1: Accept with prob min(1, p(x_1)/q(x_1)) ──► ACCEPTED!                        │
+│   Token 2: Accept with prob min(1, p(x_2)/q(x_2)) ──► ACCEPTED!                        │
+│   Token 3: Accept with prob min(1, p(x_3)/q(x_3)) ──► REJECTED!                        │
+│            ──► Sample correction token x_3* from max(0, p - q)                         │
+│            ──► Discard remaining draft token x_4                                       │
+│ RESULT: 3 tokens accepted/generated in the time of 1 target forward pass!              │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 26.1:</strong> The Speculative Decoding pipeline. A small draft model speculates γ tokens, which the large target model evaluates in parallel. Rejected tokens are corrected via residual sampling.</figcaption>
+</figure>
+
+<h3>1. The Speculative Acceptance Criterion</h3>
+<p>Let:</p>
+<ul>
+<li>$M_p$: The large target model with output distribution $p(x) = P_{M_p}(x \mid x_{\lt t})$.</li>
+<li>$M_q$: The small draft model with output distribution $q(x) = P_{M_q}(x \mid x_{\lt t})$.</li>
+</ul>
+<p>For a speculative candidate token $x \sim q(x)$, draw a uniform random number $u \sim U(0, 1)$.
+The token is <strong>accepted</strong> if:</p>
+
+
+$$
+u \le \min\left(1, \; \frac{p(x)}{q(x)}\right)
+$$
+
+
+<h3>2. The Residual Recovery Distribution</h3>
+<p>If candidate token $x$ is rejected at index $i$, all subsequent draft tokens $x_{i+1}, \dots, x_\gamma$ are discarded.
+We do not waste the forward pass! We sample a replacement token $x^*$ directly from the normalized residual distribution:</p>
+
+
+$$
+p'(x) = \frac{\max\left(0, \; p(x) - q(x)\right)}{\sum_{x'} \max\left(0, \; p(x') - q(x')\right)}
+$$
+
+
+<hr />
+<h3>3. Mathematical Proof of Exact Lossless Distribution</h3>
+<p>We now prove that the probability of generating token $x$ under this speculative rejection protocol is <strong>identically equal to $p(x)$</strong>.</p>
+<p>The output token $X$ is produced either by being drafted and accepted, or by being sampled from $p'(x)$ upon rejection:</p>
+
+
+$$
+P(X = x) = P(\text{Accepted } x) + P(\text{Rejected}) \cdot p'(x)
+$$
+
+
+<h4>Term 1: Acceptance Probability</h4>
+
+
+$$
+P(\text{Accepted } x) = q(x) \cdot \min\left(1, \; \frac{p(x)}{q(x)}\right) = \min\left(q(x), \; p(x)\right)
+$$
+
+
+<h4>Term 2: Rejection Probability</h4>
+<p>The probability of rejecting the draft token is:</p>
+
+
+$$
+P(\text{Rejected}) = 1 - \sum_{x'} \min\left(q(x'), \; p(x')\right) = \sum_{x'} \left(p(x') - \min(q(x'), p(x'))\right)
+$$
+
+
+<p>Using the identity $a - \min(b, a) = \max(0, a - b)$:</p>
+
+
+$$
+P(\text{Rejected}) = \sum_{x'} \max\left(0, \; p(x') - q(x')\right)
+$$
+
+
+<h4>Term 3: Combining the Terms</h4>
+<p>Notice that the denominator of $p'(x)$ cancels perfectly with $P(\text{Rejected})$:</p>
+
+
+$$
+P(\text{Rejected}) \cdot p'(x) = \left(\sum_{x'} \max(0, p(x') - q(x'))\right) \cdot \frac{\max(0, p(x) - q(x))}{\sum_{x'} \max(0, p(x') - q(x'))} = \max\left(0, \; p(x) - q(x)\right)
+$$
+
+
+<p>Adding Term 1 and Term 2:</p>
+
+
+$$
+P(X = x) = \min\left(q(x), \; p(x)\right) + \max\left(0, \; p(x) - q(x)\right)
+$$
+
+
+<p>Using the algebraic identity $\min(a, b) + \max(0, b - a) = b$:</p>
+
+
+$$
+P(X = x) = p(x) \quad \blacksquare
+$$
+
+
+<p>The mathematical output distribution of speculative decoding is <strong>strictly identical to native sampling from the target model</strong>!</p>
+<hr />
+<h3>4. Expected Tokens and Speedup Formulation</h3>
+<p>Let $\beta$ denote the <dfn id="def-acceptance">Expected Acceptance Rate</dfn>:</p>
+
+
+$$
+\beta = \mathbb{E}_{x \sim q}\left[\min\left(1, \; \frac{p(x)}{q(x)}\right)\right] = 1 - \frac{1}{2} \sum_{x} |p(x) - q(x)| = 1 - D_{\text{TV}}(p, q)
+$$
+
+
+<p>where $D_{\text{TV}}(p, q)$ is the Total Variation Distance between the draft and target models.</p>
+<p>If the draft model proposes $\gamma$ tokens, the expected number of generated tokens per cycle $\mathbb{E}[\tau]$ is:</p>
+
+
+$$
+\mathbb{E}[\tau] = \frac{1 - \beta^{\gamma + 1}}{1 - \beta}
+$$
+
+
+<p>Let $t_q$ be the execution time of one draft forward pass, and $t_p$ be the time of one target forward pass. The theoretical speedup $S$ is:</p>
+
+
+$$
+S = \frac{\mathbb{E}[\tau]}{\frac{t_q}{t_p} \cdot \gamma + 1}
+$$
+
+
+<p>When $\beta \approx 0.8$ and $\gamma = 5$ with a small draft model ($t_q / t_p \approx 0.05$):</p>
+
+
+$$
+\mathbb{E}[\tau] \approx 3.7 \text{ tokens}, \quad S = \frac{3.7}{(0.05 \times 5) + 1} = \frac{3.7}{1.25} \approx \mathbf{2.96\times \text{ Wall-Clock Speedup!}}
+$$
+
+
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="2023">2023</time> &mdash; <strong>Speculative Decoding</strong> (<cite>Yaniv Leviathan, Matan Kalman, Yossi Matias, Google Research, ICML 2023</cite>)</dt>
+  <dd>Introduced speculative sampling with rigorous proof of lossless distribution preservation, demonstrating 2x-3x speedups on T5 and PaLM.</dd>
+  <dt><time datetime="2023">2023</time> &mdash; <strong>Speculative Sampling</strong> (<cite>Charlie Chen et al., DeepMind</cite>)</dt>
+  <dd>Independently developed speculative sampling with identical mathematical proofs for Chinchilla 70B.</dd>
+  <dt><time datetime="2024">2024</time> &mdash; <strong>Medusa &amp; Eagle: Draft-Model-Free Speculation</strong> (<cite>Cai et al., Together AI</cite>)</dt>
+  <dd>Eliminated the need for a separate draft model by training lightweight multi-head prediction layers directly on top of the target model's final hidden states.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us trace exact numbers on a tiny 3-word vocabulary: $V = \{\text{"apple"}, \text{"banana"}, \text{"cherry"}\}$.</p>
+<h3>Model Probabilities</h3>
+<ul>
+<li>Draft Model $q$:</li>
+</ul>
+
+
+$$
+q(\text{"apple"}) = 0.60, \quad q(\text{"banana"}) = 0.30, \quad q(\text{"cherry"}) = 0.10
+$$
+
+
+<ul>
+<li>Target Model $p$:</li>
+</ul>
+
+
+$$
+p(\text{"apple"}) = 0.40, \quad p(\text{"banana"}) = 0.50, \quad p(\text{"cherry"}) = 0.10
+$$
+
+
+<hr />
+<h3>Step 1: Draft Candidate Selection</h3>
+<p>Suppose the draft model samples candidate: $x = \text{"apple"}$.</p>
+<p>We look up the probabilities:</p>
+
+
+$$
+q(\text{"apple"}) = 0.60, \quad p(\text{"apple"}) = 0.40
+$$
+
+
+<h3>Step 2: Compute Acceptance Probability</h3>
+
+
+$$
+\alpha = \min\left(1, \; \frac{p(\text{"apple"})}{q(\text{"apple"})}\right) = \min\left(1, \; \frac{0.40}{0.60}\right) = \frac{2}{3} \approx 0.667
+$$
+
+
+<ul>
+<li>We roll a random number $u \in [0, 1]$.</li>
+<li>If $u \le 0.667$: <strong>Accepted!</strong> We output <code>"apple"</code>.</li>
+<li>If $u > 0.667$: <strong>Rejected!</strong> We proceed to residual recovery.</li>
+</ul>
+<hr />
+<h3>Step 3: Compute the Residual Distribution $p'(x)$</h3>
+<p>Suppose $u = 0.85$ (Rejected!).
+We compute $\max(0, p(x) - q(x))$ for all words in vocabulary:</p>
+<ul>
+<li><code>"apple"</code>: $\max(0, 0.40 - 0.60) = \max(0, -0.20) = 0$</li>
+<li><code>"banana"</code>: $\max(0, 0.50 - 0.30) = +0.20$</li>
+<li><code>"cherry"</code>: $\max(0, 0.10 - 0.10) = 0$</li>
+</ul>
+
+
+$$
+\text{Sum} = 0 + 0.20 + 0 = 0.20
+$$
+
+
+<p>We normalize to create $p'(x)$:</p>
+<ul>
+<li>$p'(\text{"apple"}) = \frac{0}{0.20} = 0$</li>
+<li>$p'(\text{"banana"}) = \frac{0.20}{0.20} = 1.00$</li>
+<li>$p'(\text{"cherry"}) = \frac{0}{0.20} = 0$</li>
+</ul>
+<p>Upon rejecting <code>"apple"</code>, the model is mathematically forced to output <code>"banana"</code> with 100% certainty!</p>
+<hr />
+<h3>Step 4: Verification of Total Marginal Probability</h3>
+<p>Let us calculate the net probability of generating <code>"apple"</code>:</p>
+
+
+$$
+P(X = \text{"apple"}) = q(\text{"apple"}) \cdot \alpha + P(\text{Reject}) \cdot p'(\text{"apple"}) = 0.60 \times \frac{0.40}{0.60} + 0 = 0.40 = p(\text{"apple"})!
+$$
+
+
+<p>And for <code>"banana"</code>:</p>
+
+
+$$
+P(X = \text{"banana"}) = q(\text{"banana"}) \cdot \alpha_{\text{banana}} + P(\text{Reject}) \cdot p'(\text{"banana"}) = 0.30 \times 1.0 + (0.20 \times 1.00) = 0.50 = p(\text{"banana"})!
+$$
+
+
+<p>The final distribution matches the target model with absolute mathematical perfection!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p><strong>Speculative Decoding</strong> breaks the strict sequential curse of autoregressive decoding by exploiting a fundamental asymmetry in computation: <strong>Drafting is sequential, but Verification is completely parallel</strong>.</p>
+<p>By pairing a fast draft model with a mathematically exact residual acceptance sampler, modern inference engines generate 2 to 4 tokens per target forward pass with zero loss in model accuracy.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../25-continuous-batching/index.html">&larr; Chapter 25: Cellular Scheduling (Continuous Batching & Chunked Prefill)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../27-quantization/index.html">Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, & INT4) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

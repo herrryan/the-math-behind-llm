@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 26 章：打破串行枷锁（推测解码与验证数学） - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../25-continuous-batching/index.zh.html">&larr; 第 25 章：细胞级调度（连续批处理与分块预填充数学）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../27-quantization/index.zh.html">第 27 章：数值压缩的艺术（量化技术：AWQ、SmoothQuant、FP8 与 INT4 数学） &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>第 26 章：打破串行枷锁（推测解码与验证数学）</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-2">2. 承前启后的关键过渡</a> &bull; 
+    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
+    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
+    <a href="#step-5">5. 手算极简数值示例</a> &bull; 
+    <a href="#step-6">6. 核心精髓总结</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>步骤 1：3 岁小孩直觉</strong></legend>
+<p>想象一位德高望重、学富五车的大学老教授，身边带着一位嘴皮子极溜的年轻小助教。</p>
+<p>老教授（<strong>目标大模型 Target Model - 70B</strong>）学问极其渊博，但年事已高，走起路来极其缓慢。老教授每琢磨、吐出一个字，都需要闭目沉思整整 1 分钟。</p>
+<p>而小助教（<strong>草稿小模型 Draft Model - 1B</strong>）虽然学问不如教授深厚，但思维敏捷、语速飞快。在短短 1 秒钟内，小助教就像连珠炮一样连猜了 4 个词：
+<em>“从……前……有……座……”</em></p>
+<p>此时，老教授不再一个字一个字慢吞吞地想，而是深吸一口气，把小助教脱口而出的这 4 个词<strong>同时在脑海中扫视一眼</strong>：</p>
+<ul>
+<li>第 1 词（<em>“从”</em>）：<em>“对，我同意。”</em></li>
+<li>第 2 词（<em>“前”</em>）：<em>“对，我同意。”</em></li>
+<li>第 3 词（<em>“有”</em>）：<em>“对，我同意。”</em></li>
+<li>第 4 词（<em>“座”</em>）：<em>“对，我也同意！既然说到这里，我顺手再给你们加上第 5 个字：‘山’！”</em></li>
+</ul>
+<p>在老教授往常只能吐出 1 个字的这短短 1 分钟里，师徒二人一联手，竟然一口气吐出了 <strong>整整 5 个通过核验的优质词</strong>！</p>
+<p>最令人拍案叫绝的数学奇迹在这里：万一小助教猜错了，老教授会立刻叫停打叉，并当场改写出正确答案。整篇文章最终呈现出的用词用字，<strong>与老教授独自一人花几倍时间写出的文章在数学概率上 100% 毫无二致</strong>！没有任何一丝质量妥协！</p>
+</fieldset>
+<hr />
+<h2 id="step-2">步骤 2：承前启后的关键过渡</h2>
+<p>我们如何将老教授与小助教的“草稿-审核”机制，转化为 GPU 张量核心的并行前向验证，又该设计怎样的概率接收与拒绝判别式，才能从数学上严格证明：经过筛选后的输出概率分布与庞大的目标大模型完全等价、零精度损失？</p>
+<p>自回归语言生成的数学定义从本质上就是不可分割的串行马尔可夫链：</p>
+
+
+$$
+x_t \sim P(X_t \mid x_1, \dots, x_{t-1})
+$$
+
+
+<p>在第 $t$ 步的词元 $x_t$ 尚未敲定之前，你绝对无法启动第 $t+1$ 步的计算。这一严格的时序因果性，正是解码阶段被迫退化为低带宽利用率的罪魁祸首。</p>
+<p>然而，<strong>前向验证却天生拥有完全并行的能力</strong>！
+若让轻量级草稿小模型以极低显存代价一口气向前推测出 $\gamma$ 个候选词元：</p>
+
+
+$$
+\tilde{x}_1, \tilde{x}_2, \dots, \tilde{x}_\gamma
+$$
+
+
+<p>百亿甚至千亿级别的目标大模型就能通过单次类似 Prefill 的矩阵乘法，将这 $\gamma$ 个词元<strong>在同一个前向步内完全并行地全量验证</strong>！</p>
+<p>承前启后的核心过渡问题是：</p>
+
+
+$$
+\text{如何设计拒绝采样的数学判别准则，使得草稿词元被拒绝时不仅不浪费算力，而且最终整条序列的输出分布严格等价于目标模型 } p(x)\text{？}
+$$
+
+
+<hr />
+<h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        推测解码（SPECULATIVE DECODING）前向验证流                      │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 草稿小模型（1B 参数，极速轻量）：                                                      │
+│   串行自回归生成 γ = 4 个候选词元: [ x_1, x_2, x_3, x_4 ]                              │
+│   草稿概率分布: q(x_1), q(x_2), q(x_3), q(x_4)                                         │
+│                                                                                        │
+│ 目标大模型（70B 参数，高算力重载）：                                                   │
+│   单趟并行前向吞吐全部 4 个词元（Prefill 模式 GEMM，充分喂饱 Tensor Cores）           │
+│   目标真实概率分布: p(x_1), p(x_2), p(x_3), p(x_4)                                     │
+│                                                                                        │
+│ 推测拒绝采样器（Speculative Rejection Sampler）：                                      │
+│   词元 1: 以概率 min(1, p(x_1)/q(x_1)) 判定 ──► 接受（ACCEPTED）！                     │
+│   词元 2: 以概率 min(1, p(x_2)/q(x_2)) 判定 ──► 接受（ACCEPTED）！                     │
+│   词元 3: 命中拒绝阈值 ──► 拒绝（REJECTED）！                                          │
+│            ──► 从残差分布 max(0, p - q) 中直接采样修正词元 x_3*                        │
+│            ──► 丢弃后续候选词元 x_4                                                    │
+│ 最终战果：在目标模型单步前向的时间里，一口气产出 3 个严格保真的高品质词元！            │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>图 26.1:</strong> 推测解码执行管线。草稿模型先行推测，目标模型并行验证；利用残差采样校正拒绝词元，达成数学无损加速。</figcaption>
+</figure>
+
+<h3>1. 推测接收概率判据（Speculative Acceptance Criterion）</h3>
+<p>设：</p>
+<ul>
+<li>$M_p$ 为目标大模型，其自回归输出概率分布记为 $p(x) = P_{M_p}(x \mid x_{\lt t})$。</li>
+<li>$M_q$ 为草稿小模型，其自回归输出概率分布记为 $q(x) = P_{M_q}(x \mid x_{\lt t})$。</li>
+</ul>
+<p>对于草稿模型生成的某个候选词元 $x \sim q(x)$，系统从均匀分布抽样随机数 $u \sim U(0, 1)$。
+若满足如下不等式，则该候选词元被<strong>直接接受</strong>：</p>
+
+
+$$
+u \le \min\left(1, \; \frac{p(x)}{q(x)}\right)
+$$
+
+
+<h3>2. 残差分布补偿机制（The Residual Recovery Distribution）</h3>
+<p>若在位置 $i$ 处发生拒绝，后续所有投机词元全部作废。
+为了绝不浪费目标大模型当次的前向验证算力，系统立即从归一化的<strong>正残差分布</strong> $p'(x)$ 中直接无缝补抽一个替代词元 $x^*$：</p>
+
+
+$$
+p'(x) = \frac{\max\left(0, \; p(x) - q(x)\right)}{\sum_{x'} \max\left(0, \; p(x') - q(x')\right)}
+$$
+
+
+<hr />
+<h3>3. 数学严格证明：分布完全无损性</h3>
+<p>我们证明：该推测采样机制输出任意词元 $x$ 的综合边际概率，<strong>严格等于目标模型本身的原始概率 $p(x)$</strong>。</p>
+<p>最终词元 $X = x$ 只能来自两种互斥情形：被草稿模型提出并被接受，或者在前序拒绝后从残差分布 $p'(x)$ 中采得：</p>
+
+
+$$
+P(X = x) = P(\text{提出并被接受 } x) + P(\text{发生拒绝}) \cdot p'(x)
+$$
+
+
+<h4>第 1 项：被提出且接受的联合概率</h4>
+
+
+$$
+P(\text{提出并接受 } x) = q(x) \cdot \min\left(1, \; \frac{p(x)}{q(x)}\right) = \min\left(q(x), \; p(x)\right)
+$$
+
+
+<h4>第 2 项：发生拒绝的总概率</h4>
+<p>拒绝概率为接受总概率的补集：</p>
+
+
+$$
+P(\text{拒绝}) = 1 - \sum_{x'} \min\left(q(x'), \; p(x')\right) = \sum_{x'} \left(p(x') - \min(q(x'), p(x'))\right)
+$$
+
+
+<p>利用基础代数恒等式 $a - \min(b, a) = \max(0, a - b)$：</p>
+
+
+$$
+P(\text{拒绝}) = \sum_{x'} \max\left(0, \; p(x') - q(x')\right)
+$$
+
+
+<h4>第 3 项：两项合并化简</h4>
+<p>注意到 $P(\text{拒绝})$ 与残差分布 $p'(x)$ 的归一化分母发生<strong>绝妙相消</strong>：</p>
+
+
+$$
+P(\text{拒绝}) \cdot p'(x) = \left(\sum_{x'} \max(0, p(x') - q(x'))\right) \cdot \frac{\max(0, p(x) - q(x))}{\sum_{x'} \max(0, p(x') - q(x'))} = \max\left(0, \; p(x) - q(x)\right)
+$$
+
+
+<p>将第 1 项与第 2 项合并：</p>
+
+
+$$
+P(X = x) = \min\left(q(x), \; p(x)\right) + \max\left(0, \; p(x) - q(x)\right)
+$$
+
+
+<p>再次利用恒等式 $\min(a, b) + \max(0, b - a) = b$：</p>
+
+
+$$
+P(X = x) = p(x) \quad \blacksquare
+$$
+
+
+<p>推测解码在数学上与直接运行昂贵的目标大模型<strong>完全等价，没有任何一丝精度下降或幻觉增加</strong>！</p>
+<hr />
+<h3>4. 期望产出词元数与理论加速比</h3>
+<p>设 $\beta$ 为单个候选词元的 <dfn id="def-acceptance-zh">期望接受率</dfn>：</p>
+
+
+$$
+\beta = \mathbb{E}_{x \sim q}\left[\min\left(1, \; \frac{p(x)}{q(x)}\right)\right] = 1 - \frac{1}{2} \sum_{x} |p(x) - q(x)| = 1 - D_{\text{TV}}(p, q)
+$$
+
+
+<p>其中 $D_{\text{TV}}(p, q)$ 为草稿模型与目标模型之间的全变差距离（Total Variation Distance）。</p>
+<p>若每次投机 $\gamma$ 个词元，系统每个调度周期期望产出的词元数 $\mathbb{E}[\tau]$ 为几何级数之和：</p>
+
+
+$$
+\mathbb{E}[\tau] = \frac{1 - \beta^{\gamma + 1}}{1 - \beta}
+$$
+
+
+<p>设草稿模型单步耗时为 $t_q$，目标模型单步耗时为 $t_p$。端到端理论加速比 $S$ 为：</p>
+
+
+$$
+S = \frac{\mathbb{E}[\tau]}{\frac{t_q}{t_p} \cdot \gamma + 1}
+$$
+
+
+<p>当两模型分布高度契合（$\beta \approx 0.8$），设定推测步长 $\gamma = 5$，且小模型极其轻快（$t_q / t_p \approx 0.05$）时：</p>
+
+
+$$
+\mathbb{E}[\tau] \approx 3.7 \text{ 个词元}, \quad S = \frac{3.7}{(0.05 \times 5) + 1} = \frac{3.7}{1.25} \approx \mathbf{2.96\times \text{ 真实物理加速！}}
+$$
+
+
+<hr />
+<h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
+<dl>
+  <dt><time datetime="2023 年">2023 年</time> &mdash; <strong>推测解码理论奠基</strong>（<cite>Yaniv Leviathan 等，Google Research，ICML 2023</cite>）</dt>
+  <dd>Google 团队首次确立了推测解码的严格无损判据，证明了利用异构大小模型协同可以在不破坏生成概率的前提下实现 2 到 3 倍的物理加速。</dd>
+  <dt><time datetime="2023 年">2023 年</time> &mdash; <strong>推测采样独立发现</strong>（<cite>Charlie Chen 等，DeepMind</cite>）</dt>
+  <dd>DeepMind 团队几乎在同一时期独立提出了数学等价的 Speculative Sampling 体系，并在 70B 大模型上完成了系统级验证。</dd>
+  <dt><time datetime="2024 年">2024 年</time> &mdash; <strong>Medusa 与 Eagle：免草稿模型的自投机架构</strong>（<cite>Together AI 联合研究组</cite>）</dt>
+  <dd>为了省去额外维护独立小模型的显存与运维负担，开发出直接挂载在主模型顶部的多头并行预测树架构，使单体大模型自身即可完成多步投机解码。</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">步骤 5：手算极简数值示例</h2>
+<p>我们以一个仅有 3 个词元的极简词表 $V = \{\text{"apple"}, \text{"banana"}, \text{"cherry"}\}$，手算验证推测解码与残差采样的精确无损性。</p>
+<h3>初始概率分布</h3>
+<ul>
+<li>草稿小模型预测 $q$：</li>
+</ul>
+
+
+$$
+q(\text{"apple"}) = 0.60, \quad q(\text{"banana"}) = 0.30, \quad q(\text{"cherry"}) = 0.10
+$$
+
+
+<ul>
+<li>目标大模型预测 $p$：</li>
+</ul>
+
+
+$$
+p(\text{"apple"}) = 0.40, \quad p(\text{"banana"}) = 0.50, \quad p(\text{"cherry"}) = 0.10
+$$
+
+
+<hr />
+<h3>第 1 步：草稿提出候选词元</h3>
+<p>假设草稿模型根据概率抽样提出了候选词：$x = \text{"apple"}$。</p>
+<p>读取两者的打分：</p>
+
+
+$$
+q(\text{"apple"}) = 0.60, \quad p(\text{"apple"}) = 0.40
+$$
+
+
+<h3>第 2 步：计算接收概率</h3>
+
+
+$$
+\alpha = \min\left(1, \; \frac{p(\text{"apple"})}{q(\text{"apple"})}\right) = \min\left(1, \; \frac{0.40}{0.60}\right) = \frac{2}{3} \approx 0.667
+$$
+
+
+<ul>
+<li>掷一枚随机骰子 $u \in [0, 1]$。</li>
+<li>若 $u \le 0.667$：<strong>接受！</strong> 直接输出 <code>"apple"</code>。</li>
+<li>若 $u > 0.667$：<strong>拒绝！</strong> 进入残差修正分支。</li>
+</ul>
+<hr />
+<h3>第 3 步：计算残差补偿分布 $p'(x)$</h3>
+<p>设骰子点数 $u = 0.85$（命中拒绝！）。
+系统遍历词表中所有词，计算 $\max(0, p(x) - q(x))$：</p>
+<ul>
+<li><code>"apple"</code>：$\max(0, 0.40 - 0.60) = \max(0, -0.20) = 0$</li>
+<li><code>"banana"</code>：$\max(0, 0.50 - 0.30) = +0.20$</li>
+<li><code>"cherry"</code>：$\max(0, 0.10 - 0.10) = 0$</li>
+</ul>
+
+
+$$
+\text{有效残差和} = 0 + 0.20 + 0 = 0.20
+$$
+
+
+<p>归一化生成残差修正分布 $p'(x)$：</p>
+<ul>
+<li>$p'(\text{"apple"}) = \frac{0}{0.20} = 0$</li>
+<li>$p'(\text{"banana"}) = \frac{0.20}{0.20} = 1.00$</li>
+<li>$p'(\text{"cherry"}) = \frac{0}{0.20} = 0$</li>
+</ul>
+<p>一旦候选词 <code>"apple"</code> 被拒绝，系统在数学上<strong>以 100% 的绝对必然概率抽中并输出 <code>"banana"</code></strong>！</p>
+<hr />
+<h3>第 4 步：全概率守恒验证</h3>
+<p>让我们检验整个流程生成 <code>"apple"</code> 的总边际概率：</p>
+
+
+$$
+P(X = \text{"apple"}) = q(\text{"apple"}) \cdot \alpha + P(\text{拒绝}) \cdot p'(\text{"apple"}) = 0.60 \times \frac{0.40}{0.60} + 0 = 0.40 = p(\text{"apple"})！
+$$
+
+
+<p>再看生成 <code>"banana"</code> 的总边际概率：</p>
+
+
+$$
+P(X = \text{"banana"}) = q(\text{"banana"}) \cdot \alpha_{\text{banana}} + P(\text{拒绝}) \cdot p'(\text{"banana"}) = 0.30 \times 1.0 + (0.20 \times 1.00) = 0.50 = p(\text{"banana"})！
+$$
+
+
+<p>最终产出的整体概率分布与目标模型毫无二致，达到了百分之百的数学契合！</p>
+<hr />
+<h2 id="step-6">步骤 6：核心精髓总结</h2>
+<fieldset>
+<legend><strong>核心教学要点</strong></legend>
+<p><strong>推测解码（Speculative Decoding）</strong> 之所以能够打破自回归生成的串行诅咒，源于一个深刻的计算不对称原理：<strong>“猜测是串行的，但验证是完全并行的”</strong>。</p>
+<p>通过让轻快敏捷的小模型向前推测多个候选词，并由重量级大模型并行批处理验证，推测采样在数学上严格保证了概率分布的绝对无损，让大模型在单次前向时间内产出 2 至 4 个词元，撕开了自回归时延的硬核壁垒。</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../25-continuous-batching/index.zh.html">&larr; 第 25 章：细胞级调度（连续批处理与分块预填充数学）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../27-quantization/index.zh.html">第 27 章：数值压缩的艺术（量化技术：AWQ、SmoothQuant、FP8 与 INT4 数学） &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

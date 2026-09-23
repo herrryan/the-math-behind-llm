@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 23: The IO-Aware Speedup (FlashAttention & Online Softmax) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../22-paged-attention/index.html">&larr; Chapter 22: PagedAttention & Virtual Memory (vLLM & Zero Fragmentation)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../24-flash-decoding/index.html">Chapter 24: Decode Parallelism (FlashDecoding & Split-K Attention) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 23: The IO-Aware Speedup (FlashAttention &amp; Online Softmax)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset>
+<legend><strong>Step 1: 3-Year-Old Intuition</strong></legend>
+<p>Imagine you are a chef making a salad in a restaurant kitchen.</p>
+<p>You have a tiny wooden cutting board right in front of you (<strong>SRAM</strong>), and a massive cold-storage pantry down in the basement (<strong>HBM</strong>).</p>
+<p>In the traditional way of cooking (<strong>Standard Attention</strong>):
+1. You slice a carrot, walk all the way down the basement stairs, set it on a shelf, and walk back up.
+2. You slice a cucumber, walk down to the basement, set it on the shelf, and walk back up.
+3. Then you walk down to the basement, pour dressing over everything, and walk back up.
+4. Finally, you walk down to the basement, scoop the salad into a bowl, and bring it up to the dining table.
+You walked up and down the stairs 100 times! Your legs are burning, and 95% of your cooking time was wasted walking the stairs instead of chopping vegetables.</p>
+<p>Then, a master chef invents <strong>FlashAttention</strong>:
+<em>"Stop running to the basement! Bring a small basket of vegetables up to your cutting board once. Chop them, toss them in a small bowl right on your board, keep track of your dressing ratios in your head, and only walk to the dining room once when the salad is completely finished."</em></p>
+<p>FlashAttention does not change the recipe by a single grain of salt—it produces the exact same salad, but does it 4 times faster simply by never walking to the basement.</p>
+</fieldset>
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>How do we convert this physical kitchen metaphor into GPU memory hierarchy numbers, and how can we compute mathematical $\operatorname{softmax}$ over an entire sequence without knowing all the numbers in advance?</p>
+<p>In modern GPUs, memory is strictly hierarchical:
+1. <strong>On-Chip SRAM (Shared Memory &amp; Registers)</strong>: Extremely small (~50 MB on an NVIDIA H100), but blindingly fast (~19 TB/s bandwidth).
+2. <strong>Off-Chip HBM (High Bandwidth Memory / DRAM)</strong>: Giant capacity (80 GB to 192 GB), but much slower (~3.35 TB/s bandwidth).</p>
+<p>In standard attention, calculating $\mathbf{O} = \operatorname{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d}}\right)\mathbf{V}$ requires writing the intermediate $T \times T$ attention matrix $\mathbf{S}$ and probability matrix $\mathbf{P}$ to slow HBM and reading them back multiple times:</p>
+
+
+$$
+\text{HBM Read/Write Volume} = O(T^2) \text{ Numbers}
+$$
+
+
+<p>When sequence length $T = 8192$, a $T \times T$ matrix contains 67 million numbers per attention head. The GPU spends nearly all its time moving this matrix back and forth across the memory bus.</p>
+<p>The bridging question is:</p>
+
+
+$$
+\text{How can we compute the exact Softmax attention output block-by-block in tiny on-chip SRAM without ever materializing or writing the } T \times T \text{ matrix to HBM?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        STANDARD ATTENTION VS. FLASHATTENTION IO                        │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ STANDARD ATTENTION (3 HBM Roundtrips):                                                 │
+│   Q, K (HBM) ──► Load to SRAM ──► S = Q @ K.T ──► Write S [T x T] to HBM               │
+│   S (HBM)    ──► Load to SRAM ──► P = softmax(S) ──► Write P [T x T] to HBM            │
+│   P, V (HBM) ──► Load to SRAM ──► O = P @ V ────► Write O [T x d] to HBM               │
+│   TOTAL HBM TRAFFIC: O(T^2 + T * d) bytes                                              │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ FLASHATTENTION (1 HBM Pass with SRAM Tiling &amp; Online Softmax):                         │
+│   Load small block Q_i [Br x d] into SRAM                                              │
+│   For each block K_j, V_j [Bc x d]:                                                    │
+│     Compute S_ij = Q_i @ K_j.T locally in SRAM                                         │
+│     Update running Softmax scale (m, d) and incrementally accumulate O_i in SRAM       │
+│   Write final O_i directly to HBM (NEVER write S or P to HBM!)                         │
+│   TOTAL HBM TRAFFIC: O(T^2 * d^2 / M_SRAM) bytes (2x - 4x speedup!)                    │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 23.1:</strong> Standard Attention repeatedly writes intermediate T x T matrices to slow off-chip HBM. FlashAttention computes attention entirely within on-chip SRAM via block tiling.</figcaption>
+</figure>
+
+<h3>1. The Standard Softmax Bottleneck</h3>
+<p>For a raw attention score row $\mathbf{s} = [s_1, \dots, s_T] \in \mathbb{R}^{1 \times T}$, standard softmax requires two global passes:
+1. Find global maximum: $m = \max_{j=1}^T s_j$
+2. Compute global denominator: $d = \sum_{j=1}^T e^{s_j - m}$
+3. Normalize: $p_j = \frac{e^{s_j - m}}{d}$</p>
+<p>This requires holding <strong>all $T$ scores in memory simultaneously</strong> before any output can be computed.</p>
+<hr />
+<h3>2. The Online Softmax Recurrence Relations</h3>
+<p>Milakov &amp; Gimelshtein (2018) proved that Softmax can be computed incrementally across arbitrary streaming blocks.</p>
+<p>Let a sequence of scores be split into two consecutive blocks: $\mathbf{s}^{(1)}$ and $\mathbf{s}^{(2)}$.
+Suppose we have already processed block 1 and stored its local statistics:</p>
+<ul>
+<li>Local max: $m^{(1)} = \max_j s_j^{(1)}$</li>
+<li>Local denominator: $d^{(1)} = \sum_j e^{s_j^{(1)} - m^{(1)}}$</li>
+</ul>
+<p>When block 2 arrives with its own local statistics $(m^{(2)}, d^{(2)})$, the unified global statistics $(m^{\text{new}}, d^{\text{new}})$ are updated via exact mathematical identities:</p>
+
+
+$$
+m^{\text{new}} = \max\left(m^{(1)}, \; m^{(2)}\right)
+$$
+
+
+
+
+$$
+d^{\text{new}} = d^{(1)} \cdot e^{m^{(1)} - m^{\text{new}}} + d^{(2)} \cdot e^{m^{(2)} - m^{\text{new}}}
+$$
+
+
+<p>Notice the correction factor $e^{m^{(1)} - m^{\text{new}}}$: it rescales the previous running sum to the newly discovered maximum without re-reading a single number from block 1!</p>
+<hr />
+<h3>3. FlashAttention Output Rescaling Equation</h3>
+<p>When accumulating the attention output $\mathbf{O} = \mathbf{P} \mathbf{V}$:</p>
+<p>Let $\mathbf{o}^{(1)}$ be the accumulated unnormalized output vector from block 1. When block 2 ($K_2, V_2$) is processed in SRAM, the new accumulated output $\mathbf{o}^{\text{new}}$ is updated as:</p>
+
+
+$$
+\mathbf{o}^{\text{new}} = \mathbf{o}^{(1)} \left(\frac{d^{(1)} e^{m^{(1)} - m^{\text{new}}}}{d^{\text{new}}}\right) + \left(\frac{e^{-m^{\text{new}}}}{d^{\text{new}}}\right) \left(e^{\mathbf{S}^{(2)}} \mathbf{V}^{(2)}\right)
+$$
+
+
+<p>By maintaining only the scalar running statistics $(m, d)$ and the accumulated output vector $\mathbf{o} \in \mathbb{R}^{1 \times d_{\text{head}}}$ in SRAM:</p>
+<ul>
+<li>The $T \times T$ attention matrix is <strong>never stored in HBM</strong>.</li>
+<li>Memory footprint drops from $O(T^2)$ to $O(T)$ in backward/serving passes.</li>
+<li>High Bandwidth Memory access drops by a factor of $\frac{M_{\text{SRAM}}}{4 d}$, delivering a <strong>$2\times$ to $4\times$ wall-clock speedup</strong>.</li>
+</ul>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="2018">2018</time> &mdash; <strong>Online Normalizer Calculation for Softmax</strong> (<cite>Maxim Milakov &amp; Natalia Gimelshtein, NVIDIA</cite>)</dt>
+  <dd>Demonstrated that Softmax normalization could be calculated in a single memory pass without storing intermediate exponentiations.</dd>
+  <dt><time datetime="2022">2022</time> &mdash; <strong>FlashAttention</strong> (<cite>Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, Christopher Ré, Stanford University</cite>)</dt>
+  <dd>Introduced IO-aware algorithm design to Transformers. By tiling query, key, and value matrices to fit within SRAM and recomputing activations in backward passes, FlashAttention eliminated the attention memory bottleneck.</dd>
+  <dt><time datetime="2023">2023–2024</time> &mdash; <strong>FlashAttention-2 &amp; FlashAttention-3</strong> (<cite>Tri Dao et al.</cite>)</dt>
+  <dd>Refactored loop orders to maximize Tensor Core warp occupancy (FA-2) and exploited FP8 Tensor Core asynchrony on NVIDIA Hopper H100 GPUs (FA-3), achieving up to 75% of theoretical peak GPU FLOPs.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us verify the exact numerical equivalence of Online Softmax on a 4-number sequence split into two blocks of size 2.</p>
+<p>Let raw attention scores be:</p>
+
+
+$$
+\mathbf{s} = [s_1, s_2, s_3, s_4] = [2.0, \; 4.0, \; 1.0, \; 5.0]
+$$
+
+
+<hr />
+<h3>Method A: Standard Two-Pass Global Softmax</h3>
+<ol>
+<li>Global Max: $m = \max(2, 4, 1, 5) = 5.0$</li>
+<li>Shifted values: $[2-5, 4-5, 1-5, 5-5] = [-3, -1, -4, 0]$</li>
+<li>Exponentials:</li>
+</ol>
+
+
+$$
+e^{-3} \approx 0.0498, \quad e^{-1} \approx 0.3679, \quad e^{-4} \approx 0.0183, \quad e^0 = 1.0000
+$$
+
+
+<ol start="4">
+<li>Global Sum:</li>
+</ol>
+
+
+$$
+d = 0.0498 + 0.3679 + 0.0183 + 1.0000 = 1.4360
+$$
+
+
+<ol start="5">
+<li>Normalized Probabilities:</li>
+</ol>
+
+
+$$
+\mathbf{p} = \left[\frac{0.0498}{1.4360}, \frac{0.3679}{1.4360}, \frac{0.0183}{1.4360}, \frac{1.0000}{1.4360}\right] \approx [0.0347, \; 0.2562, \; 0.0127, \; 0.6964]
+$$
+
+
+<hr />
+<h3>Method B: FlashAttention Online Softmax (Block Size = 2)</h3>
+<h4>Block 1: $\mathbf{s}^{(1)} = [2.0, \; 4.0]$</h4>
+<ol>
+<li>Local max: $m^{(1)} = \max(2, 4) = 4.0$</li>
+<li>Local sum:</li>
+</ol>
+
+
+$$
+d^{(1)} = e^{2 - 4} + e^{4 - 4} = e^{-2} + e^0 \approx 0.1353 + 1.0000 = 1.1353
+$$
+
+
+<hr />
+<h4>Block 2: $\mathbf{s}^{(2)} = [1.0, \; 5.0]$</h4>
+<ol>
+<li>Local max: $m^{(2)} = \max(1, 5) = 5.0$</li>
+<li>Local sum:</li>
+</ol>
+
+
+$$
+d^{(2)} = e^{1 - 5} + e^{5 - 5} = e^{-4} + e^0 \approx 0.0183 + 1.0000 = 1.0183
+$$
+
+
+<hr />
+<h4>The Online Merge Step</h4>
+<p>Now update global statistics $(m^{\text{new}}, d^{\text{new}})$ without re-reading Block 1:</p>
+<ol>
+<li>New Global Max:</li>
+</ol>
+
+
+$$
+m^{\text{new}} = \max(m^{(1)}, m^{(2)}) = \max(4.0, 5.0) = 5.0
+$$
+
+
+<ol start="2">
+<li>New Global Denominator:</li>
+</ol>
+
+
+$$
+d^{\text{new}} = d^{(1)} \cdot e^{m^{(1)} - m^{\text{new}}} + d^{(2)} \cdot e^{m^{(2)} - m^{\text{new}}}
+$$
+
+
+
+
+$$
+d^{\text{new}} = 1.1353 \cdot e^{4.0 - 5.0} + 1.0183 \cdot e^{5.0 - 5.0}
+$$
+
+
+
+
+$$
+d^{\text{new}} = 1.1353 \cdot e^{-1} + 1.0183 \cdot 1.0 = (1.1353 \times 0.36788) + 1.0183
+$$
+
+
+
+
+$$
+d^{\text{new}} = 0.4177 + 1.0183 = 1.4360
+$$
+
+
+<p>The merged denominator $d^{\text{new}} = 1.4360$ matches Method A's global sum <strong>identically down to the 4th decimal place</strong>!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p><strong>FlashAttention</strong> proves that the ultimate speed of deep learning algorithms on modern GPUs is governed not by operation count (FLOPs), but by <strong>IO complexity</strong> (memory traffic between SRAM and HBM).</p>
+<p>By restructuring the Softmax formula into an online streaming recurrence and tiling matrices into SRAM blocks, FlashAttention computes mathematically identical attention while eliminating $O(T^2)$ memory reads and writes, unlocking $2\times$ to $4\times$ real-world speedups.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../22-paged-attention/index.html">&larr; Chapter 22: PagedAttention & Virtual Memory (vLLM & Zero Fragmentation)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../24-flash-decoding/index.html">Chapter 24: Decode Parallelism (FlashDecoding & Split-K Attention) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

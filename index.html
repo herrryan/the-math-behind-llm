@@ -113,7 +113,8 @@
     <a href="#module-5">Module 5</a> &bull;
     <a href="#module-6">Module 6</a> &bull;
     <a href="#module-7">Module 7</a> &bull;
-    <a href="#module-8">Module 8</a>
+    <a href="#module-8">Module 8</a> &bull;
+    <a href="#module-9">Module 9 (Inference)</a>
   </p>
 </nav>
 
@@ -435,6 +436,80 @@ $$
 
 <ul>
 <li><strong>Formula Origin</strong>: Bradley-Terry preference models (1952) and Rafailov et al. (2023) analytically bypassing the reinforcement learning actor-critic loop.</li>
+</ul>
+<hr />
+<h3 id="module-9">Module 9: The Physics of LLM Inference (Serving, Hardware, &amp; Acceleration)</h3>
+<p><em>The computational laws, memory walls, and kernel mathematics of real-time generation.</em></p>
+<p><em>(For the complete standalone track curriculum, see the dedicated <a href="inference_curriculum.md">LLM Inference Master Curriculum</a>.)</em></p>
+<ul>
+<li><a href="20-prefill-vs-decode/index.html">Chapter 20: The Dual-Phase Engine (Prefill vs. Decode &amp; The Roofline Model)</a></li>
+<li><strong>The Metaphor</strong>: The Moving Truck (packing 1,000 boxes into a truck in one push) vs. The Delivery Courier (driving back and forth between warehouse and home to deliver one letter per trip).</li>
+<li><strong>The Math</strong>: Operational intensity $I = \text{FLOPs} / \text{Bytes}$, critical ridge point $I^* = P_{\text{peak}} / B_{\text{peak}}$, compute-bound vs memory-bandwidth-bound regimes.</li>
+<li>
+<p><strong>Formula Origin</strong>: Williams, Waterman, &amp; Patterson (2009) Roofline Model applied to Transformer decoding.</p>
+</li>
+<li>
+<p><a href="21-kv-cache-and-memory-wall/index.html">Chapter 21: The Memory Wall (KV Cache Mechanics &amp; GQA / MLA Compression)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: The Accountant's Scratchpad vs. Re-reading the entire book from page one for every new word written.</li>
+<li><strong>The Math</strong>: KV Cache recurrence $\mathbf{K}_{1:t} = [\mathbf{K}_{1:t-1}; \mathbf{k}_t]$, memory scaling $2 \times L \times H_{\text{kv}} \times d_{\text{head}} \times T \times b \times p$, and low-rank projection $\mathbf{c}_t^{KV} = \mathbf{x}_t \mathbf{W}_{DKV}$.</li>
+<li>
+<p><strong>Formula Origin</strong>: Shazeer (2019) MQA, Ainslie et al. (2023) GQA, DeepSeek-AI (2024) MLA.</p>
+</li>
+<li>
+<p><a href="22-paged-attention/index.html">Chapter 22: PagedAttention &amp; Virtual Memory (vLLM &amp; Zero Fragmentation)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: Reserving an entire 500-room hotel for a guest who might stay 1 day vs. Assigning room keys one night at a time as guests arrive.</li>
+<li><strong>The Math</strong>: Virtual block mapping $\mathcal{T}(r, b_{\text{logical}}) = b_{\text{physical}}$, elimination of memory fragmentation, and Copy-on-Write (CoW) branching.</li>
+<li>
+<p><strong>Formula Origin</strong>: Kwon et al. (vLLM, SOSP 2023) porting OS virtual memory concepts to GPU KV cache tensors.</p>
+</li>
+<li>
+<p><a href="23-flash-attention/index.html">Chapter 23: The IO-Aware Speedup (FlashAttention &amp; Online Softmax)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: Cooking on the kitchen counter (SRAM) instead of running to the basement pantry (HBM) for every single chopped vegetable.</li>
+<li><strong>The Math</strong>: Online Softmax running statistics $(m, d)$ and SRAM block tiling, cutting memory IO from $O(T^2)$ to $O(T^2 d / M_{\text{SRAM}})$.</li>
+<li>
+<p><strong>Formula Origin</strong>: Milakov &amp; Gimelshtein (2018), Tri Dao et al. (2022, 2023, 2024 - FlashAttention 1, 2, 3).</p>
+</li>
+<li>
+<p><a href="24-flash-decoding/index.html">Chapter 24: Decode Parallelism (FlashDecoding &amp; Split-K Attention)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: 100 builders watching 1 builder dig a trench vs. giving every builder their own shovel to dig in parallel and merging the trench.</li>
+<li><strong>The Math</strong>: Split-K sequence partitioning into $S$ parallel chunks across SMs, partial attention $(m^{(s)}, \ell^{(s)}, \mathbf{o}^{(s)})$, and log-sum-exp reduction.</li>
+<li>
+<p><strong>Formula Origin</strong>: Tri Dao et al. (Flash-Decoding, 2023).</p>
+</li>
+<li>
+<p><a href="25-continuous-batching/index.html">Chapter 25: Cellular Scheduling (Continuous Batching &amp; Chunked Prefill)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: The Subway Train vs. The Rollercoaster: doors open at every stop to let passengers on and off without halting the ride.</li>
+<li><strong>The Math</strong>: Iteration-level scheduling $\mathcal{B}_t = (\mathcal{B}_{t-1} \setminus \mathcal{F}_{t-1}) \cup \mathcal{A}_t$ and chunked prefill co-scheduling.</li>
+<li>
+<p><strong>Formula Origin</strong>: Yu et al. (Orca, OSDI 2022), Agrawal et al. (Sarathi-Serve, 2024).</p>
+</li>
+<li>
+<p><a href="26-speculative-decoding/index.html">Chapter 26: Breaking the Sequential Barrier (Speculative Decoding &amp; Verification Math)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: The apprentice drafting 5 sentences in pencil, while the master craftsman reviews all 5 in a single glance and approves 4.</li>
+<li><strong>The Math</strong>: Acceptance probability $\alpha = \min(1, p/q)$, residual recovery distribution, and exact proof that $\mathbb{P}(X=x) \equiv p(x)$.</li>
+<li>
+<p><strong>Formula Origin</strong>: Leviathan et al. (2023), Chen et al. (2023).</p>
+</li>
+<li>
+<p><a href="27-model-quantization/index.html">Chapter 27: Squeezing the Numbers (Quantization: AWQ, SmoothQuant, FP8, &amp; INT4)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: Vacuum-sealing bulky winter jackets into flat bags, while protecting delicate glass souvenirs with bubble wrap.</li>
+<li><strong>The Math</strong>: Outlier activation spikes, SmoothQuant scale migration $\mathbf{Y} = (\mathbf{X} \mathbf{s}^{-1})(\mathbf{s} \mathbf{W})$, and AWQ salient channel protection.</li>
+<li>
+<p><strong>Formula Origin</strong>: Dettmers et al. (2022), Xiao et al. (SmoothQuant, 2023), Lin et al. (AWQ, 2023).</p>
+</li>
+<li>
+<p><a href="28-distributed-inference/index.html">Chapter 28: Distributed Serving (Tensor Parallelism &amp; Prefill-Decode Disaggregation)</a></p>
+</li>
+<li><strong>The Metaphor</strong>: The Assembly Line: splitting engine parts across 8 workstations vs separating the heavy foundry from the fine assembly room.</li>
+<li><strong>The Math</strong>: Column/Row Parallel Linear decomposition, All-Reduce communication costs, and disaggregated RDMA KV cache transfer.</li>
+<li><strong>Formula Origin</strong>: Shoeybi et al. (Megatron-LM, 2019), Patel et al. (Splitwise, 2024), Zhong et al. (DistServe, 2024).</li>
 </ul>
 <hr />
 <h2>How This Course is Engineered</h2>
