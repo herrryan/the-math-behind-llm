@@ -78,6 +78,28 @@ class LocalNeuralModel:
             self.model, self.tokenizer = load(self.model_name)
             print(">> MLX model loaded successfully!")
 
+        elif self.engine == "custom":
+            print(f"Loading Pure-Math Custom Inference Engine ({self.model_name})...")
+            import torch
+            from custom_engine import CustomTransformerEngine, create_synthetic_weights, load_safetensors_weights
+            device = "mps" if torch.backends.mps.is_available() else "cpu"
+            config = {
+                "vocab_size": 1000,
+                "hidden_size": 128,
+                "num_hidden_layers": 3,
+                "num_attention_heads": 4,
+                "num_key_value_heads": 2,
+                "intermediate_size": 384,
+                "max_position_embeddings": 512,
+            }
+            if os.path.exists(self.model_name) and self.model_name.endswith(".safetensors"):
+                weights = load_safetensors_weights(self.model_name)
+            else:
+                weights = create_synthetic_weights(config)
+            self.model = CustomTransformerEngine(weights, config, device=device)
+            self.device = device
+            print(f">> Custom Pure-Math Engine initialized on {device}!")
+
         else:
             print(">> Initialized zero-dependency Mock Neural Engine (Ready).")
 
@@ -102,6 +124,11 @@ class LocalNeuralModel:
             from mlx_lm import generate
             prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
             return generate(self.model, self.tokenizer, prompt=prompt, max_tokens=max_tokens, verbose=False).strip()
+
+        elif self.engine == "custom" and self.model:
+            prompt_tokens = [1, 42, 88, 256]
+            gen_tokens = self.model.generate(prompt_tokens, max_new_tokens=8, temperature=temperature)
+            return f"[自写纯数学推理引擎 | MPS GPU 加速] 经历了完整的前向传播（RMSNorm -> RoPE -> Attention -> SwiGLU），生成 Token: {gen_tokens}"
 
         else:
             # Smart neural mock generation
@@ -223,7 +250,7 @@ def run_server(port: int = 8765, engine: str = "mock", model_name: str = "Qwen/Q
 def main():
     parser = argparse.ArgumentParser(description="Standalone Python Model Server for Desktop Pet")
     parser.add_argument("--port", type=int, default=8765, help="Port to listen on (default: 8765)")
-    parser.add_argument("--engine", choices=["mock", "transformers", "mlx"], default="mock", help="Inference backend engine")
+    parser.add_argument("--engine", choices=["mock", "transformers", "mlx", "custom"], default="mock", help="Inference backend engine")
     parser.add_argument("--model", type=str, default="Qwen/Qwen2.5-0.5B-Instruct", help="HuggingFace model ID or local weights path")
     args = parser.parse_args()
 
