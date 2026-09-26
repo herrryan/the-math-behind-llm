@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>动手实验 07：纯 Python 实现 GRPO 推理引擎（200 行代码复刻自主推理与规则验证） - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../31-grpo-and-reasoning/index.zh.html">&larr; 第 31 章：群组相对策略优化（GRPO 与 DeepSeek-R1 慢思考推理）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../32-process-reward-models/index.zh.html">第 32 章：过程奖励模型（PRM）与步骤级验证 &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>动手实验 07：纯 Python 实现 GRPO 推理引擎（200 行代码复刻自主推理与规则验证）</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-1">1. 3 岁小孩直觉</a> &bull; 
+    <a href="#step-2">2. 承前启后的关键过渡</a> &bull; 
+    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
+    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
+    <a href="#step-5">5. 完整纯 Python 代码实现</a> &bull; 
+    <a href="#step-6">6. 核心精髓总结</a>
+  </p>
+</nav>
+<hr>
+
+
+<fieldset id="evolution">
+<legend><strong>Python 大模型演进全景图 &bull; 强化学习与慢思考推理前沿（第 7 阶段 / 共 7 阶段）</strong></legend>
+<p>在实验 06 中，我们实现了投机采样与 INT4 量化引擎，攻克了大模型推理中的显存带宽墙。然而，截至目前我们构建的所有模型本质上都在模仿：通过静态交叉熵无脑预测人类写过的历史词元。</p>
+<p>作为强化学习篇章的集大成实战，我们用约 200 行零依赖纯 Python 代码（无 PyTorch、无 HuggingFace、无 NumPy）完整复刻 <strong>GRPO 推理引擎</strong>。我们将完整还原 DeepSeek-Math 与 DeepSeek-R1 的核心数学机制：<strong>无评论家群组相对优势归一化（Critic-Free Group Normalization）</strong>、<strong>可验证规则奖励（RLVR）</strong>、<strong>PPO 重要性比率裁剪</strong>以及 <strong>Schulman 非负 KL 散度约束</strong>。</p>
+<pre><code>[Python 大模型演化路线图 &amp;bull; 7 阶段完整旅程]
+[阶段 1]   80 行纯 Python：Bengio 2003 MLP 语言模型（嵌入层、全连接、纯手工反向传播）
+        │
+        ▼（健忘缺陷：固定 1 个词元的极窄上下文视窗）
+[阶段 2]  140 行纯 Python：注意力机制脑（解锁 Q、K、V 投影与因果自注意力掩码）
+        │
+        ▼（不稳定缺陷：深层网络梯度弥散与数值震荡）
+[阶段 3]  220 行纯 Python：现代 Transformer 块（Pre-RMSNorm、残差高速公路与 SwiGLU 门控）
+        │
+        ▼（采样缺陷：生硬贪婪循环与 O(T^2) 冗余重算）
+[阶段 4]  300 行纯 Python：完整交互式 LLM 引擎（KV 缓存加速与核采样策略）
+        │
+        ▼（并发缺陷：静态批处理导致 60%+ 显存气泡浪费；连续张量导致内存严重碎片化）
+[阶段 5]  200 行纯 Python：流式 KV 缓存与持续批处理引擎（分页注意力与迭代级调度调度器）
+        │
+        ▼（带宽缺陷：串行逐词元读取百 GB 权重的显存带宽墙 O(T)）
+[阶段 6]  220 行纯 Python：投机采样解码与 INT4 量化加速引擎
+        │
+        ▼（模仿缺陷：纯监督学习无法自主发现全新解题路径，无法自发展开多步自我纠错）
+[阶段 7 (推理巅峰)] 200 行纯 Python：GRPO 自主推理引擎
+        │
+        ▼（最终成果：纯自主探索、规则驱动、摆脱评论家的大模型强化学习推理系统！）
+</code></pre>
+</fieldset>
+<hr />
+<h2 id="step-1">步骤 1：3 岁小孩直觉（自主纠错的互助学习小组）</h2>
+<p>想象一个四人互助学习小组正在攻克一道很难的数学题：</p>
+<figure>
+<pre>
+[传统配家教的 RLHF 架构：沉重、脆弱、极耗显存]
+学生写一个字 ──► 家教猜一个分 ──► 学生再写下一个字
+(家教占用 50% 显存，而且面对长推导常常自身判断失误！)
+
+[GRPO：高效自主的互助学习小组]
+第 1 步：4 位同学针对这道题同时在草稿纸上独立写出完整推导。
+第 2 步：规则裁判直接核对黑板结果：
+         同学 1: &lt;think&gt;3*4=12, 12+2=14&lt;/think&gt;&lt;answer&gt;14&lt;/answer&gt;  ──► 奖励: 1.5
+         同学 2: &lt;think&gt;2+12=14&lt;/think&gt;&lt;answer&gt;14&lt;/answer&gt;          ──► 奖励: 1.5
+         同学 3: &lt;think&gt;2+3=5, 5*4=20&lt;/think&gt;&lt;answer&gt;20&lt;/answer&gt;    ──► 奖励: 0.5
+         同学 4: 14 &lt;eos&gt;                                          ──► 奖励: 1.0
+第 3 步：全组平均分 = 1.125。计算标准差并进行组内标准化。
+第 4 步：更新模型：同学 1 和 2 获得正向超额优势；同学 3 获得负向惩罚！
+         成果：完全不需要任何评论家（Critic）神经网络！
+</pre>
+<figcaption><strong>图 31b.1：</strong> GRPO 自主学习小组闭环：多路候选生成、规则精准校验、群组相对优势分配，零评论家开销。</figcaption>
+</figure>
+
+<ol>
+<li><strong>彻底解放显存</strong>：
+   无需维系一个与主模型同样庞大的价值评估模型，同批次样本的均值与方差构成了极其精确且无偏的动态基线。</li>
+<li><strong>绝对客观的规则判断</strong>：
+   编译器与数学符号校验器永远不会产生幻觉：思考标签是否闭合、答案是否等于 14，判定结果是非分明。</li>
+<li><strong>防止走火入魔的数学安全绳</strong>：
+   非负 KL 散度锚定项死死约束住模型与参考基座之间的距离，保证模型在探索出新推理逻辑的同时，不丢失基础语言理解能力。</li>
+</ol>
+<hr />
+<h2 id="step-2">步骤 2：承前启后的关键过渡</h2>
+<p>我们如何在不调用 PyTorch、HuggingFace 或任何第三方库的前提下，仅用标准 Python 实现多项式采样、确定性规则验证、群组优势标准化（$A_i = \frac{R_i - \mu}{\sigma}$）、重要性比率计算（$\rho_t = \frac{\pi_{\boldsymbol{\theta}}}{\pi_{\text{旧}}}$）、PPO 裁剪更新以及 Schulman 非负 KL 散度惩罚？</p>
+<hr />
+<h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
+<h3>1. 群组优势归一化</h3>
+<p>针对规模为 $G$ 的采样组，其得分向量为 $R_1, \dots, R_G$：</p>
+
+
+$$
+\mu = \frac{1}{G} \sum_{i=1}^G R_i, \quad \sigma = \sqrt{\frac{1}{G} \sum_{i=1}^G (R_i - \mu)^2 + \epsilon}
+$$
+
+
+
+
+$$
+A_i = \frac{R_i - \mu}{\sigma}
+$$
+
+
+<h3>2. 词元级比率与 PPO 裁剪</h3>
+<p>对第 $i$ 个采样的第 $t$ 个词元：</p>
+
+
+$$
+\rho_{i,t} = \frac{\pi_{\boldsymbol{\theta}}(a_{i,t} \mid s_{i,t})}{\pi_{\boldsymbol{\theta}_{\text{旧}}}(a_{i,t} \mid s_{i,t})}
+$$
+
+
+
+
+$$
+\mathcal{L}^{\text{CLIP}}_{i,t} = \min\left( \rho_{i,t} A_i, \; \operatorname{clip}(\rho_{i,t}, 1-\epsilon, 1+\epsilon) A_i \right)
+$$
+
+
+<h3>3. Schulman 非负 KL 散度约束</h3>
+<p>为了约束策略 $\pi_{\boldsymbol{\theta}}$ 与参考模型 $\pi_{\text{ref}}$ 的偏移：</p>
+
+
+$$
+u = \frac{\pi_{\text{ref}}(a_{i,t} \mid s_{i,t})}{\pi_{\boldsymbol{\theta}}(a_{i,t} \mid s_{i,t})}, \quad D_{\text{KL}} = u - \log(u) - 1 \ge 0
+$$
+
+
+<p>最终策略梯度按 $\frac{A_i}{|o_i|} - \beta D_{\text{KL}}$ 比例精准推升参数。</p>
+<hr />
+<h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
+<p>2024 年初，DeepSeek 团队在 <strong>DeepSeek-Math</strong> 中首次提出 GRPO，大幅降低了长推理链的训练门槛。2025 年初，<strong>DeepSeek-R1</strong> 证明：只要配合极简的格式规范与准确率规则奖励，GRPO 便能彻底激发基座模型的慢思考潜能，实现全自主自我纠错与长思维链跃迁。</p>
+<hr />
+<h2 id="step-5">步骤 5：完整纯 Python 代码实现</h2>
+<p>以下是完整可直接运行的 Python 源码（<a href="file:///Users/guofei/workspace/the-math-behind-llm/labs/07_grpo_engine.py"><code>labs/07_grpo_engine.py</code></a>），可直接使用 <code>python3 labs/07_grpo_engine.py</code> 进行验证：</p>
+<pre><code class="language-python">&quot;&quot;&quot;
+动手实验 07：纯 Python 实现 GRPO 推理引擎
+Python 大模型演化路线图第 7 阶段（强化学习与慢思考推理前沿）
+&quot;&quot;&quot;
+
+import math
+import random
+
+# 1. 词表与简易分词器
+VOCAB = [
+    &quot;&lt;pad&gt;&quot;, &quot;&lt;eos&gt;&quot;,
+    &quot;&lt;think&gt;&quot;, &quot;&lt;/think&gt;&quot;, &quot;&lt;answer&gt;&quot;, &quot;&lt;/answer&gt;&quot;,
+    &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;, &quot;7&quot;, &quot;8&quot;, &quot;12&quot;, &quot;14&quot;, &quot;20&quot;,
+    &quot;+&quot;, &quot;*&quot;, &quot;=&quot;, &quot;correct&quot;, &quot;wrong&quot;
+]
+VOCAB_SIZE = len(VOCAB)
+TOKEN_TO_ID = {tok: idx for idx, tok in enumerate(VOCAB)}
+ID_TO_TOKEN = {idx: tok for idx, tok in enumerate(VOCAB)}
+EOS_ID = TOKEN_TO_ID[&quot;&lt;eos&gt;&quot;]
+PAD_ID = TOKEN_TO_ID[&quot;&lt;pad&gt;&quot;]
+
+def softmax(logits):
+    max_l = max(logits)
+    exps = [math.exp(l - max_l) for l in logits]
+    sum_exps = sum(exps)
+    return [e / sum_exps for e in exps]
+
+def sample_token(probs):
+    r = random.random()
+    cum = 0.0
+    for idx, p in enumerate(probs):
+        cum += p
+        if r &lt;= cum:
+            return idx
+    return len(probs) - 1
+
+# 2. 策略网络原型
+class ToyPolicy:
+    def __init__(self, vocab_size, seed=42):
+        random.seed(seed)
+        self.vocab_size = vocab_size
+        self.weights = [[(random.random() - 0.5) * 0.1 for _ in range(vocab_size)] for _ in range(vocab_size)]
+
+    def forward(self, prev_token_id):
+        return self.weights[prev_token_id]
+
+    def get_probs(self, prev_token_id):
+        return softmax(self.forward(prev_token_id))
+
+    def clone(self):
+        new_model = ToyPolicy(self.vocab_size)
+        for i in range(self.vocab_size):
+            for j in range(self.vocab_size):
+                new_model.weights[i][j] = self.weights[i][j]
+        return new_model
+
+# 3. 确定性规则验证器（RLVR）
+def verify_response(tokens, expected_answer=&quot;14&quot;):
+    text_tokens = [ID_TO_TOKEN[t] for t in tokens if t not in (PAD_ID, EOS_ID)]
+    format_reward = 0.0
+    has_ts = &quot;&lt;think&gt;&quot; in text_tokens
+    has_te = &quot;&lt;/think&gt;&quot; in text_tokens
+    has_as = &quot;&lt;answer&gt;&quot; in text_tokens
+    has_ae = &quot;&lt;/answer&gt;&quot; in text_tokens
+
+    if has_ts and has_te and has_as and has_ae:
+        if text_tokens.index(&quot;&lt;think&gt;&quot;) &lt; text_tokens.index(&quot;&lt;/think&gt;&quot;) &lt; text_tokens.index(&quot;&lt;answer&gt;&quot;) &lt; text_tokens.index(&quot;&lt;/answer&gt;&quot;):
+            format_reward = 0.5
+
+    acc_reward = 0.0
+    if expected_answer in text_tokens:
+        if has_as and has_ae:
+            ans_slice = text_tokens[text_tokens.index(&quot;&lt;answer&gt;&quot;):text_tokens.index(&quot;&lt;/answer&gt;&quot;)]
+            if expected_answer in ans_slice:
+                acc_reward = 1.0
+        else:
+            acc_reward = 0.5
+
+    return format_reward + acc_reward, format_reward, acc_reward
+
+# 4. 群组相对优势归一化
+def compute_group_advantages(rewards):
+    G = len(rewards)
+    mean_r = sum(rewards) / G
+    variance = sum((r - mean_r) ** 2 for r in rewards) / G
+    std_r = math.sqrt(variance + 1e-4)
+    advantages = [(r - mean_r) / std_r for r in rewards]
+    return advantages, mean_r, std_r
+
+# 5. GRPO 训练步（集成裁剪与 Schulman KL）
+def train_grpo_step(actor, ref_model, prompt_token_id, group_size=6, lr=0.05, clip_eps=0.2, beta=0.04):
+    old_actor = actor.clone()
+    rollouts, rewards = [], []
+
+    for _ in range(group_size):
+        actions = []
+        tokens = [prompt_token_id]
+        for _ in range(8):
+            probs = old_actor.get_probs(tokens[-1])
+            action = sample_token(probs)
+            tokens.append(action)
+            actions.append(action)
+            if action == EOS_ID:
+                break
+        tot_r, fmt_r, acc_r = verify_response(actions, expected_answer=&quot;14&quot;)
+        rollouts.append(actions)
+        rewards.append(tot_r)
+
+    advantages, mean_r, std_r = compute_group_advantages(rewards)
+
+    for i in range(group_size):
+        actions = rollouts[i]
+        adv = advantages[i]
+        seq_len = max(len(actions), 1)
+        prev = prompt_token_id
+        for action in actions:
+            p_curr = actor.get_probs(prev)[action]
+            p_old = old_actor.get_probs(prev)[action]
+            p_ref = ref_model.get_probs(prev)[action]
+
+            ratio = p_curr / (p_old + 1e-12)
+            clipped_ratio = max(min(ratio, 1.0 + clip_eps), 1.0 - clip_eps)
+            surr1 = ratio * adv
+            surr2 = clipped_ratio * adv
+
+            u = p_ref / (p_curr + 1e-12)
+            kl = u - math.log(u + 1e-12) - 1.0
+
+            grad_scale = (adv / (p_old + 1e-12) if (surr1 &lt;= surr2 or (adv &gt; 0 and ratio &lt; 1 + clip_eps)) else 0.0)
+            grad_scale -= beta * kl
+
+            step_factor = lr * (grad_scale / seq_len)
+            probs_curr = actor.get_probs(prev)
+            for j in range(VOCAB_SIZE):
+                grad_logit = (1.0 if j == action else 0.0) - probs_curr[j]
+                actor.weights[prev][j] += step_factor * grad_logit
+
+            prev = action
+
+    return mean_r, std_r
+</code></pre>
+<hr />
+<h2 id="step-6">步骤 6：核心精髓总结</h2>
+<fieldset>
+<legend><strong>核心精髓总结</strong></legend>
+<p>通过 200 行标准 Python 代码亲手实现 GRPO，你已经彻底揭开了 DeepSeek-R1 的算法底层：大模型通往通用慢思考推理的道路并不依赖数十亿参数的评论家网络，也不依赖无休止的人工打分，而是建立在纯粹的群组相对优势归一化、坚固的规则判别以及严格的策略裁剪边界之上。</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../31-grpo-and-reasoning/index.zh.html">&larr; 第 31 章：群组相对策略优化（GRPO 与 DeepSeek-R1 慢思考推理）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../32-process-reward-models/index.zh.html">第 32 章：过程奖励模型（PRM）与步骤级验证 &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 31: Group Relative Policy Optimization (GRPO & DeepSeek-R1) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../30-ppo-and-actor-critic/index.html">&larr; Chapter 30: The Actor-Critic Architecture & PPO (Proximal Policy Optimization)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../31b-lab-grpo-engine/index.html">Hands-on Lab 07: The GRPO Reasoning Engine (Autonomous Reasoning in 200 Lines of Pure Python) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 31: Group Relative Policy Optimization (GRPO &amp; DeepSeek-R1)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Classroom Pop Quiz)</h2>
+<p>Imagine a classroom where four children are asked to solve the exact same tricky riddle:</p>
+<ol>
+<li><strong>The Old, Expensive Way (PPO with a Private Tutor)</strong>:</li>
+</ol>
+<ul>
+<li>In Chapter 30, we saw that PPO hires a private tutor (the Critic network $V_{\boldsymbol{\phi}}$) to sit beside a single student.</li>
+<li>Every time the student writes down a single letter, the tutor leans over and whispers: <em>"Hmm, that comma looks like a 7 out of 10... that number looks like an 8 out of 10..."</em></li>
+<li>That private tutor is enormous &mdash; taking up half the seats in the room (50% of your GPU memory) &mdash; and on long math problems, the tutor often guesses wrong anyway!</li>
+</ul>
+<ol start="2">
+<li><strong>The DeepSeek-R1 Way (The Group Pop Quiz)</strong>:</li>
+</ol>
+<ul>
+<li>DeepSeek asked a radical question: <strong>What if we fire the private tutor completely?</strong></li>
+<li>Instead, the teacher writes the riddle on the chalkboard and asks <strong>4 students</strong> to write their full solutions on the board at the same time:<ul>
+<li><strong>Student 1</strong>: Shows full step-by-step work and finds the right answer $\to$ <strong>100 points!</strong></li>
+<li><strong>Student 2</strong>: Writes messy work but also gets the right answer $\to$ <strong>80 points!</strong></li>
+<li><strong>Student 3</strong>: Makes an arithmetic slip at the end $\to$ <strong>20 points!</strong></li>
+<li><strong>Student 4</strong>: Writes random nonsense $\to$ <strong>0 points!</strong></li>
+</ul>
+</li>
+</ul>
+<ol start="3">
+<li><strong>Grading Relative to the Class Average</strong>:</li>
+</ol>
+<ul>
+<li>The class average on this riddle is:</li>
+</ul>
+
+
+$$
+\text{Average} = \frac{100 + 80 + 20 + 0}{4} = 50 \text{ points}
+$$
+
+
+<ul>
+<li>Student 1 scored $+50$ points above average $\to$ <strong>Positive Advantage!</strong> We praise their reasoning steps.</li>
+<li>Student 2 scored $+30$ points above average $\to$ <strong>Positive Advantage!</strong></li>
+<li>Student 3 scored $-30$ points below average $\to$ <strong>Negative Advantage!</strong> We gently discourage their mistake.</li>
+<li>Student 4 scored $-50$ points below average $\to$ <strong>Strong Penalty!</strong></li>
+</ul>
+<p>Zero private tutor needed. Zero value parameters taking up GPU memory. The students act as their own mutual baselines!</p>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                   GRPO: CRITIC-FREE GROUP OPTIMIZATION                 │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│   Prompt [q] ─────────────► [ Actor Policy π_θ ]                       │
+│                                  │                                     │
+│            ┌─────────────────────┼─────────────────────┐               │
+│            ▼                     ▼                     ▼               │
+│       Rollout o_1           Rollout o_2           Rollout o_G          │
+│            │                     │                     │               │
+│            ▼                     ▼                     ▼               │
+│     [ Rule Verifier ]     [ Rule Verifier ]     [ Rule Verifier ]      │
+│      Acc + Format          Acc + Format          Acc + Format          │
+│            │                     │                     │               │
+│            ▼                     ▼                     ▼               │
+│        Reward R_1            Reward R_2            Reward R_G          │
+│            └─────────────────────┬─────────────────────┘               │
+│                                  ▼                                     │
+│                 Group Mean μ_q &amp; Standard Deviation σ_q                │
+│                                  │                                     │
+│                                  ▼                                     │
+│            Normalized Relative Advantages: A_i = (R_i - μ_q) / σ_q     │
+│                                  │                                     │
+│                                  ▼                                     │
+│                 PPO-Clipped Token Policy Update                       │
+│                  (Zero Critic! Zero Value Model!)                      │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 31.1:</strong> The GRPO architecture: Samples a group of outputs per prompt, computes rule-based rewards, normalizes relative advantages across the group, and updates the actor with zero critic network.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>In Chapter 30, we saw that Proximal Policy Optimization (<abbr title="Proximal Policy Optimization">PPO</abbr>) relies on a Critic network $V_{\boldsymbol{\phi}}$ to estimate token-level advantages $\hat{A}_t$.
+However, when training modern reasoning models (such as DeepSeek-R1 or OpenAI o1/o3) on mathematical proofs and code synthesis, the Critic becomes a fatal bottleneck:</p>
+<ol>
+<li><strong>The GPU VRAM Explosion</strong>: The Critic model is another full Transformer backbone with parameters comparable in size to the Actor ($\approx 70\text{B}$ parameters). Storing its weights, gradients, and optimizer states doubles the cluster size required for training.</li>
+<li><strong>The Reward Estimation Hallucination</strong>: Predicting the value of state $s_t$ in the middle of a 15,000-token mathematical derivation is notoriously unstable. If the Critic incorrectly guesses that a promising proof path is doomed, its erroneous value gradients misguide the Actor policy.</li>
+<li><strong>Reward Model Gaming</strong>: In classic RLHF, Actor models quickly learn to produce verbose, sycophantic fluff to fool a neural reward model into giving high scores without actually solving the problem.</li>
+</ol>
+<p>The bridging question is:</p>
+
+
+$$
+\text{How do we mathematically eliminate the Critic network entirely, while computing low-variance, statistically valid advantages across a group of rollouts using unhackable rule-based verifiers?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. Group Rollout Sampling</h3>
+<p>For each input query $q$ drawn from prompt distribution $\mathcal{P}(Q)$, the old policy $\pi_{\boldsymbol{\theta}_{\text{old}}}$ generates a cohort of $G$ independent candidate completions:</p>
+
+
+$$
+\{o_1, o_2, \dots, o_G\} \sim \pi_{\boldsymbol{\theta}_{\text{old}}}(q)
+$$
+
+
+<p>where $G$ is the group size (typically $G \in [4, 16]$ in DeepSeek-Math and DeepSeek-R1).</p>
+<hr />
+<h3>2. Rule-Based Verifiable Rewards (RLVR)</h3>
+<p>Instead of relying on a fallible neural reward model, <strong>Reinforcement Learning with Verifiable Rewards (<abbr title="Reinforcement Learning with Verifiable Rewards">RLVR</abbr>)</strong> evaluates each completion $o_i$ using deterministic, non-gameable rule functions:</p>
+
+
+$$
+R_i = r_{\text{acc}}(o_i) + r_{\text{format}}(o_i)
+$$
+
+
+<ol>
+<li><strong>Accuracy Reward ($r_{\text{acc}}$)</strong>: Evaluates whether the final boxed answer strictly matches the ground truth:</li>
+</ol>
+
+
+$$
+r_{\text{acc}}(o_i) = \begin{cases} 1.0 & \text{if mathematical answer or code unit tests pass} \\ 0.0 & \text{otherwise} \end{cases}
+$$
+
+
+<ol start="2">
+<li><strong>Format Reward ($r_{\text{format}}$)</strong>: Enforces architectural discipline by verifying that the model wraps its reasoning chain in explicit structural tags:</li>
+</ol>
+
+
+$$
+r_{\text{format}}(o_i) = \begin{cases} 1.0 & \text{if output strictly follows } \texttt{\lt think>...</think>\lt answer>...</answer>} \\ 0.0 & \text{otherwise} \end{cases}
+$$
+
+
+<hr />
+<h3>3. Group-Relative Advantage Normalization</h3>
+<p>For prompt $q$, let $\{R_1, R_2, \dots, R_G\}$ be the scalar rewards assigned to the $G$ sampled completions.
+The empirical mean $\mu_q$ and standard deviation $\sigma_q$ of the group are:</p>
+
+
+$$
+\mu_q = \frac{1}{G} \sum_{i=1}^G R_i, \quad \sigma_q = \sqrt{\frac{1}{G} \sum_{i=1}^G \left( R_i - \mu_q \right)^2 + \epsilon}
+$$
+
+
+<p>where $\epsilon = 10^{-4}$ prevents division by zero.
+The <dfn id="def-grpo-advantage">Group-Relative Advantage</dfn> $A_i$ for the $i$-th completion is:</p>
+
+
+$$
+A_i = \frac{R_i - \mu_q}{\sigma_q}
+$$
+
+
+<fieldset>
+<legend><strong>Why Group Normalization Eliminates the Critic</strong></legend>
+<p>Notice what happened to the baseline $b(s)$ from Chapter 29: The group mean $\mu_q$ serves as an exact, empirical Monte Carlo baseline for prompt $q$!</p>
+<p>Because $\sum_{i=1}^G A_i \equiv 0$, exactly half the group (or those above average) receives positive reinforcement, while those below average receive negative reinforcement. If a problem is trivial and all $G$ outputs are correct ($R_i = 1$), $\sigma_q \approx 0 \implies A_i = 0$, producing strictly zero gradient updates and preventing unnecessary parameter churn!</p>
+</fieldset>
+<hr />
+<h3>4. The Full GRPO Objective Function</h3>
+<p>The objective optimized by GRPO over policy parameters $\boldsymbol{\theta}$ is:</p>
+
+
+$$
+\begin{aligned}
+\mathcal{J}_{\text{GRPO}}(\boldsymbol{\theta}) = \mathbb{E}_{\substack{q \sim \mathcal{P}(Q) \\ \{o_i\}_{i=1}^G \sim \pi_{\boldsymbol{\theta}_{\text{old}}}(q)}} \Bigg[ \frac{1}{G} \sum_{i=1}^G \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \bigg( &\min\left( \rho_{i,t}(\boldsymbol{\theta}) A_i, \; \operatorname{clip}\left(\rho_{i,t}(\boldsymbol{\theta}), 1-\epsilon, 1+\epsilon\right) A_i \right) \\
+&- \beta D_{\text{KL}}\left(\pi_{\boldsymbol{\theta}} \parallel \pi_{\text{ref}}\right) \bigg) \Bigg]
+\end{aligned}
+$$
+
+
+<p>where:</p>
+<ul>
+<li>$\rho_{i,t}(\boldsymbol{\theta}) = \frac{\pi_{\boldsymbol{\theta}}(o_{i,t} \mid q, o_{i,\lt t})}{\pi_{\boldsymbol{\theta}_{\text{old}}}(o_{i,t} \mid q, o_{i,\lt t})}$ is the token importance sampling ratio.</li>
+<li>$|o_i|$ is the sequence length of the $i$-th candidate output. Dividing by $|o_i|$ prevents long, verbose answers from dominating the gradient update.</li>
+<li>$\epsilon$ is the PPO clipping parameter ($\epsilon \approx 0.2$).</li>
+<li>$\beta$ controls the strength of the reference regularization.</li>
+</ul>
+<hr />
+<h3>5. The Schulman Unbiased KL Estimator</h3>
+<p>Rather than computing standard asymmetric sample KL divergence $\log(\pi / \pi_{\text{ref}})$ which can yield negative values and destabilize training, DeepSeek adopts John Schulman's (2020) non-negative unbiased estimator:</p>
+
+
+$$
+D_{\text{KL}}\left(\pi_{\boldsymbol{\theta}} \parallel \pi_{\text{ref}}\right) \approx \frac{\pi_{\text{ref}}(o_{i,t} \mid q, o_{i,\lt t})}{\pi_{\boldsymbol{\theta}}(o_{i,t} \mid q, o_{i,\lt t})} - \log \left( \frac{\pi_{\text{ref}}(o_{i,t} \mid q, o_{i,\lt t})}{\pi_{\boldsymbol{\theta}}(o_{i,t} \mid q, o_{i,\lt t})} \right) - 1
+$$
+
+
+<p>By Jensen's inequality, since $u - \log u - 1 \ge 0$ for all $u > 0$, this estimator is <strong>strictly non-negative</strong> at every token, guaranteeing that reference regularization never turns into an accidental reward incentive!</p>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="2024-02">February 2024</time> &mdash; <strong>Zhihong Shao et al. (DeepSeek-Math)</strong></dt>
+  <dd>Introduced <em>Group Relative Policy Optimization (GRPO)</em> as a specialized mathematical framework for mathematical reasoning. Proved that by replacing the Critic with group normalization, training memory dropped by 50% while achieving state-of-the-art results on GSM8K (88.2%) and MATH (51.7%).</dd>
+
+  <dt><time datetime="2025-01">January 2025</time> &mdash; <strong>DeepSeek-AI (DeepSeek-R1 &amp; R1-Zero)</strong></dt>
+  <dd>Applied pure GRPO directly to a base model without prior Supervised Fine-Tuning (<abbr title="Supervised Fine-Tuning">SFT</abbr>). Observed the historic spontaneous emergence of extended reasoning chains: the model learned on its own to allocate thousands of "thinking tokens", perform self-verification, correct prior mistakes, and exhibit human-like "Aha!" moments solely driven by rule-based verifiable rewards.</dd>
+</dl>
+
+<h3>Architectural Comparison: PPO vs. DPO vs. GRPO</h3>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 31.1:</strong> Structural comparison of leading LLM post-training reinforcement algorithms.</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">Dimension</th>
+      <th align="left">PPO (Chapter 30)</th>
+      <th align="left">DPO (Chapter 19)</th>
+      <th align="left">GRPO (DeepSeek-R1)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Models in VRAM</strong></td>
+      <td>4 (Actor, Critic, Ref, RM)</td>
+      <td><strong>2</strong> (Actor, Ref)</td>
+      <td><strong>2</strong> (Actor, Ref)</td>
+    </tr>
+    <tr>
+      <td><strong>Critic Network</strong></td>
+      <td>Full 70B parameter model</td>
+      <td>None (Eliminated)</td>
+      <td><strong>None (Group Statistics)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Exploration Capacity</strong></td>
+      <td>Active online sampling</td>
+      <td><mark>Zero (Offline static pairs)</mark></td>
+      <td><strong>Full online group sampling</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Reward Source</strong></td>
+      <td>Neural Reward Model</td>
+      <td>Pairwise human preference</td>
+      <td><strong>Verifiable Rule Engine (RLVR)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Reasoning Evolution</strong></td>
+      <td>Struggles on long chains</td>
+      <td>Cannot discover new steps</td>
+      <td><strong>Spontaneous "Aha!" moments</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us trace a complete GRPO group advantage step by hand with exact numbers.</p>
+<h3>The Problem Setup</h3>
+<ul>
+<li>Prompt $q$: <kbd>"Solve 2 + 3 * 4"</kbd>.</li>
+<li>Ground truth answer: $14$.</li>
+<li>Group size: $G = 4$ independent completions sampled from $\pi_{\boldsymbol{\theta}_{\text{old}}}$.</li>
+<li>Reward rules:</li>
+<li>Format Reward: $+0.5$ if <code>&lt;think&gt;...&lt;/think&gt;&lt;answer&gt;...&lt;/answer&gt;</code> tags exist.</li>
+<li>Accuracy Reward: $+1.0$ if answer is $14$.</li>
+<li>Total maximum reward: $1.5$.</li>
+</ul>
+<hr />
+<h3>Phase 1: Evaluating the Group Completions</h3>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 31.2:</strong> Group completions and evaluated reward scores.</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="center">Candidate</th>
+      <th align="left">Model Output Text</th>
+      <th align="center">Format ($r_{\text{fmt}}$)</th>
+      <th align="center">Accuracy ($r_{\text{acc}}$)</th>
+      <th align="right">Total Reward ($R_i$)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">$o_1$</td>
+      <td><samp>&lt;think&gt;3*4=12, 12+2=14&lt;/think&gt;&lt;answer&gt;14&lt;/answer&gt;</samp></td>
+      <td align="center">1.0 (+0.5)</td>
+      <td align="center">1.0 (+1.0)</td>
+      <td align="right"><strong>1.5</strong></td>
+    </tr>
+    <tr>
+      <td align="center">$o_2$</td>
+      <td><samp>&lt;think&gt;Order of ops: 2+12=14&lt;/think&gt;&lt;answer&gt;14&lt;/answer&gt;</samp></td>
+      <td align="center">1.0 (+0.5)</td>
+      <td align="center">1.0 (+1.0)</td>
+      <td align="right"><strong>1.5</strong></td>
+    </tr>
+    <tr>
+      <td align="center">$o_3$</td>
+      <td><samp>&lt;think&gt;2+3=5, 5*4=20&lt;/think&gt;&lt;answer&gt;20&lt;/answer&gt;</samp></td>
+      <td align="center">1.0 (+0.5)</td>
+      <td align="center">0.0 (+0.0)</td>
+      <td align="right"><strong>0.5</strong></td>
+    </tr>
+    <tr>
+      <td align="center">$o_4$</td>
+      <td><samp>The answer is 14.</samp></td>
+      <td align="center">0.0 (+0.0)</td>
+      <td align="center">1.0 (+1.0)</td>
+      <td align="right"><strong>1.0</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Rewards across the group: $\mathbf{R} = [1.5, \; 1.5, \; 0.5, \; 1.0]$.</p>
+<hr />
+<h3>Phase 2: Computing Group Statistics &amp; Advantages</h3>
+<h4>1. Group Mean ($\mu_q$)</h4>
+
+
+$$
+\mu_q = \frac{1.5 + 1.5 + 0.5 + 1.0}{4} = \frac{4.5}{4} = \mathbf{1.125}
+$$
+
+
+<h4>2. Group Variance &amp; Standard Deviation ($\sigma_q$)</h4>
+<p>Deviations from the mean:</p>
+<ul>
+<li>$(1.5 - 1.125)^2 = (+0.375)^2 = 0.140625$</li>
+<li>$(1.5 - 1.125)^2 = (+0.375)^2 = 0.140625$</li>
+<li>$(0.5 - 1.125)^2 = (-0.625)^2 = 0.390625$</li>
+<li>$(1.0 - 1.125)^2 = (-0.125)^2 = 0.015625$</li>
+</ul>
+<p>Variance:</p>
+
+
+$$
+\sigma_q^2 = \frac{0.140625 + 0.140625 + 0.390625 + 0.015625}{4} = \frac{0.6875}{4} = 0.171875
+$$
+
+
+<p>Standard deviation:</p>
+
+
+$$
+\sigma_q = \sqrt{0.171875} \approx \mathbf{0.4146}
+$$
+
+
+<h4>3. Normalized Group Advantages ($A_i = \frac{R_i - \mu_q}{\sigma_q}$)</h4>
+<ul>
+<li>$A_1 = \frac{1.5 - 1.125}{0.4146} = \frac{+0.375}{0.4146} \approx \mathbf{+0.9045}$ (<mark>High Positive Reinforcement</mark>)</li>
+<li>$A_2 = \frac{1.5 - 1.125}{0.4146} = \frac{+0.375}{0.4146} \approx \mathbf{+0.9045}$ (<mark>High Positive Reinforcement</mark>)</li>
+<li>$A_3 = \frac{0.5 - 1.125}{0.4146} = \frac{-0.625}{0.4146} \approx \mathbf{-1.5077}$ (<del>Strong Penalty for Wrong Math</del>)</li>
+<li>$A_4 = \frac{1.0 - 1.125}{0.4146} = \frac{-0.125}{0.4146} \approx \mathbf{-0.3015}$ (Mild Penalty for Missing Formatting)</li>
+</ul>
+<p>Check sum of advantages: $+0.9045 + 0.9045 - 1.5077 - 0.3015 = -0.0002 \approx \mathbf{0}$!</p>
+<hr />
+<h3>Phase 3: Token Clipped Policy Gradient Step</h3>
+<p>Consider the token <kbd>"12"</kbd> in completion $o_1$:</p>
+<ul>
+<li>$\pi_{\text{old}}("12" \mid \dots) = 0.20$.</li>
+<li>Current policy after an update: $\pi_{\boldsymbol{\theta}}("12" \mid \dots) = 0.23$.</li>
+<li>Importance ratio:</li>
+</ul>
+
+
+$$
+\rho_{1, t} = \frac{0.23}{0.20} = \mathbf{1.15}
+$$
+
+
+<ul>
+<li>Clipping bounds with $\epsilon = 0.2$: $[1-\epsilon, 1+\epsilon] = [0.80, 1.20]$.</li>
+<li>Since $1.15 \le 1.20$, clipping is not triggered.</li>
+<li>Surrogate term:</li>
+</ul>
+
+
+$$
+\rho_{1, t} A_1 = 1.15 \times (+0.9045) = \mathbf{+1.0402}
+$$
+
+
+<ul>
+<li>The token <kbd>"12"</kbd> receives a positive gradient boost, teaching the model that computing $3 \times 4 = 12$ leads to high group-relative success!</li>
+</ul>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p>Group Relative Policy Optimization (GRPO) achieves frontier reasoning by banishing the complex, memory-hungry Critic network: by sampling a cohort of answers for each prompt and normalizing rewards across the group, the model acts as its own dynamic baseline.</p>
+<p>Paired with verifiable rule-based rewards (RLVR), GRPO unlocks the self-reinforcing engine of test-time thought &mdash; allowing language models to discover complex reasoning, backtracking, and self-correction purely through trial and error.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../30-ppo-and-actor-critic/index.html">&larr; Chapter 30: The Actor-Critic Architecture & PPO (Proximal Policy Optimization)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../31b-lab-grpo-engine/index.html">Hands-on Lab 07: The GRPO Reasoning Engine (Autonomous Reasoning in 200 Lines of Pure Python) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

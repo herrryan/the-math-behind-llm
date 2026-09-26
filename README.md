@@ -32,7 +32,7 @@ This repository provides a complete four-pillar learning ecosystem for mastering
 ```
 
 1. **[Core Mathematical Guide (Root)](index.html)**:
-   The foundational curriculum answering two questions for every component: *What physical intuition makes this obvious to a 3-year-old child?* and *Where does the exact mathematical formula come from?*
+   The foundational curriculum answering two questions for every component: *What physical intuition makes this obvious to a 3-year-old child?* and *Where does the exact mathematical formula come from?* Includes dedicated curricula for [Inference Acceleration (Chapters 20–28)](inference_curriculum.md) and [Reinforcement Learning &amp; Reasoning (Chapters 29–33)](rl_curriculum.md).
 2. **[Hands-on Coding Curriculum (`coding-guide/`)](coding-guide/)**:
    A step-by-step roadmap for programming large language models from scratch: starting with 80 lines of zero-dependency pure Python (Bengio 2003 MLP), progressing to PyTorch NanoGPT, Hugging Face LoRA/DPO fine-tuning, and ending in production inference engines.
 3. **[Engineering Implementation (`engineering/`)](engineering/)**:

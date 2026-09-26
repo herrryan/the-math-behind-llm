@@ -133,7 +133,13 @@ Every single chapter in this course follows an unshakeable 5-step learning ladde
       <td><strong>Stage 6: The Speculative Accelerator</strong></td>
       <td><a href="27b-lab-speculative-engine/index.html">Lab 06 (Post Chapter 27)</a></td>
       <td>220 lines pure Python: INT4/INT8 uniform symmetric quantization engine with lossless speculative rejection sampling and residual recovery.</td>
-      <td><mark>Capstone Completed</mark>: Production-grade inference acceleration achieving 2x-3x speedup with 75% memory compression!</td>
+      <td><mark>Memory Compression</mark>: Production-grade inference acceleration achieving 2x-3x speedup with 75% memory compression!</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 7: The GRPO Reasoning Engine</strong></td>
+      <td><a href="31b-lab-grpo-engine/index.html">Lab 07 (Post Chapter 31)</a></td>
+      <td>200 lines pure Python: Critic-free group relative advantage normalization, rule-based verifiable rewards (RLVR), and clipped policy gradient updates.</td>
+      <td><mark>Reasoning Frontier</mark>: Self-contained RL engine driving autonomous mathematical reasoning, format adherence, and test-time verification!</td>
     </tr>
   </tbody>
 </table>
@@ -383,6 +389,41 @@ $$
   - **The Metaphor**: The Assembly Line: splitting engine parts across 8 workstations vs separating the heavy foundry from the fine assembly room.
   - **The Math**: Column/Row Parallel Linear decomposition, All-Reduce communication costs, and disaggregated RDMA KV cache transfer.
   - **Formula Origin**: Shoeybi et al. (Megatron-LM, 2019), Patel et al. (Splitwise, 2024), Zhong et al. (DistServe, 2024).
+
+---
+
+### Module 10: Reinforcement Learning &amp; Autonomous Reasoning (Post-Pretraining Frontier)
+
+For a dedicated curriculum deep-dive, see the **[Reinforcement Learning &amp; Reasoning Track (rl_curriculum.md)](rl_curriculum.md)**.
+
+- [Chapter 29: Language as an MDP &amp; Policy Gradients (REINFORCE &amp; Variance Reduction)](29-policy-gradients-and-reinforce/index.html)
+  - **The Metaphor**: The blindfolded archer hearing whistles from the target: adjust future arrow angles towards sounds that brought gold medals.
+  - **The Math**: The log-derivative trick $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a \mid s)$, non-differentiable text scoring, and baseline subtraction zero-bias proof.
+  - **Formula Origin**: Williams (REINFORCE, 1992), Sutton et al. (Policy Gradient Theorem, 1999).
+
+- [Chapter 30: The Actor-Critic Architecture &amp; PPO (Proximal Policy Optimization)](30-ppo-and-actor-critic/index.html)
+  - **The Metaphor**: The Broadway actor on stage rehearsing under an observant director, bound by an elastic safety harness.
+  - **The Math**: Generalized Advantage Estimation (GAE-$\lambda$), token-level KL divergence penalty, and the PPO clipped surrogate objective $\min(r_t A_t, \operatorname{clip}(r_t, 1-\epsilon, 1+\epsilon) A_t)$.
+  - **Formula Origin**: Schulman et al. (TRPO 2015, GAE 2016, PPO 2017), Ouyang et al. (InstructGPT, 2022).
+
+- [Chapter 31: Group Relative Policy Optimization (GRPO &amp; DeepSeek-R1)](31-grpo-and-reasoning/index.html)
+  - **The Metaphor**: The pop quiz study group grading on a curve: firing the expensive private tutor and evaluating peers relative to the group mean.
+  - **The Math**: Critic-free advantage normalization $A_i = (R_i - \mu)/\sigma$, Rule-Based Verifiable Rewards (RLVR: $r_{\text{acc}} + r_{\text{format}}$), and Schulman's non-negative KL estimator.
+  - **Formula Origin**: Shao et al. (DeepSeek-Math, 2024), DeepSeek-AI (DeepSeek-R1 / R1-Zero, 2025).
+
+- [Lab 07: The GRPO Reasoning Engine in Pure Python](31b-lab-grpo-engine/index.html)
+  - **Architecture**: A 200-line zero-dependency Python script implementing discrete rollouts, deterministic rule verification, group advantage standardization, and PPO-clipped policy gradient updates.
+  - **Metrics**: 100% Critic-free training convergence from random babbling to format adherence and arithmetic accuracy.
+
+- [Chapter 32: Process Reward Models (PRMs) &amp; Step-Level Verification](32-process-reward-models/index.html)
+  - **The Metaphor**: The master chef tasting the broth at every step of cooking vs. the outcome-only critic giving a zero at the very end.
+  - **The Math**: Step-level credit assignment, Monte Carlo completion value estimation (Math-Shepherd), joint path correctness $\prod r_k$, and minimum step bottleneck pruning $\min r_k$.
+  - **Formula Origin**: Uesato et al. (2022), Lightman et al. (OpenAI PRM800K, 2023), Wang et al. (Math-Shepherd, 2023).
+
+- [Chapter 33: Search, MCTS &amp; Test-Time Compute Scaling](33-mcts-and-test-time-compute/index.html)
+  - **The Metaphor**: The chess grandmaster closing their eyes to mentally explore and prune game branches before moving.
+  - **The Math**: Test-time compute power laws $\text{Error} \propto C_{\text{test}}^{-\alpha}$, Binomial majority voting bounds, Monte Carlo Tree Search (MCTS) with PUCT action selection $Q(s, a) + U(s, a)$, and autonomous thinking token expansion.
+  - **Formula Origin**: Coulom (2006), Silver et al. (AlphaGo 2016, AlphaZero 2017), Wang et al. (Self-Consistency, 2022), OpenAI o1 (2024), DeepSeek-R1 (2025).
 
 ---
 

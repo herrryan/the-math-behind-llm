@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 32: Process Reward Models (PRMs) & Step-Level Verification - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../31b-lab-grpo-engine/index.html">&larr; Hands-on Lab 07: The GRPO Reasoning Engine (Autonomous Reasoning in 200 Lines of Pure Python)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../33-mcts-and-test-time-compute/index.html">Chapter 33: Search, MCTS & Test-Time Compute Scaling &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 32: Process Reward Models (PRMs) &amp; Step-Level Verification</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Master Chef Inspecting the Soup at Every Step)</h2>
+<p>Imagine an apprentice chef cooking a complex French soup that requires four hours and twenty delicate steps:</p>
+<ol>
+<li><strong>The Outcome-Only Food Critic (The ORM)</strong>:</li>
+</ol>
+<ul>
+<li>The food critic sits in the dining room and refuses to look inside the kitchen.</li>
+<li>Four hours later, the apprentice brings out the finished bowl. The critic takes one tiny sip, grimaces, and shouts: <em>"Horrible! 0 out of 10!"</em></li>
+<li>Think about what happens now:<ul>
+<li>Did the apprentice burn the onions in Step 1?</li>
+<li>Did they add spoiled cream in Step 18?</li>
+<li>Or did they do nineteen steps brilliantly, but accidentally drop in a teaspoon of sand at the very end?</li>
+</ul>
+</li>
+<li>The apprentice has no idea! Under <strong>Outcome-supervised Reward Models (<abbr title="Outcome Reward Model">ORM</abbr>)</strong>, all twenty cooking steps receive the exact same devastating blame.</li>
+</ul>
+<ol start="2">
+<li><strong>The Master Chef Standing by the Pot (The PRM)</strong>:</li>
+</ol>
+<ul>
+<li>Now imagine a world-class master chef standing directly beside the stove:<ul>
+<li><strong>Step 1 (Caramelizing onions)</strong>: The master chef tastes the pan $\to$ <em>"Golden, sweet, and perfectly cooked! Step 1 passed (Score: 0.98)!"</em></li>
+<li><strong>Step 2 (Deglazing with white wine)</strong>: Tastes the reduction $\to$ <em>"Vibrant acidity, alcohol evaporated! Step 2 passed (Score: 0.95)!"</em></li>
+<li><strong>Step 3 (Adding stock)</strong>: Tastes the broth $\to$ <em>"Wait! You used cheap, over-salted bouillon cubes instead of fresh veal stock! Step 3 failed (Score: 0.04)!"</em></li>
+</ul>
+</li>
+<li>The apprentice knows <strong>instantly and precisely</strong> where the recipe derailed!</li>
+<li>Steps 1 and 2 keep their gold stars. The apprentice does not throw away the whole kitchen; they simply dump Step 3, pour in fresh veal stock, and continue cooking on the winning path.</li>
+</ul>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│             OUTCOME REVISION (ORM) vs. PROCESS REVISION (PRM)          │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│   Prompt [x] ──► Step 1 ──► Step 2 ──► Step 3 (Error!) ──► Step 4      │
+│                    │          │              │               │         │
+│                    │          │              │               ▼         │
+│                    │          │              │          Final Answer   │
+│                    │          │              │               │         │
+│                    ▼          ▼              ▼               ▼         │
+│   ORM Evaluation:  ?          ?              ?          Score = 0.0    │
+│   (All steps penalized equally; zero diagnostic guidance)             │
+│                                                                        │
+│   PRM Evaluation: r_1=0.98   r_2=0.95     r_3=0.04        r_4=0.10     │
+│   (Pinpoints exact step of failure; enables search pruning &amp; rewind!)  │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 32.1:</strong> Process Reward Models evaluate intermediate reasoning tokens, isolating logical fallacies at the exact step they occur.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>In Chapters 30 and 31, our reward signals were evaluated purely on the final terminal output ($R(x, y)$).
+However, for multi-step reasoning (e.g., 30-step mathematical proofs, 100-line software algorithms), outcome supervision suffers from two fatal mathematical vulnerabilities:</p>
+<ol>
+<li><strong>The Credit Assignment Dilemma</strong>: If a model generates 25 correct deductive steps, makes an arithmetic sign slip at Step 26, and reaches the wrong boxed answer, the terminal reward is $R = 0$. Outcome supervision assigns negative credit to all 25 flawless logical deductions, actively unlearning valid mathematical principles!</li>
+<li><strong>The False-Positive Illusion (Lucky Bugs)</strong>: A model can make two compounding, illegal logical errors that accidentally cancel out, arriving at the correct final integer by sheer luck. An Outcome Reward Model assigns this solution a perfect $+1.0$ score, strongly reinforcing hallucinated logic!</li>
+</ol>
+<p>The central bridging question is:</p>
+
+
+$$
+\text{How do we mathematically formulate step-level verification, estimate intermediate validity without expensive per-step human annotations, and use Process Reward Models to prune search trees?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. Step-Level Reasoning Decomposition</h3>
+<p>Let an input question be $x$. A generative model produces a chain-of-thought completion $y$ partitioned into $K$ distinct sequential reasoning steps separated by newline delimiters ($\texttt{\textbackslash n\textbackslash n}$):</p>
+
+
+$$
+y = (s_1, s_2, \dots, s_K)
+$$
+
+
+<p>where $s_k$ is the sequence of tokens comprising the $k$-th reasoning step.</p>
+<hr />
+<h3>2. Outcome Reward Model (ORM) vs. Process Reward Model (PRM)</h3>
+<ul>
+<li><strong>Outcome Reward Model ($R_{\text{ORM}}$)</strong>: A scalar classifier operating exclusively on the complete sequence:</li>
+</ul>
+
+
+$$
+r_{\text{ORM}}(x, y) = \sigma\left( f_{\boldsymbol{\theta}}(x, s_1, \dots, s_K) \right) \in [0, 1]
+$$
+
+
+<ul>
+<li><strong>Process Reward Model ($R_{\text{PRM}}$)</strong>: A classifier parameterized by weights $\boldsymbol{\psi}$ that evaluates the correctness of each individual step $s_k$ conditioned on the question and all preceding steps:</li>
+</ul>
+
+
+$$
+r_k = \sigma\left( f_{\boldsymbol{\psi}}(x, s_1, s_2, \dots, s_k) \right) \in [0, 1]
+$$
+
+
+<p>The <strong>Joint Validity</strong> of the complete reasoning path under the independence assumption is:</p>
+
+
+$$
+P(\text{Path Valid}) = \prod_{k=1}^K r_k
+$$
+
+
+<p>If a single catastrophic error occurs at step $j$ ($r_j \approx 0$), the entire path validity collapses to zero:</p>
+
+
+$$
+r_j \to 0 \implies \prod_{k=1}^K r_k \to 0
+$$
+
+
+<hr />
+<h3>3. Automated Step Annotation via Monte Carlo Rollouts (Math-Shepherd)</h3>
+<p>Hiring human mathematicians to annotate millions of individual intermediate steps is prohibitively expensive.
+The <strong>Math-Shepherd</strong> algorithm automates step supervision using Monte Carlo rollouts:</p>
+<p>For a given problem $x$ and prefix $s_{1:k} = (s_1, \dots, s_k)$, the system samples $M$ independent rollouts to completion using base generator $\pi_{\text{gen}}$:</p>
+
+
+$$
+\{c_1, c_2, \dots, c_M\} \sim \pi_{\text{gen}}\left(\cdot \mid x, s_{1:k}\right)
+$$
+
+
+<p>Each completed rollout is checked by an automated deterministic verifier $v(c_m) \in \{0, 1\}$ (e.g. SymPy or Python unit tests).
+The true empirical value of state $s_{1:k}$ is the fraction of rollouts that yield the correct answer:</p>
+
+
+$$
+V^*(x, s_{1:k}) = \frac{1}{M} \sum_{m=1}^M v(c_m) \in [0, 1]
+$$
+
+
+<p>The step ground-truth label $y_k$ is assigned by comparing the change in value across steps:</p>
+
+
+$$
+y_k = \begin{cases}
+1 & \text{if } V^*(x, s_{1:k}) \ge \tau \quad (\text{promising step that preserves solvability}) \\
+0 & \text{if } V^*(x, s_{1:k}) < \tau \quad (\text{fatal step leading to dead ends})
+\end{cases}
+$$
+
+
+<p>where $\tau \in (0, 1)$ is a validity threshold (typically $\tau = 0.5$).</p>
+<hr />
+<h3>4. PRM Training Objective</h3>
+<p>The PRM is trained using Binary Cross-Entropy (<abbr title="Binary Cross-Entropy">BCE</abbr>) loss applied to the representation of the terminal step token (the newline or step delimiter) across all steps:</p>
+
+
+$$
+\mathcal{L}_{\text{PRM}}(\boldsymbol{\psi}) = -\sum_{k=1}^K \left[ y_k \log r_k + (1 - y_k) \log(1 - r_k) \right]
+$$
+
+
+<hr />
+<h3>5. PRM-Guided Best-of-$N$ Selection Metrics</h3>
+<p>When sampling $N$ candidate solutions at test time, how do we rank them?
+There are three primary PRM ranking aggregators:</p>
+<ol>
+<li><strong>Minimum Step Score (Bottleneck Pruning)</strong>:</li>
+</ol>
+
+
+$$
+\operatorname{Score}_{\min}(y) = \min_{1 \le k \le K} r_k
+$$
+
+
+<p><em>A chain is only as strong as its weakest link! If even one step is flawed, the solution is discarded.</em>
+2. <strong>Product of Step Scores (Joint Probability)</strong>:</p>
+
+
+$$
+\operatorname{Score}_{\text{prod}}(y) = \prod_{k=1}^K r_k = \exp\left( \sum_{k=1}^K \log r_k \right)
+$$
+
+
+<ol start="3">
+<li><strong>Length-Normalized Average Score</strong>:</li>
+</ol>
+
+
+$$
+\operatorname{Score}_{\text{mean}}(y) = \frac{1}{K} \sum_{k=1}^K r_k
+$$
+
+
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="2022">2022</time> &mdash; <strong>Jonathan Uesato et al. (DeepMind)</strong></dt>
+  <dd>Published <cite>"Solving math word problems with process- and outcome-based feedback"</cite>, formally demonstrating that step-level human feedback produces superior reasoning reliability compared to terminal outcome rewards alone.</dd>
+
+  <dt><time datetime="2023-05">May 2023</time> &mdash; <strong>Hunter Lightman et al. (OpenAI)</strong></dt>
+  <dd>Published the landmark paper <cite>"Let's Verify Step by Step"</cite> alongside the <strong>PRM800K</strong> dataset (800,000 human-annotated math step labels). Proved that PRM-guided Best-of-$N$ search crushed ORMs on the high-school MATH benchmark (78.2% vs. 69.6%), specifically eliminating false-positive logic leaps.</dd>
+
+  <dt><time datetime="2023-12">December 2023</time> &mdash; <strong>Peiyi Wang et al. (Math-Shepherd)</strong></dt>
+  <dd>Overcame the human annotation bottleneck by demonstrating that Monte Carlo completion rollouts could autonomously synthesize high-quality PRM labels at scale, paving the way for fully automated RL verification loops.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us trace step verification by hand on two competing candidate derivations for a high school algebra problem.</p>
+<h3>The Problem</h3>
+<p><kbd>"Find x if 2x + 6 = 16"</kbd>. (Ground truth: $x = 5$).</p>
+<hr />
+<h3>Candidate Solution A: Valid Step-by-Step Derivation</h3>
+<ul>
+<li><strong>Step 1 ($s_1$)</strong>: <samp>"Subtract 6 from both sides: 2x = 16 - 6 = 10\n\n"</samp></li>
+<li>PRM evaluation: Correct algebraic manipulation $\to$ <mark>$r_1 = 0.98$</mark>.</li>
+<li><strong>Step 2 ($s_2$)</strong>: <samp>"Divide both sides by 2: x = 10 / 2 = 5\n\n"</samp></li>
+<li>PRM evaluation: Flawless division $\to$ <mark>$r_2 = 0.96$</mark>.</li>
+<li><strong>Step 3 ($s_3$)</strong>: <samp>"Therefore, the solution is 5.\n\n"</samp></li>
+<li>PRM evaluation: Direct logical conclusion $\to$ <mark>$r_3 = 0.99$</mark>.</li>
+</ul>
+<h4>Metrics for Solution A:</h4>
+<ul>
+<li>Outcome Verifier (ORM): Answer is 5 $\to$ $R_{\text{ORM}} = 1.0$.</li>
+<li>PRM Minimum: $\operatorname{Score}_{\min} = \min(0.98, 0.96, 0.99) = \mathbf{0.96}$.</li>
+<li>PRM Product: $\operatorname{Score}_{\text{prod}} = 0.98 \times 0.96 \times 0.99 = \mathbf{0.9314}$.</li>
+</ul>
+<hr />
+<h3>Candidate Solution B: Flawed Logic with Canceling Lucky Error</h3>
+<ul>
+<li><strong>Step 1 ($s_1$)</strong>: <samp>"Subtract 6 from both sides: 2x = 16 + 6 = 22\n\n"</samp></li>
+<li>Notice the fatal sign error ($+6$ instead of $-6$)!</li>
+<li>PRM evaluation: Arithmetic hallucination $\to$ <del>$r_1 = 0.04$</del>.</li>
+<li><strong>Step 2 ($s_2$)</strong>: <samp>"Divide both sides by 2: x = 22 / 2 = 11\n\n"</samp></li>
+<li>PRM evaluation: Mechanically follows Step 1, but premise is false $\to$ $r_2 = 0.85$.</li>
+<li><strong>Step 3 ($s_3$)</strong>: <samp>"Subtract 6 to get final answer: x = 11 - 6 = 5. Final answer: 5.\n\n"</samp></li>
+<li>Random unmotivated subtraction that accidentally hits the number 5!</li>
+<li>PRM evaluation: Unjustified operation $\to$ $r_3 = 0.10$.</li>
+</ul>
+<h4>Metrics for Solution B:</h4>
+<ul>
+<li><strong>Outcome Verifier (ORM)</strong>: Final boxed answer is $5$ $\to$ <mark>$R_{\text{ORM}} = 1.0$ (Fatal False Positive!)</mark></li>
+<li><strong>PRM Minimum</strong>:</li>
+</ul>
+
+
+$$
+\operatorname{Score}_{\min} = \min(0.04, 0.85, 0.10) = \mathbf{0.04}
+$$
+
+
+<ul>
+<li><strong>PRM Product</strong>:</li>
+</ul>
+
+
+$$
+\operatorname{Score}_{\text{prod}} = 0.04 \times 0.85 \times 0.10 = \mathbf{0.0034}
+$$
+
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 32.1:</strong> Comparison of ORM vs. PRM scoring on Candidate B (Lucky Error).</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">Evaluation System</th>
+      <th align="right">Assigned Score</th>
+      <th align="left">Verdict</th>
+      <th align="left">Consequence on LLM Training</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Outcome Reward Model (ORM)</strong></td>
+      <td align="right"><strong>1.0000</strong></td>
+      <td>Accepted as ground truth</td>
+      <td><mark>Fatal</mark>: Reinforces sign error and random arithmetic tricks.</td>
+    </tr>
+    <tr>
+      <td><strong>PRM Minimum Aggregator</strong></td>
+      <td align="right"><strong>0.0400</strong></td>
+      <td>Instantly rejected</td>
+      <td><strong>Success</strong>: Discards path due to Step 1 fallacy.</td>
+    </tr>
+    <tr>
+      <td><strong>PRM Joint Product Aggregator</strong></td>
+      <td align="right"><strong>0.0034</strong></td>
+      <td>Severely penalized</td>
+      <td><strong>Success</strong>: Solution pruned from search tree.</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p>Process Reward Models (PRMs) solve the foundational credit assignment failure of Large Language Models: by evaluating the mathematical validity of every single intermediate reasoning step rather than just the final answer, PRMs expose lucky logical fallacies and provide granular value gradients that enable search algorithms to prune doomed branches the exact millisecond they occur.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../31b-lab-grpo-engine/index.html">&larr; Hands-on Lab 07: The GRPO Reasoning Engine (Autonomous Reasoning in 200 Lines of Pure Python)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../33-mcts-and-test-time-compute/index.html">Chapter 33: Search, MCTS & Test-Time Compute Scaling &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

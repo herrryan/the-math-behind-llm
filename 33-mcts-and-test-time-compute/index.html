@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 33: Search, MCTS & Test-Time Compute Scaling - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../32-process-reward-models/index.html">&larr; Chapter 32: Process Reward Models (PRMs) & Step-Level Verification</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 33: Search, MCTS &amp; Test-Time Compute Scaling</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Chess Grandmaster Looking Ahead)</h2>
+<p>Imagine two different people playing a high-stakes game of chess:</p>
+<ol>
+<li><strong>The Impulsive Novice (Standard Greedy LLM Generation)</strong>:</li>
+</ol>
+<ul>
+<li>The novice looks at the board and immediately grabs the piece that looks flashiest.</li>
+<li>They don't look ahead at all. They just say: <em>"Ooh, my queen can move forward!"</em></li>
+<li>Five seconds later, their opponent traps the queen and the game is over.</li>
+<li>This is standard LLM autoregressive greedy decoding: the model outputs the very first token that has the highest instantaneous probability, with zero ability to look into the future.</li>
+</ul>
+<ol start="2">
+<li><strong>The Grandmaster Closing Their Eyes (Search &amp; MCTS)</strong>:</li>
+</ol>
+<ul>
+<li>The chess grandmaster sits with closed eyes, breathing slowly. Before touching a single piece, they explore a mental tree of possibilities:<ul>
+<li><strong>Branch A</strong>: <em>"If I move my knight to E5, my opponent can pin my bishop. That leads to a dangerous bind."</em> $\to$ <strong>Mental Red Flag! Discard Branch A.</strong></li>
+<li><strong>Branch B</strong>: <em>"If I push my pawn to D4, my opponent can sacrifice a rook and force a draw."</em> $\to$ <strong>Discard Branch B.</strong></li>
+<li><strong>Branch C</strong>: <em>"If I trade bishops first, and then move my rook to C1, my opponent has no defense."</em> $\to$ <strong>Golden Path!</strong></li>
+</ul>
+</li>
+<li>The grandmaster tests multiple moves, evaluates intermediate board positions using gut intuition (the Process Reward Model from Chapter 32), backs up from dead ends, and only plays the physical move once the entire path is verified.</li>
+</ul>
+<ol start="3">
+<li><strong>Trading Thinking Time for Superhuman Intelligence</strong>:</li>
+</ol>
+<ul>
+<li>If you give the grandmaster <strong>1 second</strong> to move (blitz chess), they make decent, intuitive moves.</li>
+<li>If you give the grandmaster <strong>10 minutes</strong> to think, they find a stunning, counter-intuitive sacrifice that wins the world championship!</li>
+<li>Their physical brain didn't get bigger in those 10 minutes. What scaled was <strong>Test-Time Compute</strong> &mdash; spending more computational effort thinking, exploring, and verifying before committing to an answer.</li>
+</ul>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│                   THE MCTS TEST-TIME SEARCH PARADIGM                   │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│                  [ Root State s_0 (Prompt) ]                           │
+│                          /         \                                   │
+│                         /           \                                  │
+│              Step a_1  /             \  Step a_2 (Chosen via PUCT)     │
+│                       ▼               ▼                                │
+│                   [ Node s_1 ]     [ Node s_2 ]                        │
+│                                      /    \                            │
+│                          Step a_21  /      \  Step a_22                │
+│                                    ▼        ▼                          │
+│                               [ Leaf s_L ]  [ Dead End ] (PRM = 0.04)  │
+│                                    │                                   │
+│                                    ▼                                   │
+│                           PRM Evaluation: V(s_L)                       │
+│                                    │                                   │
+│                                    ▼                                   │
+│                  Backpropagate Value &amp; Update Counts:                  │
+│                     N(s, a) += 1,  Q(s, a) += ΔQ                       │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 33.1:</strong> Monte Carlo Tree Search on language reasoning: Balances exploration and exploitation via PUCT, evaluates intermediate states via PRMs, and updates tree statistics.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>In Chapters 00 to 28, the capabilities of Large Language Models were dictated by the <strong>Pre-training Scaling Laws</strong> (Kaplan et al., Chinchilla): to make a model smarter, one had to double the model parameters $N$ or quadruple the pre-training tokens $D$.
+However, pre-training scaling is colliding with physical reality:
+1. <strong>The Web Data Exhaustion Wall</strong>: Human society has already fed almost all high-quality public text, books, and code into frontier models.
+2. <strong>The Gigawatt Power Wall</strong>: Training clusters are consuming hundreds of megawatts of electrical power, requiring hundreds of millions of dollars per run.</p>
+<p>The bridging question is:</p>
+
+
+$$
+\text{How do we mathematically scale inference-time compute (FLOPs) &mdash; through Best-of-}N\text{, Majority Voting, and Monte Carlo Tree Search (MCTS) &mdash; to achieve orders-of-magnitude reasoning gains without retraining the base model parameters?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. The Test-Time Compute Scaling Law</h3>
+<p>Let inference compute $C_{\text{test}}$ be defined as the total floating-point operations invested into exploring reasoning trajectories for a single query $x$:</p>
+
+
+$$
+C_{\text{test}} \approx N_{\text{rollouts}} \times T_{\text{length}} \times \text{FLOPs}_{\text{model}}
+$$
+
+
+<p>Empirical research (Snell et al., OpenAI o1) demonstrates that reasoning benchmark accuracy scales log-linearly with test-time compute expenditure:</p>
+
+
+$$
+\text{Error Rate}(C_{\text{test}}) \propto C_{\text{test}}^{-\alpha}
+$$
+
+
+<p>where $\alpha > 0$ is the test-time scaling exponent. A 7-billion parameter model given sufficient test-time compute can soundly defeat a 70-billion parameter model running single-pass greedy decoding!</p>
+<hr />
+<h3>2. Self-Consistency and Majority Voting</h3>
+<p>The simplest form of test-time search is <strong>Self-Consistency (Majority Voting)</strong>:
+1. Sample $N$ independent reasoning paths $\{y_1, y_2, \dots, y_N\} \sim \pi_{\boldsymbol{\theta}}(x)$ using temperature sampling ($\tau \approx 0.7$).
+2. Extract the final discrete answer $\operatorname{ans}(y_i) \in \mathcal{Y}$.
+3. Select the answer with the highest frequency:</p>
+
+
+$$
+\hat{y} = \arg\max_{a \in \mathcal{Y}} \sum_{i=1}^N \mathbb{I}\left(\operatorname{ans}(y_i) = a\right)
+$$
+
+
+<h4>Mathematical Bounds via the Binomial Distribution</h4>
+<p>Suppose the base model has a per-sample probability $p$ of reaching the correct discrete answer. If $p > 0.5$, the probability that the majority of $N$ independent odd samples ($N = 2m + 1$) is correct follows the regularized incomplete beta function:</p>
+
+
+$$
+P_N(\text{Majority Correct}) = \sum_{k=\frac{N+1}{2}}^N \binom{N}{k} p^k (1-p)^{N-k} = I_p\left(\frac{N+1}{2}, \frac{N+1}{2}\right)
+$$
+
+
+<p>By the Condorcet Jury Theorem, as $N \to \infty$:</p>
+
+
+$$
+\lim_{N \to \infty} P_N(\text{Majority Correct}) = 1.0 \quad (\text{for any } p > 0.5)
+$$
+
+
+<p>The error rate decays exponentially with sample budget $N$:</p>
+
+
+$$
+P_N(\text{Error}) \le \exp\left( -2 N \left(p - \frac{1}{2}\right)^2 \right)
+$$
+
+
+<hr />
+<h3>3. Monte Carlo Tree Search (MCTS) on Language Reasoning Steps</h3>
+<p>When problems require dozens of sequential deductive steps, independent sampling wastes enormous compute regenerating identical prefixes.
+We structure test-time search as a tree $(\mathcal{V}, \mathcal{E})$ where each node represents a partial reasoning state $s_t = (x, s_1, \dots, s_t)$ and each edge represents a reasoning step $a_t = s_{t+1}$.</p>
+<p>Each state-action edge $(s, a)$ maintains four statistics:</p>
+<ul>
+<li><strong>$N(s, a)$</strong>: Visit count.</li>
+<li><strong>$W(s, a)$</strong>: Total accumulated value.</li>
+<li><strong>$Q(s, a)$</strong>: Mean state-action value: $Q(s, a) = \frac{W(s, a)}{N(s, a)}$.</li>
+<li><strong>$P(s, a)$</strong>: Prior policy probability: $P(s, a) = \pi_{\boldsymbol{\theta}}(a \mid s)$.</li>
+</ul>
+<p>MCTS iterates through four fundamental phases:</p>
+<h4>Phase 1: Selection via PUCT</h4>
+<p>Starting at root node $s_0$, descend the tree by choosing action $a^*$ that maximizes the <strong>Predictor Upper Confidence Bound applied to Trees (<abbr title="Predictor Upper Confidence Bound applied to Trees">PUCT</abbr>)</strong>:</p>
+
+
+$$
+a^* = \arg\max_a \left[ Q(s, a) + U(s, a) \right]
+$$
+
+
+<p>where the exploration bonus $U(s, a)$ is defined as:</p>
+
+
+$$
+U(s, a) = c_{\text{puct}} P(s, a) \frac{\sqrt{\sum_{b} N(s, b)}}{1 + N(s, a)}
+$$
+
+
+<p>where $c_{\text{puct}} \approx 1.5$ balances exploitation (high $Q$) and exploration (high prior $P$, low visits $N$).</p>
+<h4>Phase 2: Expansion</h4>
+<p>Upon reaching a leaf node $s_L$, generate $K$ candidate next reasoning steps using the policy model:</p>
+
+
+$$
+\{a_1, a_2, \dots, a_K\} \sim \pi_{\boldsymbol{\theta}}(\cdot \mid s_L)
+$$
+
+
+<p>Initialize each new edge with $N(s_L, a_k) = 0, W(s_L, a_k) = 0, Q(s_L, a_k) = 0$.</p>
+<h4>Phase 3: Evaluation</h4>
+<p>Evaluate the quality of the leaf node $s_L$ using a Process Reward Model (Chapter 32) or terminal rollout verifier:</p>
+
+
+$$
+V(s_L) = \sigma\left(f_{\boldsymbol{\psi}}(s_L)\right) \in [0, 1]
+$$
+
+
+<h4>Phase 4: Backpropagation</h4>
+<p>Ascend the tree from $s_L$ back to root $s_0$. For every traversed edge $(s, a)$, update its visit count and value:</p>
+
+
+$$
+N(s, a) \leftarrow N(s, a) + 1, \quad W(s, a) \leftarrow W(s, a) + V(s_L), \quad Q(s, a) = \frac{W(s, a)}{N(s, a)}
+$$
+
+
+<hr />
+<h3>4. Autonomous Reasoning Phenomena in Extended Thinking</h3>
+<p>When models are trained under search-driven reinforcement learning (such as DeepSeek-R1 or OpenAI o1), two remarkable phenomena emerge during test-time generation:</p>
+<ol>
+<li><strong>Thinking Token Expansion</strong>: The model autonomously allocates thousands of internal tokens inside <code>&lt;think&gt;...&lt;/think&gt;</code> tags to explore, simulate, and verify alternative hypotheses before producing the final <code>&lt;answer&gt;</code>.</li>
+<li><strong>Spontaneous Metacognitive Backtracking</strong>: Without human demonstrations, the policy generates self-monitoring trigger phrases:</li>
+</ol>
+<ul>
+<li><samp>"Wait, let me double check that assumption..."</samp></li>
+<li><samp>"Actually, plugging x=3 back into equation 1 yields a contradiction. Let me rethink..."</samp>
+   These markers indicate that the model is performing internal tree search directly in token space!</li>
+</ul>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="2006">2006</time> &mdash; <strong>Rémi Coulom, Levente Kocsis, & Csaba Szepesvári</strong></dt>
+  <dd>Introduced <em>Monte Carlo Tree Search (MCTS)</em> and the <em>UCT</em> algorithm, revolutionizing computer Go by replacing brute-force minimax search with statistical exploration-exploitation bounds.</dd>
+
+  <dt><time datetime="2016–2017">2016–2017</time> &mdash; <strong>David Silver et al. (AlphaGo &amp; AlphaZero, DeepMind)</strong></dt>
+  <dd>Formulated the modern <strong>PUCT</strong> equation, marrying deep policy networks (for action priors $P(s,a)$) with value networks ($Q(s,a)$) and tree search, achieving superhuman mastery over Go, Chess, and Shogi.</dd>
+
+  <dt><time datetime="2022">2022</time> &mdash; <strong>Xuezhi Wang et al. (Google Research)</strong></dt>
+  <dd>Introduced <em>Self-Consistency</em> in Chain-of-Thought reasoning, proving that sampling diverse reasoning paths and taking the majority vote delivered double-digit accuracy leaps across mathematical benchmarks.</dd>
+
+  <dt><time datetime="2024–2025">2024–2025</time> &mdash; <strong>The Inference Compute Paradigm Shift (OpenAI o1 &amp; DeepSeek-R1)</strong></dt>
+  <dd>Marked the transition from pure pre-training scaling to <strong>Test-Time Compute Scaling</strong>. DeepSeek-R1 proved that pure reinforcement learning (GRPO) directly incentivizes models to expand internal search trees, solving Olympiad-level mathematics and competitive coding.</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us trace a concrete PUCT selection and backpropagation calculation by hand with exact numbers.</p>
+<h3>The Search Tree State at Root $s_0$</h3>
+<p>Suppose our search tree is at root state $s_0$ (the initial problem prompt).</p>
+<ul>
+<li>Exploration hyperparameter: $c_{\text{puct}} = 1.414$ ($\approx \sqrt{2}$).</li>
+<li>Total root visit count: $\sum_{b} N(s_0, b) = 10$.</li>
+<li>The model policy proposed two candidate next steps:</li>
+<li><strong>Candidate Step $a_1$</strong>: High prior probability, heavily visited.<ul>
+<li>Prior: $P(s_0, a_1) = 0.60$</li>
+<li>Visit count: $N(s_0, a_1) = 8$</li>
+<li>Accumulated value: $W(s_0, a_1) = 5.60$</li>
+<li>Mean value: $Q(s_0, a_1) = \frac{5.60}{8} = 0.70$</li>
+</ul>
+</li>
+<li><strong>Candidate Step $a_2$</strong>: Lower prior probability, lightly explored.<ul>
+<li>Prior: $P(s_0, a_2) = 0.40$</li>
+<li>Visit count: $N(s_0, a_2) = 2$</li>
+<li>Accumulated value: $W(s_0, a_2) = 1.30$</li>
+<li>Mean value: $Q(s_0, a_2) = \frac{1.30}{2} = 0.65$</li>
+</ul>
+</li>
+</ul>
+<p>Which branch will the PUCT tree policy select for the next simulation?</p>
+<hr />
+<h3>Phase 1: Evaluating the PUCT Selection Formula</h3>
+<p>The parent visit root term is:</p>
+
+
+$$
+\sqrt{\sum_b N(s_0, b)} = \sqrt{10} \approx 3.1623
+$$
+
+
+<h4>1. PUCT Score for Candidate Step $a_1$:</h4>
+
+
+$$
+\begin{aligned}
+U(s_0, a_1) &= c_{\text{puct}} \cdot P(s_0, a_1) \cdot \frac{\sqrt{10}}{1 + N(s_0, a_1)} \\
+&= 1.414 \times 0.60 \times \frac{3.1623}{1 + 8} \\
+&= 0.8484 \times \frac{3.1623}{9} \\
+&= 0.8484 \times 0.3514 \approx \mathbf{0.2981}
+\end{aligned}
+$$
+
+
+<p>Total selection score:</p>
+
+
+$$
+\operatorname{PUCT}(s_0, a_1) = Q(s_0, a_1) + U(s_0, a_1) = 0.70 + 0.2981 = \mathbf{0.9981}
+$$
+
+
+<h4>2. PUCT Score for Candidate Step $a_2$:</h4>
+
+
+$$
+\begin{aligned}
+U(s_0, a_2) &= c_{\text{puct}} \cdot P(s_0, a_2) \cdot \frac{\sqrt{10}}{1 + N(s_0, a_2)} \\
+&= 1.414 \times 0.40 \times \frac{3.1623}{1 + 2} \\
+&= 0.5656 \times \frac{3.1623}{3} \\
+&= 0.5656 \times 1.0541 \approx \mathbf{0.5962}
+\end{aligned}
+$$
+
+
+<p>Total selection score:</p>
+
+
+$$
+\operatorname{PUCT}(s_0, a_2) = Q(s_0, a_2) + U(s_0, a_2) = 0.65 + 0.5962 = \mathbf{1.2462}
+$$
+
+
+<fieldset>
+<legend><strong>The Power of PUCT</strong></legend>
+<p>Look at the selection decision:</p>
+<p>$\operatorname{PUCT}(s_0, a_2) = \mathbf{1.2462} > \operatorname{PUCT}(s_0, a_1) = \mathbf{0.9981}$.</p>
+<p>Even though Candidate Step $a_1$ has a higher prior probability ($0.60 > 0.40$) and a higher mean value ($0.70 > 0.65$), the search tree chooses <strong>Candidate Step $a_2$</strong> because its low visit count ($N=2$) creates a massive exploration bonus ($0.5962$ vs $0.2981$)! The algorithm refuses to prematurely lock into familiar paths.</p>
+</fieldset>
+<hr />
+<h3>Phase 2: Leaf Evaluation &amp; Backpropagation</h3>
+<p>Following edge $(s_0, a_2)$ leads to a leaf node $s_L$.
+The Process Reward Model (PRM) evaluates $s_L$ and discovers that it represents a brilliant mathematical insight:</p>
+
+
+$$
+V(s_L) = \mathbf{0.90}
+$$
+
+
+<p>We backpropagate this evaluation up the tree to update edge $(s_0, a_2)$:
+1. Increment visit count:</p>
+
+
+$$
+N_{\text{new}}(s_0, a_2) = N_{\text{old}} + 1 = 2 + 1 = \mathbf{3}
+$$
+
+
+<ol start="2">
+<li>Update accumulated value:</li>
+</ol>
+
+
+$$
+W_{\text{new}}(s_0, a_2) = W_{\text{old}} + V(s_L) = 1.30 + 0.90 = \mathbf{2.20}
+$$
+
+
+<ol start="3">
+<li>Update mean state-action value:</li>
+</ol>
+
+
+$$
+Q_{\text{new}}(s_0, a_2) = \frac{W_{\text{new}}}{N_{\text{new}}} = \frac{2.20}{3} \approx \mathbf{0.7333}
+$$
+
+
+<p><mark>$Q(s_0, a_2)$ jumped from $0.6500$ to $0.7333$, now surpassing Candidate Step $a_1$ ($0.7000$)!</mark>
+By exploring an under-visited branch, the search algorithm discovered a superior reasoning pathway that greedy decoding would have permanently ignored.</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p>Test-Time Compute Scaling represents the second scaling frontier of artificial intelligence: by replacing single-pass greedy token generation with Monte Carlo Tree Search (<abbr title="Monte Carlo Tree Search">MCTS</abbr>) and majority verification, Large Language Models convert additional inference FLOPs into superhuman reasoning &mdash; exploring branching hypotheses, pruning dead ends, and autonomously discovering verified truths.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../32-process-reward-models/index.html">&larr; Chapter 32: Process Reward Models (PRMs) & Step-Level Verification</a> &bull; <a href="../index.html">Course Overview</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

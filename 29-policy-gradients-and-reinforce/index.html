@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 29: Language as an MDP & Policy Gradients (REINFORCE & Variance Reduction) - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../28-distributed-serving/index.html">&larr; Chapter 28: Distributed Serving (Tensor Parallelism & Prefill-Decode Disaggregation)</a> &nbsp;|&nbsp; <a href="../index.html">Home / Curriculum Overview</a> &nbsp;|&nbsp; <strong>Next:</strong> <a href="../30-ppo-and-actor-critic/index.html">Chapter 30: The Actor-Critic Architecture & PPO (Proximal Policy Optimization) &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>Language:</strong> 
+      <a href="index.html"><strong>English (Active)</strong></a> &bull; 
+      <a href="index.zh.html">中文</a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>Chapter 29: Language as an MDP &amp; Policy Gradients (REINFORCE &amp; Variance Reduction)</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>Table of Contents:</strong> 
+    <a href="#step-1">1. 3-Year-Old Intuition</a> &bull; 
+    <a href="#step-2">2. The Bridging Question</a> &bull; 
+    <a href="#step-3">3. The Exact Math &amp; Formula</a> &bull; 
+    <a href="#step-4">4. Where Did It Come From?</a> &bull; 
+    <a href="#step-5">5. Concrete Toy Example</a> &bull; 
+    <a href="#step-6">6. Core Takeaway</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">Step 1: 3-Year-Old Intuition (The Blindfolded Archer and the Whispering Coach)</h2>
+<p>Imagine you are standing in a misty field wearing a thick black blindfold. In your hands is a toy bow and arrow:</p>
+<ol>
+<li><strong>The Blindfolded Archer (The Language Model)</strong>:</li>
+</ol>
+<ul>
+<li>You cannot see the target at all.</li>
+<li>You can only pull the string, point the arrow into the fog, and release.</li>
+<li>When you speak words, you are firing arrows into the fog &mdash; choosing one token after another based purely on gut feeling (your internal probabilities).</li>
+</ul>
+<ol start="2">
+<li><strong>The Coach's Whistle (The Reward)</strong>:</li>
+</ol>
+<ul>
+<li>After your arrow lands with a <em>thud</em>, an invisible judge across the field shouts a single score through a megaphone:<ul>
+<li><em>"Bullseye! 100 points!"</em></li>
+<li>or <em>"Missed the haystack entirely! 0 points!"</em></li>
+</ul>
+</li>
+<li>Notice something vital: The judge does <strong>not</strong> tell you <em>how</em> to aim. The judge does not say <em>"raise your left elbow by two inches"</em>. They only tell you how good the final result was.</li>
+</ul>
+<ol start="3">
+<li><strong>The Scorekeeper's Notebook (The Average Baseline)</strong>:</li>
+</ol>
+<ul>
+<li>If the judge shouts <em>"50 points!"</em>, is that great or terrible? You have no idea unless you know what you usually get!</li>
+<li>If your historical average score is only 10 points, then 50 points is fantastic! You want to remember the exact arm position that produced that shot.</li>
+<li>But if your historical average is 90 points, then 50 points is a huge disappointment! You want to steer away from whatever stance you just used.</li>
+<li>By <strong>subtracting the average score</strong> from every shot, you only adjust your muscles when a shot was <em>better than your everyday expectation</em>.</li>
+</ul>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│             THE POLICY GRADIENT REINFORCEMENT CYCLE                    │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│   Prompt [x] ──► [ Model Policy π_θ ] ──► Action tokens [y_1, ..., y_T]│
+│                          ▲                               │             │
+│                          │                               ▼             │
+│                 Gradient Adjustment                Environment /       │
+│                  Δθ ∝ ∇ log π_θ · (R - b)          Reward Function     │
+│                          ▲                               │             │
+│                          │                               ▼             │
+│                  Surprise Advantage ◄──── Scalar Reward R(τ)           │
+│                   A = R(τ) - Baseline b                                │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure 29.1:</strong> The reinforcement cycle: Language model acts as a policy, samples tokens, receives trajectory reward, and updates parameters proportionally to the surprise advantage.</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">Step 2: The Bridging Question</h2>
+<p>In Chapter 16, we learned Backpropagation: we computed the derivative of a continuous loss function with respect to every weight using the chain rule:</p>
+
+
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \frac{\partial \mathbf{y}}{\partial \mathbf{W}}
+$$
+
+
+<p>However, when an LLM generates text during real-world tasks (writing Python code, solving a math proof, answering a user query), something fundamental breaks:
+1. <strong>Sampling is Non-Differentiable</strong>: The model converts logits into tokens by sampling from a categorical distribution ($y_t \sim \operatorname{Categorical}(\mathbf{p}_t)$) or taking $\operatorname{argmax}$. You cannot compute the derivative of a discrete choice: $\frac{\partial \text{token}}{\partial \mathbf{W}}$ does not exist!
+2. <strong>The Environment is a Black Box</strong>: A Python compiler or human reviewer evaluates the full output: either the unit tests pass ($R=1$) or they fail ($R=0$). We cannot backpropagate through a Python compiler or a human judge.</p>
+<p>The bridging question is:</p>
+
+
+$$
+\text{How do we mathematically calculate the exact gradient of an expected reward } \nabla_{\boldsymbol{\theta}} \mathbb{E}[R] \text{ when the actions are discrete and the reward function is a non-differentiable black box?}
+$$
+
+
+<hr />
+<h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
+<h3>1. Language Generation as a Markov Decision Process (MDP)</h3>
+<p>We formulate autoregressive sequence generation as a discrete-time, finite-horizon <abbr title="Markov Decision Process">MDP</abbr> defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$:</p>
+<ul>
+<li><strong>State Space ($\mathcal{S}$)</strong>: At time step $t$, the state $s_t$ consists of the initial prompt $x$ and all generated tokens up to step $t-1$:</li>
+</ul>
+
+
+$$
+s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t}) \in \mathcal{S}
+$$
+
+
+<ul>
+<li><strong>Action Space ($\mathcal{A}$)</strong>: The action $a_t$ is the choice of the next token from the discrete vocabulary $\mathcal{V}$:</li>
+</ul>
+
+
+$$
+a_t = y_t \in \mathcal{V} \quad (|\mathcal{V}| \approx 32{,}000 \text{ to } 128{,}000)
+$$
+
+
+<ul>
+<li><strong>Transition Dynamics ($\mathcal{P}$)</strong>: The state transition is deterministic string concatenation:</li>
+</ul>
+
+
+$$
+s_{t+1} = [s_t, a_t] = (x, y_1, \dots, y_t)
+$$
+
+
+<p>with probability $\mathcal{P}(s_{t+1} \mid s_t, a_t) = 1$.</p>
+<ul>
+<li><strong>Policy ($\pi_{\boldsymbol{\theta}}$)</strong>: The language model parameterized by weights $\boldsymbol{\theta} \in \mathbb{R}^D$ outputs a categorical probability distribution over all tokens in $\mathcal{V}$ given state $s_t$:</li>
+</ul>
+
+
+$$
+\pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \operatorname{softmax}\left(\mathbf{z}_t\right)_{a_t} = \frac{\exp\left(z_{t, a_t}\right)}{\sum_{v \in \mathcal{V}} \exp\left(z_{t, v}\right)}
+$$
+
+
+<ul>
+<li><strong>Trajectory ($\tau$) and Return ($R(\tau)$)</strong>: A full generation episode produces a complete trajectory $\tau = (s_1, a_1, s_2, a_2, \dots, s_T, a_T)$. The scalar reward $R(\tau) \in \mathbb{R}$ is assigned upon terminal token generation (e.g., EOS token).</li>
+</ul>
+<p>The total probability of generating trajectory $\tau$ under policy $\boldsymbol{\theta}$ is:</p>
+
+
+$$
+P(\tau; \boldsymbol{\theta}) = P(s_1) \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \mathcal{P}(s_{t+1} \mid s_t, a_t) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
+$$
+
+
+<hr />
+<h3>2. The Expected Objective and the Score Function Trick</h3>
+<p>The optimization objective is to maximize the expected return over all possible sampled trajectories:</p>
+
+
+$$
+J(\boldsymbol{\theta}) = \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}}[R(\tau)] = \sum_{\tau} P(\tau; \boldsymbol{\theta}) R(\tau)
+$$
+
+
+<p>Taking the gradient with respect to model parameters $\boldsymbol{\theta}$:</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \nabla_{\boldsymbol{\theta}} \sum_{\tau} P(\tau; \boldsymbol{\theta}) R(\tau) = \sum_{\tau} \nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) R(\tau)
+$$
+
+
+<p>Notice that we cannot approximate this sum via Monte Carlo sampling because it contains $\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})$, which is not a valid probability distribution!</p>
+<p>To fix this, we apply the foundational <strong>Log-Derivative Trick</strong> (also known as the <strong>Score Function Estimator</strong>):
+Recall from basic calculus that $\frac{d}{dx} \ln f(x) = \frac{f'(x)}{f(x)}$, which implies:</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) = P(\tau; \boldsymbol{\theta}) \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})
+$$
+
+
+<p>Substituting this identity back into our gradient equation:</p>
+
+
+$$
+\begin{aligned}
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) &= \sum_{\tau} P(\tau; \boldsymbol{\theta}) \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \\
+&= \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \right]
+\end{aligned}
+$$
+
+
+<p>Now look at the term $\nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})$:</p>
+
+
+$$
+\log P(\tau; \boldsymbol{\theta}) = \log \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \sum_{t=1}^T \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
+$$
+
+
+<p>Taking the gradient eliminates the product and converts it into a clean sum over tokens:</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) = \sum_{t=1}^T \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
+$$
+
+
+<p>This yields the celebrated <strong>Policy Gradient Theorem (REINFORCE)</strong>:</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}} \left[ \sum_{t=1}^T \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) R(\tau) \right]
+$$
+
+
+<fieldset>
+<legend><strong>Why This Formula Is Magic</strong></legend>
+<p>Look carefully at what just happened: We took the derivative of an expectation over a non-differentiable reward $R(\tau)$, and transformed it into the standard gradient of the model's own log-probabilities $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}$ multiplied by a scalar number $R(\tau)$!</p>
+<p>The term $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)$ is identical to the gradient of the standard cross-entropy loss from Chapter 15. The only difference is that instead of pushing probability toward a fixed ground-truth token, we scale the push by the magnitude of the reward $R(\tau)$!</p>
+</fieldset>
+<hr />
+<h3>3. The Baseline Subtraction Theorem (Slashing Variance)</h3>
+<p>The raw REINFORCE estimator has a devastating defect: <strong>extreme sample variance</strong>.
+If all rewards are positive (e.g. $R \in [10, 100]$), <em>every single sampled trajectory</em> gets pushed upward! Even bad outputs get their probabilities increased, just slightly less than good outputs.</p>
+<p>To solve this, we subtract a <strong>baseline</strong> $b(s_t)$ that does not depend on the selected action $a_t$:</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}} \left[ \sum_{t=1}^T \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \left( R(\tau) - b(s_t) \right) \right]
+$$
+
+
+<h4>Mathematical Proof of Zero Bias:</h4>
+<p>We must prove that subtracting $b(s_t)$ does not change the expected gradient.
+Consider the expectation over actions at step $t$:</p>
+
+
+$$
+\begin{aligned}
+\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] &= \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \frac{\nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)}{\pi_{\boldsymbol{\theta}}(a_t \mid s_t)} b(s_t) \\
+&= b(s_t) \sum_{a_t \in \mathcal{V}} \nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \\
+&= b(s_t) \nabla_{\boldsymbol{\theta}} \left( \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \right)
+\end{aligned}
+$$
+
+
+<p>Because probabilities over the entire vocabulary must sum to exactly 1 by definition of the softmax function:</p>
+
+
+$$
+\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \equiv 1 \implies \nabla_{\boldsymbol{\theta}}(1) = 0
+$$
+
+
+<p>Therefore:</p>
+
+
+$$
+\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] = b(s_t) \cdot \mathbf{0} = \mathbf{0}
+$$
+
+
+<p>Subtracting any baseline $b(s_t)$ has <strong>strictly zero bias</strong> on the gradient direction, but it centers the reward signal, drastically reducing the variance $\operatorname{Var}(\hat{\mathbf{g}})$!</p>
+<hr />
+<h2 id="step-4">Step 4: Where Did It Come From?</h2>
+<dl>
+  <dt><time datetime="1992">1992</time> &mdash; <strong>Ronald J. Williams (REINFORCE)</strong></dt>
+  <dd>Williams introduced the <em>REINFORCE</em> algorithm (<cite>"Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning"</cite>), deriving the score function estimator for artificial neural networks and establishing baseline subtraction.</dd>
+
+  <dt><time datetime="1999">1999</time> &mdash; <strong>Richard Sutton, David McAllester, Satinder Singh, & Yishay Mansour</strong></dt>
+  <dd>Proved the general <em>Policy Gradient Theorem</em> for function approximators under arbitrary MDP state distributions, showing that we do not need to know the state distribution derivative $\nabla_{\boldsymbol{\theta}} d^{\pi}(s)$ to compute exact policy gradients.</dd>
+
+  <dt><time datetime="2016">2016–2020</time> &mdash; <strong>The LLM RL Crisis</strong></dt>
+  <dd>Early attempts to apply raw REINFORCE directly to language models (e.g. optimizing BLEU score in machine translation) suffered from unstable training, severe reward hacking, and mode collapse. The policy would quickly learn to generate repetitive punctuation or exploit edge-case reward loopholes, demanding dense actor-critic baselines (Chapter 30) and group normalization (Chapter 31).</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">Step 5: Concrete Toy Example</h2>
+<p>Let us trace a concrete policy gradient update by hand with tiny numbers.</p>
+<h3>The Toy Setup</h3>
+<ul>
+<li>Vocabulary: $\mathcal{V} = \{A, B, C\}$ ($|\mathcal{V}| = 3$).</li>
+<li>Single-token action $a \in \{A, B, C\}$.</li>
+<li>Model logits $\mathbf{z} = [z_A, z_B, z_C]^\top$.</li>
+<li>Currently, our model parameters produce logits:</li>
+</ul>
+
+
+$$
+\mathbf{z} = [1.0, \; 0.0, \; -1.0]^\top
+$$
+
+
+<ul>
+<li>Learning rate $\eta = 0.1$.</li>
+</ul>
+<hr />
+<h3>Phase 1: Forward Pass &amp; Softmax Probabilities</h3>
+<p>First, compute the exponentials:</p>
+<ul>
+<li>$e^{z_A} = e^{1.0} \approx 2.718$</li>
+<li>$e^{z_B} = e^{0.0} = 1.000$</li>
+<li>$e^{z_C} = e^{-1.0} \approx 0.368$</li>
+<li>Sum: $\sum e^{z_i} \approx 2.718 + 1.000 + 0.368 = 4.086$</li>
+</ul>
+<p>Probabilities $\pi_{\boldsymbol{\theta}}(a)$:</p>
+
+
+$$
+\pi(A) = \frac{2.718}{4.086} \approx 0.665 \quad (\lt meter min="0" max="1" value="0.665"></meter>)
+$$
+
+
+
+
+$$
+\pi(B) = \frac{1.000}{4.086} \approx 0.245 \quad (\lt meter min="0" max="1" value="0.245"></meter>)
+$$
+
+
+
+
+$$
+\pi(C) = \frac{0.368}{4.086} \approx 0.090 \quad (\lt meter min="0" max="1" value="0.090"></meter>)
+$$
+
+
+<hr />
+<h3>Phase 2: Action Sampling &amp; Environment Feedback</h3>
+<p>Suppose our stochastic sampling selects token <kbd>"B"</kbd> ($a = B$):</p>
+<ul>
+<li>The environment evaluates <kbd>"B"</kbd> and returns a reward:</li>
+</ul>
+
+
+$$
+R = 2.0
+$$
+
+
+<ul>
+<li>Our historical baseline average is:</li>
+</ul>
+
+
+$$
+b = 0.5
+$$
+
+
+<ul>
+<li>The <strong>Advantage</strong> (surprise) is:</li>
+</ul>
+
+
+$$
+A = R - b = 2.0 - 0.5 = +1.5
+$$
+
+
+<p>Because $A > 0$, the action <kbd>"B"</kbd> was much better than average! We want to increase its probability.</p>
+<hr />
+<h3>Phase 3: Exact Logit Gradients</h3>
+<p>Recall the gradient of log-softmax with respect to logit $z_i$ when action $a$ was chosen:</p>
+
+
+$$
+\frac{\partial \log \pi(a)}{\partial z_i} = \mathbb{I}(i = a) - \pi(i)
+$$
+
+
+<p>For our chosen action $a = B$:</p>
+<ul>
+<li>For token $A$: $\frac{\partial \log \pi(B)}{\partial z_A} = 0 - \pi(A) = -0.665$</li>
+<li>For token $B$: $\frac{\partial \log \pi(B)}{\partial z_B} = 1 - \pi(B) = 1 - 0.245 = +0.755$</li>
+<li>For token $C$: $\frac{\partial \log \pi(B)}{\partial z_C} = 0 - \pi(C) = -0.090$</li>
+</ul>
+<p>Check the sum of gradients: $-0.665 + 0.755 - 0.090 = 0.000$ (perfect zero-sum!).</p>
+<hr />
+<h3>Phase 4: Policy Gradient Step</h3>
+<p>The policy gradient with baseline is:</p>
+
+
+$$
+\mathbf{g} = \nabla_{\mathbf{z}} \log \pi(B) \cdot (R - b) = \begin{bmatrix} -0.665 \\ +0.755 \\ -0.090 \end{bmatrix} \times 1.5 = \begin{bmatrix} -0.9975 \\ +1.1325 \\ -0.1350 \end{bmatrix}
+$$
+
+
+<p>Applying gradient ascent with step size $\eta = 0.1$:</p>
+
+
+$$
+\mathbf{z}_{\text{new}} = \mathbf{z} + \eta \mathbf{g} = \begin{bmatrix} 1.0 \\ 0.0 \\ -1.0 \end{bmatrix} + 0.1 \begin{bmatrix} -0.9975 \\ +1.1325 \\ -0.1350 \end{bmatrix} = \begin{bmatrix} 0.90025 \\ 0.11325 \\ -1.01350 \end{bmatrix}
+$$
+
+
+<p>Let us verify the new probabilities under $\mathbf{z}_{\text{new}}$:</p>
+<ul>
+<li>$e^{0.90025} \approx 2.460$</li>
+<li>$e^{0.11325} \approx 1.120$</li>
+<li>$e^{-1.01350} \approx 0.363$</li>
+<li>New sum $\approx 3.943$</li>
+</ul>
+<p>New probabilities:</p>
+<ul>
+<li>$\pi_{\text{new}}(A) = \frac{2.460}{3.943} \approx 0.624$ (dropped from $0.665$)</li>
+<li>$\pi_{\text{new}}(B) = \frac{1.120}{3.943} \approx \mathbf{0.284}$ (<mark>increased from $0.245$!</mark>)</li>
+<li>$\pi_{\text{new}}(C) = \frac{0.363}{3.943} \approx 0.092$</li>
+</ul>
+<p>Action <kbd>"B"</kbd> received an instant $+3.9\%$ probability boost because it yielded a positive advantage ($+1.5$)!</p>
+<hr />
+<h2 id="step-6">Step 6: Core Takeaway</h2>
+<fieldset>
+<legend><strong>Core Pedagogical Takeaway</strong></legend>
+<p>The Policy Gradient Theorem bridges the discrete chasm of language generation by using the <strong>Log-Derivative Trick</strong>: we never differentiate through the sampled token or the reward function; instead, we scale the model's standard cross-entropy gradients by the scalar surprise of the reward.</p>
+<p>Subtracting a state baseline leaves the expected gradient mathematically unchanged while drastically taming the catastrophic variance of sampling across vast token vocabularies.</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../28-distributed-serving/index.html">&larr; Chapter 28: Distributed Serving (Tensor Parallelism & Prefill-Decode Disaggregation)</a> &bull; <a href="../index.html">Course Overview</a> &bull; <a href="../30-ppo-and-actor-critic/index.html">Chapter 30: The Actor-Critic Architecture & PPO (Proximal Policy Optimization) &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>

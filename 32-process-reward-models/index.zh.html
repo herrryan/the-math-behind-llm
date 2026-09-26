@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第 32 章：过程奖励模型（PRM）与步骤级验证 - The Math Behind LLMs</title>
+  <!-- KaTeX CSS for equation rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <!-- KaTeX Auto-Render Extension -->
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <style>
+    /* Compact High-Density Minimal Style (~38 lines) */
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13.5px;
+      line-height: 1.48;
+      color: #222222;
+      background-color: #f6f6ef;
+    }
+    h1, h2, h3, h4 {
+      color: #000000;
+      margin: 1.2rem 0 0.35rem;
+      line-height: 1.25;
+    }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.15rem; border-bottom: 1px solid #dcdcd4; padding-bottom: 2px; }
+    h3 { font-size: 1rem; }
+    p, ul, ol { margin: 0.45rem 0; }
+    hr { border: 0; border-top: 1px solid #dcdcd4; margin: 0.85rem 0; }
+    a { color: #000000; text-decoration: underline; }
+    a:hover { color: #ff6600; }
+    fieldset {
+      background-color: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.5rem 0.85rem;
+      margin: 0.75rem 0;
+    }
+    legend { font-weight: bold; color: #222; padding: 0 4px; }
+    blockquote {
+      border-left: 2px solid #828282;
+      margin: 0.6rem 0;
+      padding: 0.2rem 0 0.2rem 0.75rem;
+      color: #666;
+      background: #ffffff;
+    }
+    details {
+      border: 1px solid #dcdcd4;
+      background: #ffffff;
+      padding: 0.4rem 0.75rem;
+      margin: 0.5rem 0;
+    }
+    pre, code, kbd, samp {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+    pre {
+      background: #ffffff;
+      border: 1px solid #dcdcd4;
+      padding: 0.6rem;
+      overflow-x: auto;
+      line-height: 1.35;
+    }
+    kbd {
+      background: #eeeeee;
+      border: 1px solid #cccccc;
+      padding: 1px 4px;
+      border-radius: 2px;
+    }
+    samp { color: #828282; }
+    mark { background: #ffffbb; padding: 1px 3px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0;
+      font-size: 12.5px;
+    }
+    th, td { border: 1px solid #dcdcd4; padding: 4px 8px; }
+    th { background-color: #eae9e1; text-align: left; }
+    caption { caption-side: top; text-align: left; font-weight: bold; margin-bottom: 0.3rem; }
+    .katex-display { overflow-x: auto; overflow-y: hidden; margin: 0.5em 0; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><a href="../index.html">The Math Behind Large Language Models</a></h1>
+    <p><em>Intuitive, Rigorous, Pure Semantic HTML with KaTeX Math</em></p>
+    <hr>
+  </header>
+
+  <nav aria-label="Site and Language Navigation">
+    <p>
+      <a href="../31b-lab-grpo-engine/index.zh.html">&larr; 动手实验 07：纯 Python 实现 GRPO 推理引擎（200 行代码复刻自主推理与规则验证）</a> &nbsp;|&nbsp; <a href="../index.html">目录导航</a> &nbsp;|&nbsp; <strong>下一章：</strong> <a href="../33-mcts-and-test-time-compute/index.zh.html">第 33 章：搜索、蒙特卡洛树搜索（MCTS）与测试期算力缩放 &rarr;</a>
+      &nbsp;|&nbsp;
+      <strong>语言 / Language:</strong> 
+      <a href="index.html">English</a> &bull; 
+      <a href="index.zh.html"><strong>中文 (当前)</strong></a>
+    </p>
+  </nav>
+  <hr>
+
+  <main id="content">
+<h1>第 32 章：过程奖励模型（PRM）与步骤级验证</h1>
+
+<nav aria-label="Table of Contents">
+  <p>
+    <strong>目录导航：</strong> 
+    <a href="#step-1">1. 3 岁小孩直觉</a> &bull; 
+    <a href="#step-2">2. 承前启后的关键过渡</a> &bull; 
+    <a href="#step-3">3. 严谨数学公式与推导</a> &bull; 
+    <a href="#step-4">4. 历史渊源与技术演进</a> &bull; 
+    <a href="#step-5">5. 手算极简数值示例</a> &bull; 
+    <a href="#step-6">6. 核心精髓总结</a>
+  </p>
+</nav>
+<hr>
+
+
+<hr />
+<h2 id="step-1">步骤 1：3 岁小孩直觉（站在灶台边的大厨与餐厅的美食家）</h2>
+<p>想象一个厨师学徒正在做一锅极为复杂的法式高汤，需要熬制整整四个小时、经过二十道繁琐的工序：</p>
+<ol>
+<li><strong>只看结果的餐厅美食家（结果奖励模型 ORM）</strong>：</li>
+</ol>
+<ul>
+<li>美食家端坐在餐厅雅间里，四个小时内绝不踏进厨房半步。</li>
+<li>等学徒把熬好的汤端上来，美食家尝了一小口，突然皱起眉头大喊：“难喝死了！0 分！”</li>
+<li>试想此时学徒的内心感受：<ul>
+<li>是在第一步炒洋葱时糊锅了？</li>
+<li>是在第十八步倒进了变质的奶油？</li>
+<li>还是前十九步都堪称完美，只是在最后出锅时不小心掉进了一粒沙子？</li>
+</ul>
+</li>
+<li>学徒完全一头雾水！在<strong>结果监督奖励模型（<abbr title="Outcome Reward Model">ORM</abbr>）</strong>下，整整二十个烹饪步骤被扣上了完全相同的负面罪名，学徒根本不知道自己错在哪一步。</li>
+</ul>
+<ol start="2">
+<li><strong>守在灶台边的大厨师（过程奖励模型 PRM）</strong>：</li>
+</ol>
+<ul>
+<li>现在，一位顶级大厨站在灶台正旁边，手里拿着一个小银勺：<ul>
+<li><strong>第 1 步（焦糖化洋葱）</strong>：大厨尝了一口锅底 $\to$ <em>“洋葱金黄软糯，火候完美！第 1 步通过（得分 0.98）！”</em></li>
+<li><strong>第 2 步（白葡萄酒收汁）</strong>：尝了一口酸度 $\to$ <em>“酸香扑鼻，酒精挥发彻底！第 2 步通过（得分 0.95）！”</em></li>
+<li><strong>第 3 步（倒入牛肉高汤）</strong>：尝了一口汤底 $\to$ <em>“停！你用了高盐劣质浓缩汤块，而不是现熬的小牛肉骨汤！第 3 步严重失误（得分 0.04）！”</em></li>
+</ul>
+</li>
+<li>学徒<strong>在几毫秒内精确知道了</strong>错误发生的时间与工序！</li>
+<li>第 1 步和第 2 步的成功心得被完整保留下来。学徒无需推倒重来，只需倒掉第 3 步的汤块，重新换上优质骨汤，就能沿着正确的路径继续做出一流名菜。</li>
+</ul>
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────┐
+│             结果监督 (ORM) 与过程监督 (PRM) 的评价粒度对比              │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                        │
+│   输入问题 [x] ──► 步骤 1 ──► 步骤 2 ──► 步骤 3 (致命错误) ──► 步骤 4   │
+│                      │          │             │                │       │
+│                      │          │             │                ▼       │
+│                      │          │             │            最终答案    │
+│                      │          │             │                │       │
+│                      ▼          ▼             ▼                ▼       │
+│   ORM 结果评判:      ?          ?             ?           得分 = 0.0   │
+│   (所有步骤被平摊惩罚；无法提供任何中间归因与指导)                     │
+│                                                                        │
+│   PRM 过程评判:   r_1=0.98   r_2=0.95      r_3=0.04         r_4=0.10   │
+│   (精准定位逻辑断裂点；支持测试期剪枝与回溯重试！)                      │
+│                                                                        │
+└────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>图 32.1：</strong> 过程奖励模型（PRM）评估中间推理词元，将逻辑错误精确锁定在发生的当前步骤。</figcaption>
+</figure>
+
+<hr />
+<h2 id="step-2">步骤 2：承前启后的关键过渡</h2>
+<p>在第 30 章和第 31 章中，我们的奖励信号完全由终端输出的完整文本决定（$R(x, y)$）。
+然而，面对需要长达二三十步的严密数理逻辑推理或数百行代码推导时，纯粹依赖终局结果的监督暴露出两大致命数学隐患：</p>
+<ol>
+<li><strong>信用分配黑洞（Credit Assignment Dilemma）</strong>：如果模型连续推演了 25 个完全正确的代数引理，仅在第 26 步发生符号正负号笔误，导致最终数字错误，终端结果奖励只能给出 $R=0$。此时模型在反向传播中会将前 25 个极具价值的严谨推理步骤全盘否定，反向扼杀模型原本具备的正确推理能力！</li>
+<li><strong>错错得对的伪正例幻觉（Lucky False Positives）</strong>：模型在推导中犯了两个截然不同的逻辑错误，但两次错误在数值上恰好互相抵消，瞎猫碰死耗子撞对了最终数字。结果奖励模型会误以为这是一篇神作，并给出 $+1.0$ 的满分，从而狂暴地强化了模型的胡编乱造与伪逻辑！</li>
+</ol>
+<p>这就是承前启后的核心难题：</p>
+
+
+$$
+\text{我们如何在数学上形式化定义步骤级验证，在无需昂贵人工逐步标注的前提下自动合成步骤质量标签，并利用 PRM 精准引导推理搜索与剪枝？}
+$$
+
+
+<hr />
+<h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
+<h3>1. 推理链条的步骤级形式化分解</h3>
+<p>给定输入问题 $x$，自回归模型生成的长思维链文本 $y$ 可以被天然分割为 $K$ 个顺序推进的逻辑步骤，步骤之间通常由换行符（如 $\texttt{\textbackslash n\textbackslash n}$）隔开：</p>
+
+
+$$
+y = (s_1, s_2, \dots, s_K)
+$$
+
+
+<p>其中 $s_k$ 代表第 $k$ 步推理包含的词元子序列。</p>
+<hr />
+<h3>2. 结果奖励模型（ORM）与过程奖励模型（PRM）的数学定义</h3>
+<ul>
+<li><strong>结果奖励模型（$R_{\text{ORM}}$）</strong>：仅在整段文本结束时给出单一标量分类评分：</li>
+</ul>
+
+
+$$
+r_{\text{ORM}}(x, y) = \sigma\left( f_{\boldsymbol{\theta}}(x, s_1, \dots, s_K) \right) \in [0, 1]
+$$
+
+
+<ul>
+<li><strong>过程奖励模型（$R_{\text{PRM}}$）</strong>：参数为 $\boldsymbol{\psi}$ 的分类网络在每一步结束位置，基于输入与历史前缀给出该步骤的独立置信度评分：</li>
+</ul>
+
+
+$$
+r_k = \sigma\left( f_{\boldsymbol{\psi}}(x, s_1, s_2, \dots, s_k) \right) \in [0, 1]
+$$
+
+
+<p>在独立性假设下，整条推理路径的<strong>联合成立概率（Joint Path Validity）</strong>为各步置信度的连乘积：</p>
+
+
+$$
+P(\text{路径全局有效}) = \prod_{k=1}^K r_k
+$$
+
+
+<p>只要有任意一步发生颠覆性逻辑硬伤（$r_j \approx 0$），整条后续推导的有效性便瞬间归零：</p>
+
+
+$$
+r_j \to 0 \implies \prod_{k=1}^K r_k \to 0
+$$
+
+
+<hr />
+<h3>3. 蒙特卡洛扩展自动化标注（Math-Shepherd 算法）</h3>
+<p>若雇佣人类数学家手动标注数百万条推理步骤，成本将是天文数字。
+<strong>Math-Shepherd</strong> 提出了一种无需人工标注的自动化蒙特卡洛中间价值估计方法：</p>
+<p>对于给定的问题 $x$ 与前缀步骤 $s_{1:k} = (s_1, \dots, s_k)$，系统调用基础生成模型 $\pi_{\text{gen}}$ 自主向后继续采样 $M$ 条完整的后续补全：</p>
+
+
+$$
+\{c_1, c_2, \dots, c_M\} \sim \pi_{\text{gen}}\left(\cdot \mid x, s_{1:k}\right)
+$$
+
+
+<p>调用确定性规则验证器（如 Python/SymPy）检测每条补全的最终答案是否正确：$v(c_m) \in \{0, 1\}$。
+当前前缀 $s_{1:k}$ 的经验价值估计即为能够成功抵达正确终点的采样比例：</p>
+
+
+$$
+V^*(x, s_{1:k}) = \frac{1}{M} \sum_{m=1}^M v(c_m) \in [0, 1]
+$$
+
+
+<p>步骤 $k$ 的无监督真值标签 $y_k$ 可通过价值阈值判定：</p>
+
+
+$$
+y_k = \begin{cases}
+1 & \text{当 } V^*(x, s_{1:k}) \ge \tau \quad (\text{维持了问题可解性的有效步骤}) \\
+0 & \text{当 } V^*(x, s_{1:k}) < \tau \quad (\text{导致后续无法解出的歧途步骤})
+\end{cases}
+$$
+
+
+<p>其中 $\tau$ 为判定阈值（常设为 $\tau = 0.5$）。</p>
+<hr />
+<h3>4. PRM 训练损失函数</h3>
+<p>过程奖励模型采用二元交叉熵（<abbr title="Binary Cross-Entropy">BCE</abbr>）损失函数，在每个步骤的结尾分隔符词元处计算梯度：</p>
+
+
+$$
+\mathcal{L}_{\text{PRM}}(\boldsymbol{\psi}) = -\sum_{k=1}^K \left[ y_k \log r_k + (1 - y_k) \log(1 - r_k) \right]
+$$
+
+
+<hr />
+<h3>5. PRM 引导的 Best-of-$N$ 排序准则</h3>
+<p>在推理阶段采样了 $N$ 条候选解答后，如何利用 PRM 挑选最优解？主要有三种聚合指标：</p>
+<ol>
+<li><strong>木桶短板原则（最小步骤打分法，Min-Score）</strong>：</li>
+</ol>
+
+
+$$
+\operatorname{Score}_{\min}(y) = \min_{1 \le k \le K} r_k
+$$
+
+
+<p><em>木桶能装多少水取决于最短的一块木板。一旦整条推导链中出现任何一步低分，直接否定整条路径。</em>
+2. <strong>联合乘积准则（Product-Score）</strong>：</p>
+
+
+$$
+\operatorname{Score}_{\text{prod}}(y) = \prod_{k=1}^K r_k = \exp\left( \sum_{k=1}^K \log r_k \right)
+$$
+
+
+<ol start="3">
+<li><strong>长度归一化均值准则（Mean-Score）</strong>：</li>
+</ol>
+
+
+$$
+\operatorname{Score}_{\text{mean}}(y) = \frac{1}{K} \sum_{k=1}^K r_k
+$$
+
+
+<hr />
+<h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
+<dl>
+  <dt><time datetime="2022">2022年</time> &mdash; <strong>Jonathan Uesato 等人（DeepMind）</strong></dt>
+  <dd>发表论文 <cite>《Solving math word problems with process- and outcome-based feedback》</cite>，在国际上首次从形式化角度对比了步骤级过程反馈与结果级反馈在数学应用题上的效能差异。</dd>
+
+  <dt><time datetime="2023-05">2023年5月</time> &mdash; <strong>Hunter Lightman 等人（OpenAI）</strong></dt>
+  <dd>发表划时代里程碑论文 <cite>《Let's Verify Step by Step》</cite> 并开源 <strong>PRM800K</strong> 数据集（包含 80 万条经过人类数学专家逐步标注的推导步骤）。实验表明，PRM 引导的 Best-of-$N$ 搜索在竞赛级 MATH 数据集上达到了 78.2% 的准确率，碾压传统 ORM 的 69.6%，彻底证明了过程监督在消除逻辑幻觉方面的不可替代性。</dd>
+
+  <dt><time datetime="2023-12">2023年12月</time> &mdash; <strong>Wang 等人提出 Math-Shepherd</strong></dt>
+  <dd>成功破解了人类逐步标注的成本死锁：通过大规模蒙特卡洛后续补全与自动校验，以零人工标注成本合成了极高精度的步骤级标签，为后续全自动推理强化学习奠定了基石。</dd>
+</dl>
+
+<hr />
+<h2 id="step-5">步骤 5：手算极简数值示例</h2>
+<p>让我们用一组初一代数题，亲手对比 ORM 与 PRM 的打分差异。</p>
+<h3>测试题目</h3>
+<p><kbd>"解方程：2x + 6 = 16，求 x"</kbd>。（标准真值：$x = 5$）。</p>
+<hr />
+<h3>解法 A：严谨无瑕的逐步推导</h3>
+<ul>
+<li><strong>第 1 步（$s_1$）</strong>：<samp>“等式两边同时减去 6：2x = 16 - 6 = 10\n\n”</samp></li>
+<li>PRM 判定：移项运算完全正确 $\to$ <mark>$r_1 = 0.98$</mark>。</li>
+<li><strong>第 2 步（$s_2$）</strong>：<samp>“等式两边同时除以 2：x = 10 / 2 = 5\n\n”</samp></li>
+<li>PRM 判定：除法运算无误 $\to$ <mark>$r_2 = 0.96$</mark>。</li>
+<li><strong>第 3 步（$s_3$）</strong>：<samp>“因此方程的解为 5。\n\n”</samp></li>
+<li>PRM 判定：结论直接吻合 $\to$ <mark>$r_3 = 0.99$</mark>。</li>
+</ul>
+<h4>解法 A 的各指标得分：</h4>
+<ul>
+<li>结果模型评分：最终答案为 5 $\to$ $R_{\text{ORM}} = 1.0$。</li>
+<li>PRM 最小短板分：$\operatorname{Score}_{\min} = \min(0.98, 0.96, 0.99) = \mathbf{0.96}$。</li>
+<li>PRM 连乘联合分：$\operatorname{Score}_{\text{prod}} = 0.98 \times 0.96 \times 0.99 = \mathbf{0.9314}$。</li>
+</ul>
+<hr />
+<h3>解法 B：第一步算错却侥幸撞对答案的伪逻辑</h3>
+<ul>
+<li><strong>第 1 步（$s_1$）</strong>：<samp>“等式两边同时减去 6：2x = 16 + 6 = 22\n\n”</samp></li>
+<li>注意：符号写反变成了加 6！</li>
+<li>PRM 判定：代数移项硬伤 $\to$ <del>$r_1 = 0.04$</del>。</li>
+<li><strong>第 2 步（$s_2$）</strong>：<samp>“等式两边同时除以 2：x = 22 / 2 = 11\n\n”</samp></li>
+<li>PRM 判定：从假前缀顺理成章计算，但前缀错误 $\to$ $r_2 = 0.85$。</li>
+<li><strong>第 3 步（$s_3$）</strong>：<samp>“再减去 6 得到最终答案：x = 11 - 6 = 5。所以 x = 5。\n\n”</samp></li>
+<li>没有任何数学依据胡乱多减了一次 6，瞎猫碰死耗子刚好凑出 5！</li>
+<li>PRM 判定：逻辑毫无根基 $\to$ $r_3 = 0.10$。</li>
+</ul>
+<h4>解法 B 的各指标得分：</h4>
+<ul>
+<li><strong>结果模型（ORM）</strong>：最终答案确实是 5 $\to$ <mark>$R_{\text{ORM}} = 1.0$（致命的伪阳性误判！）</mark></li>
+<li><strong>PRM 最小短板分</strong>：</li>
+</ul>
+
+
+$$
+\operatorname{Score}_{\min} = \min(0.04, 0.85, 0.10) = \mathbf{0.04}
+$$
+
+
+<ul>
+<li><strong>PRM 连乘联合分</strong>：</li>
+</ul>
+
+
+$$
+\operatorname{Score}_{\text{prod}} = 0.04 \times 0.85 \times 0.10 = \mathbf{0.0034}
+$$
+
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 32.1：</strong> ORM 与 PRM 在侥幸凑对答案的解法 B 上的判别效果对比。</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left">评估模型系统</th>
+      <th align="right">评定得分</th>
+      <th align="left">判别裁决结果</th>
+      <th align="left">对大模型训练的实际后果</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>结果奖励模型（ORM）</strong></td>
+      <td align="right"><strong>1.0000</strong></td>
+      <td>判定为完美正确解法</td>
+      <td><mark>灾难性隐患</mark>：狂暴强化算错符号和胡乱凑数的投机套路。</td>
+    </tr>
+    <tr>
+      <td><strong>PRM 最小短板准则</strong></td>
+      <td align="right"><strong>0.0400</strong></td>
+      <td>因第一步错误瞬间淘汰</td>
+      <td><strong>成功识别</strong>：精准击碎因移项符号错误造成的伪逻辑。</td>
+    </tr>
+    <tr>
+      <td><strong>PRM 联合连乘准则</strong></td>
+      <td align="right"><strong>0.0034</strong></td>
+      <td>被判定为极大概率无效</td>
+      <td><strong>成功识别</strong>：在搜索树中被彻底剪枝剔除。</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr />
+<h2 id="step-6">步骤 6：核心精髓总结</h2>
+<fieldset>
+<legend><strong>核心精髓总结</strong></legend>
+<p>过程奖励模型（PRM）解决了大语言模型多步推理中最根本的“逻辑信用归因”缺陷：通过在每一步推理结束时精准量化其数学合法性，PRM 能够彻底识别那些靠巧合凑出最终答案的伪逻辑，并赋予推理树搜索在错误发生的毫秒瞬间立即实施局部剪枝与回溯重试的强大自我修复能力。</p>
+</fieldset>
+
+<hr>
+<nav aria-label="Chapter Navigation">
+  <p>
+    <a href="../31b-lab-grpo-engine/index.zh.html">&larr; 动手实验 07：纯 Python 实现 GRPO 推理引擎（200 行代码复刻自主推理与规则验证）</a> &bull; <a href="../index.html">目录概览</a> &bull; <a href="../33-mcts-and-test-time-compute/index.zh.html">第 33 章：搜索、蒙特卡洛树搜索（MCTS）与测试期算力缩放 &rarr;</a>
+  </p>
+</nav>
+  </main>
+
+  <footer>
+    <hr>
+    <p><strong>The Math Behind LLMs</strong> • Pure Semantic HTML • KaTeX Math • Static Build.</p>
+    <p><small>Grounded in physical intuition and mathematical rigor.</small></p>
+  </footer>
+
+  <script>
+    // Language query-param fallback redirection if visiting index.html?lang=zh
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    if (langParam === 'zh' && !window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.zh.html');
+    } else if (langParam === 'en' && window.location.pathname.endsWith('index.zh.html')) {
+      window.location.replace('index.html');
+    }
+
+    // KaTeX equation rendering pass with DOMContentLoaded safety and complete delimiters
+    function renderAllMath() {
+      if (typeof renderMathInElement !== 'undefined') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+          ],
+          throwOnError: false
+        });
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderAllMath);
+    } else {
+      renderAllMath();
+    }
+  </script>
+</body>
+</html>
