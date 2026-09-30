@@ -72,9 +72,17 @@ Zero private tutor needed. Zero value parameters taking up GPU memory. The stude
 In Chapter 30, we saw that Proximal Policy Optimization (<abbr title="Proximal Policy Optimization">PPO</abbr>) relies on a Critic network $V_{\boldsymbol{\phi}}$ to estimate token-level advantages $\hat{A}_t$.
 However, when training modern reasoning models (such as DeepSeek-R1 or OpenAI o1/o3) on mathematical proofs and code synthesis, the Critic becomes a fatal bottleneck:
 
-1. **The GPU VRAM Explosion**: The Critic model is another full Transformer backbone with parameters comparable in size to the Actor ($\approx 70\text{B}$ parameters). Storing its weights, gradients, and optimizer states doubles the cluster size required for training.
-2. **The Reward Estimation Hallucination**: Predicting the value of state $s_t$ in the middle of a 15,000-token mathematical derivation is notoriously unstable. If the Critic incorrectly guesses that a promising proof path is doomed, its erroneous value gradients misguide the Actor policy.
-3. **Reward Model Gaming**: In classic RLHF, Actor models quickly learn to produce verbose, sycophantic fluff to fool a neural reward model into giving high scores without actually solving the problem.
+1. **The GPU VRAM Explosion (The 70B Twin Problem)**:
+   - The Critic is a full Transformer backbone with parameters comparable in size to the Actor ($\approx 70\text{B}$ parameters).
+   - In distributed training, Adam stores two 32-bit floating-point states (momentum and variance) per parameter, requiring $16$ bytes per parameter for optimizer states alone.
+   - Hosting a 70B Critic alongside a 70B Actor effectively **doubles the entire GPU cluster size** required for post-training, burning millions of dollars in compute.
+
+2. **The Mid-Proof Hallucination Trap**:
+   - In a 15,000-token mathematical derivation, predicting whether step 4,210 will eventually lead to a correct proof is virtually impossible for a neural network.
+   - If the Critic guesses incorrectly and marks a brilliant intermediate step with a negative value, its erroneous value gradients misguide the Actor policy, causing training to diverge.
+
+3. **Goodhart's Law and Reward Hacking**:
+   - In classic RLHF with neural reward models, Actor models quickly learn to exploit model blind spots: writing verbose, polite, flattering paragraphs that score high on subjective ratings without solving the actual problem.
 
 The bridging question is:
 $$\text{How do we mathematically eliminate the Critic network entirely, while computing low-variance, statistically valid advantages across a group of rollouts using unhackable rule-based verifiers?}$$
@@ -112,6 +120,12 @@ $$
    r_{\text{format}}(o_i) = \begin{cases} 1.0 & \text{if output strictly follows } \texttt{<think>...</think><answer>...</answer>} \\ 0.0 & \text{otherwise} \end{cases}
    $$
 
+<fieldset>
+<legend><strong>Why RLVR Is Immune to Goodhart's Law</strong></legend>
+<p><em>Goodhart's Law</em> states: <strong>"When a measure becomes a target, it ceases to be a good measure."</strong></p>
+<p>When training against a human preference reward model, LLMs learn that writing pleasant, repetitive filler phrases tricks the evaluator. But under RLVR, the evaluator is a cold, deterministic Python script (e.g., checking if <code>assert solve() == 42</code> or parsing LaTeX <code>\boxed{...}</code>). You cannot flatter a compiler! Either the mathematical logic works, or it fails.</p>
+</fieldset>
+
 ---
 
 ### 3. Group-Relative Advantage Normalization
@@ -131,9 +145,24 @@ A_i = \frac{R_i - \mu_q}{\sigma_q}
 $$
 
 <fieldset>
-<legend><strong>Why Group Normalization Eliminates the Critic</strong></legend>
-<p>Notice what happened to the baseline $b(s)$ from Chapter 29: The group mean $\mu_q$ serves as an exact, empirical Monte Carlo baseline for prompt $q$!</p>
-<p>Because $\sum_{i=1}^G A_i \equiv 0$, exactly half the group (or those above average) receives positive reinforcement, while those below average receive negative reinforcement. If a problem is trivial and all $G$ outputs are correct ($R_i = 1$), $\sigma_q \approx 0 \implies A_i = 0$, producing strictly zero gradient updates and preventing unnecessary parameter churn!</p>
+<legend><strong>The Mathematics of Why Group Normalization Eliminates the Critic</strong></legend>
+<p>Connect this directly back to Chapter 29's baseline theorem: $\nabla J = \mathbb{E}[ \nabla \log \pi \cdot (R - b) ]$.</p>
+<p>In GRPO, <strong>the group mean $\mu_q$ serves as the exact empirical baseline $b(q)$!</strong></p>
+<ol>
+  <li><strong>Zero-Sum Property</strong>: Notice what happens when you sum the unnormalized advantages:
+    $$
+    \sum_{i=1}^G (R_i - \mu_q) = \sum_{i=1}^G R_i - G \cdot \left( \frac{1}{G}\sum_{i=1}^G R_i \right) = \sum_{i=1}^G R_i - \sum_{i=1}^G R_i \equiv 0
+    $$
+    The advantages are strictly zero-centered! Exactly those outputs that performed better than the group's current average receive positive updates ($A_i > 0$), while those below average are suppressed ($A_i < 0$).
+  </li>
+  <li><strong>Self-Tuning Gradient Attenuation</strong>:
+    <ul>
+      <li>If a question is <em>too easy</em> and all $G$ outputs succeed ($R_i = 1$), then $\mu_q = 1$ and $R_i - \mu_q = 0 \implies A_i = 0$.</li>
+      <li>If a question is <em>too hard</em> and all $G$ outputs fail ($R_i = 0$), then $\mu_q = 0$ and $R_i - \mu_q = 0 \implies A_i = 0$.</li>
+      <li><strong>Result</strong>: The model automatically produces <strong>zero gradient updates</strong> on questions it has already mastered or questions completely beyond its capability, focusing 100% of its learning capacity on the frontier of its abilities!</li>
+    </ul>
+  </li>
+</ol>
 </fieldset>
 
 ---
@@ -151,21 +180,47 @@ $$
 
 where:
 - $\rho_{i,t}(\boldsymbol{\theta}) = \frac{\pi_{\boldsymbol{\theta}}(o_{i,t} \mid q, o_{i,<t})}{\pi_{\boldsymbol{\theta}_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})}$ is the token importance sampling ratio.
-- $|o_i|$ is the sequence length of the $i$-th candidate output. Dividing by $|o_i|$ prevents long, verbose answers from dominating the gradient update.
+- $|o_i|$ is the sequence length of the $i$-th candidate output. Dividing by $|o_i|$ is crucial: it prevents long, verbose answers from dominating the gradient update simply because they contain more tokens!
 - $\epsilon$ is the PPO clipping parameter ($\epsilon \approx 0.2$).
 - $\beta$ controls the strength of the reference regularization.
 
 ---
 
-### 5. The Schulman Unbiased KL Estimator
+### 5. The Schulman Unbiased Non-Negative KL Estimator
 
-Rather than computing standard asymmetric sample KL divergence $\log(\pi / \pi_{\text{ref}})$ which can yield negative values and destabilize training, DeepSeek adopts John Schulman's (2020) non-negative unbiased estimator:
+Rather than computing standard asymmetric sample KL divergence $\log(\pi / \pi_{\text{ref}})$ which can yield negative values on individual samples and destabilize training, DeepSeek adopts John Schulman's (2020) non-negative unbiased estimator:
 
 $$
 D_{\text{KL}}\left(\pi_{\boldsymbol{\theta}} \parallel \pi_{\text{ref}}\right) \approx \frac{\pi_{\text{ref}}(o_{i,t} \mid q, o_{i,<t})}{\pi_{\boldsymbol{\theta}}(o_{i,t} \mid q, o_{i,<t})} - \log \left( \frac{\pi_{\text{ref}}(o_{i,t} \mid q, o_{i,<t})}{\pi_{\boldsymbol{\theta}}(o_{i,t} \mid q, o_{i,<t})} \right) - 1
 $$
 
-By Jensen's inequality, since $u - \log u - 1 \ge 0$ for all $u > 0$, this estimator is **strictly non-negative** at every token, guaranteeing that reference regularization never turns into an accidental reward incentive!
+<fieldset>
+<legend><strong>First-Principles Proof: Why Is This Estimator Strictly Non-Negative?</strong></legend>
+<p>Let $u = \frac{\pi_{\text{ref}}}{\pi_{\boldsymbol{\theta}}} > 0$. Consider the scalar function:</p>
+$$
+g(u) = u - \log u - 1
+$$
+<ol>
+  <li>At $u = 1$ (when policies match): $g(1) = 1 - \log(1) - 1 = 1 - 0 - 1 = 0$.</li>
+  <li>Take the first derivative with respect to $u$:
+    $$
+    g'(u) = 1 - \frac{1}{u}
+    $$
+  </li>
+  <li>Analyze the critical points:
+    <ul>
+      <li>When $u > 1$: $g'(u) > 0 \implies$ the function is strictly increasing.</li>
+      <li>When $u < 1$: $g'(u) < 0 \implies$ the function is strictly decreasing.</li>
+    </ul>
+  </li>
+  <li>Therefore, $u = 1$ is the unique <strong>global minimum</strong> of $g(u)$, and:
+    $$
+    g(u) \ge 0 \quad \text{for all } u > 0
+    $$
+  </li>
+</ol>
+<p>This elementary calculus proof guarantees that the KL penalty is <strong>strictly non-negative ($\ge 0$) at every single token</strong>, ensuring reference regularization never accidentally acts as a reward subsidy!</p>
+</fieldset>
 
 ---
 

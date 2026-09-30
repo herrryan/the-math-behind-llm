@@ -4,6 +4,7 @@
   <p>
     <strong>RL Track Navigation:</strong>
     <a href="#pedagogy">5-Step Pedagogy</a> &bull;
+    <a href="#primer">Gentle Primer &amp; Dependency Ladder</a> &bull;
     <a href="#pipeline">RL Pipeline Overview</a> &bull;
     <a href="#foundations">Foundations &amp; Policy Gradients</a> &bull;
     <a href="#actor-critic">Actor-Critic &amp; PPO</a> &bull;
@@ -25,6 +26,86 @@
   <li><em>Where does the exact mathematical equation come from, and why did researchers write it this way?</em></li>
 </ol>
 </fieldset>
+
+---
+
+<h2 id="primer">Gentle Primer: Transitioning from Pre-Training to Reinforcement Learning</h2>
+
+<p>Many students find the mathematics of reinforcement learning intimidating because the equations look drastically different from standard deep learning. In pre-training and supervised fine-tuning, every mathematical step revolves around a simple, deterministic goal: <em>given an input, match the teacher's target word</em>. In reinforcement learning, that safety net disappears.</p>
+
+<p>To ease your journey, this primer breaks down the three foundational paradigm shifts that govern all LLM reinforcement learning mathematics.</p>
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table R.0:</strong> The three fundamental shifts from Supervised Learning (SFT) to Reinforcement Learning (RL).</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left" width="22%">Dimension</th>
+      <th align="left" width="38%">Supervised Learning (SFT / Pre-training)</th>
+      <th align="left" width="40%">Reinforcement Learning (RL / Reasoning)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>1. The Training Signal</strong></td>
+      <td><strong>The Golden Answer Key</strong>: A human expert provides the exact ground-truth token $y_t^*$. The loss is standard Cross-Entropy: $-\log \pi_{\boldsymbol{\theta}}(y_t^* \mid x)$.</td>
+      <td><strong>The Scorecard</strong>: Nobody provides the exact words. The model generates an entire sequence, and an external evaluator (Python interpreter, math grader, human) gives a single score $R$.</td>
+    </tr>
+    <tr>
+      <td><strong>2. The Gradient Path</strong></td>
+      <td><strong>Direct Backpropagation</strong>: The loss function is a smooth, continuous mathematical function of the model's logits: $\frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \mathbf{p} - \mathbf{1}_{y^*}$. Gradients flow smoothly backwards.</td>
+      <td><strong>The Discrete Wall</strong>: Words are selected via discrete sampling ($y_t \sim \operatorname{Categorical}(\mathbf{p})$) or $\operatorname{argmax}$. You cannot take the derivative of a sampled word or a Python test runner!</td>
+    </tr>
+    <tr>
+      <td><strong>3. The Optimization Mechanism</strong></td>
+      <td><strong>Imitation</strong>: Pull model parameters in the exact direction that increases the likelihood of the human demonstrator's words.</td>
+      <td><strong>Trial, Error &amp; Dynamic Weighting</strong>: Model explores autonomously. The <em>Score Function Trick</em> turns the policy gradient into <strong>weighted cross-entropy on self-generated text</strong>, scaled by how much better the outcome was than expected.</td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+
+<figure>
+<pre>
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   THE UNBROKEN REINFORCEMENT LEARNING DEPENDENCY LADDER                │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                        │
+│   Supervised Fine-Tuning (Chapter 15)                                                  │
+│   └── Loss: L_CE = -log π_θ(y*)  ──► Pulls towards teacher's exact token               │
+│                                                                                        │
+│   ▼ [Shift 1: No Teacher Token! Only a Score R(τ)]                                     │
+│   REINFORCE &amp; Score-Function Trick (Chapter 29)                                        │
+│   └── ∇J(θ) = E[ ∇log π_θ(a) · R(τ) ]  ──► Weighted SFT on model's own words!          │
+│                                                                                        │
+│   ▼ [Shift 2: Positive Rewards Cause High Variance!]                                   │
+│   Baseline Subtraction (Chapter 29)                                                    │
+│   └── ∇J(θ) = E[ ∇log π_θ(a) · (R(τ) - b) ]  ──► Only reward better-than-average text  │
+│                                                                                        │
+│   ▼ [Shift 3: 1,000-Token Essays Need Intermediate Credit!]                            │
+│   Actor-Critic &amp; GAE (Chapter 30)                                                      │
+│   └── TD Error: δ_t = r_t + γ V(s_t+1) - V(s_t)  ──► Token-level surprise scores       │
+│                                                                                        │
+│   ▼ [Shift 4: Unbounded Policy Steps Cause Model Collapse!]                            │
+│   PPO Clipped Objective (Chapter 30)                                                   │
+│   └── min(r_t A_t, clip(r_t, 1-ε, 1+ε) A_t)  ──► Elastic safety tether prevents crash  │
+│                                                                                        │
+│   ▼ [Shift 5: Critic Models Double GPU VRAM &amp; Hallucinate!]                            │
+│   Critic-Free GRPO (Chapter 31)                                                        │
+│   └── Group Advantage: A_i = (R_i - μ_q) / σ_q  ──► Cohort acts as its own baseline!   │
+│                                                                                        │
+│   ▼ [Shift 6: Multi-Step Proofs Need Per-Step Verification!]                           │
+│   Process Reward Models (Chapter 32)                                                   │
+│   └── Step PRM: r_k = P(step k is sound)  ──► Pinpoints exact algebraic errors         │
+│                                                                                        │
+│   ▼ [Shift 7: Inference Thinking Compute Scaling!]                                     │
+│   Test-Time Search &amp; MCTS (Chapter 33)                                                 │
+│   └── PUCT: Q(s,a) + U(s,a)  ──► System-2 deliberative exploration at test time        │
+│                                                                                        │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<figcaption><strong>Figure R.0:</strong> The conceptual dependency ladder connecting supervised pre-training to modern test-time reasoning search.</figcaption>
+</figure>
 
 ---
 

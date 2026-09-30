@@ -4,24 +4,26 @@
 
 ## Step 1: 3-Year-Old Intuition (The Blindfolded Archer and the Whispering Coach)
 
-Imagine you are standing in a misty field wearing a thick black blindfold. In your hands is a toy bow and arrow:
+Imagine you are learning archery, but you have never held a bow before:
 
-1. **The Blindfolded Archer (The Language Model)**:
-   - You cannot see the target at all.
-   - You can only pull the string, point the arrow into the fog, and release.
-   - When you speak words, you are firing arrows into the fog &mdash; choosing one token after another based purely on gut feeling (your internal probabilities).
+1. **The Kindergarten Teacher vs. The Blindfolded Archer**:
+   - In **Supervised Learning** (like pre-training and fine-tuning in Chapters 00 to 18), your teacher stands right behind you, holds your hands, and physically guides your fingers to point directly at the gold bullseye. For every single shot, you are shown the exact right move.
+   - In **Reinforcement Learning**, your teacher leaves the room. You are handed a thick blindfold and spun around in a misty field. In your hands is a bow and a quiver of arrows.
+   - You cannot see the target at all. You can only pull the string, point into the fog, and let go.
+   - When an LLM generates text during RL, it is firing words into the fog &mdash; selecting one token after another based on its current internal probabilities.
 
 2. **The Coach's Whistle (The Reward)**:
    - After your arrow lands with a *thud*, an invisible judge across the field shouts a single score through a megaphone:
      - *"Bullseye! 100 points!"*
      - or *"Missed the haystack entirely! 0 points!"*
-   - Notice something vital: The judge does **not** tell you *how* to aim. The judge does not say *"raise your left elbow by two inches"*. They only tell you how good the final result was.
+   - Notice something vital: The judge does **not** tell you *how* to aim. The judge does not say *"raise your left elbow by two inches"* or *"pull the string harder"*. They only announce how good the final result was.
+   - You must figure out on your own which tiny muscle twitches were responsible for that high score.
 
 3. **The Scorekeeper's Notebook (The Average Baseline)**:
    - If the judge shouts *"50 points!"*, is that great or terrible? You have no idea unless you know what you usually get!
    - If your historical average score is only 10 points, then 50 points is fantastic! You want to remember the exact arm position that produced that shot.
    - But if your historical average is 90 points, then 50 points is a huge disappointment! You want to steer away from whatever stance you just used.
-   - By **subtracting the average score** from every shot, you only adjust your muscles when a shot was *better than your everyday expectation*.
+   - By **subtracting your historical average score** from every shot, you only adjust your muscles when a shot was *better than your everyday expectation*.
 
 <figure>
 <pre>
@@ -54,12 +56,46 @@ $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{W}} = \frac{\partial \mathcal{L}}{\partial \mathbf{y}} \frac{\partial \mathbf{y}}{\partial \mathbf{W}}
 $$
 
-However, when an LLM generates text during real-world tasks (writing Python code, solving a math proof, answering a user query), something fundamental breaks:
-1. **Sampling is Non-Differentiable**: The model converts logits into tokens by sampling from a categorical distribution ($y_t \sim \operatorname{Categorical}(\mathbf{p}_t)$) or taking $\operatorname{argmax}$. You cannot compute the derivative of a discrete choice: $\frac{\partial \text{token}}{\partial \mathbf{W}}$ does not exist!
-2. **The Environment is a Black Box**: A Python compiler or human reviewer evaluates the full output: either the unit tests pass ($R=1$) or they fail ($R=0$). We cannot backpropagate through a Python compiler or a human judge.
+In standard Supervised Fine-Tuning (<abbr title="Supervised Fine-Tuning">SFT</abbr>), every training sample comes with an exact golden answer $y^*$. The loss is standard Cross-Entropy:
 
-The bridging question is:
-$$\text{How do we mathematically calculate the exact gradient of an expected reward } \nabla_{\boldsymbol{\theta}} \mathbb{E}[R] \text{ when the actions are discrete and the reward function is a non-differentiable black box?}$$
+$$
+\mathcal{L}_{\text{SFT}}(\boldsymbol{\theta}) = -\log \pi_{\boldsymbol{\theta}}(y^* \mid x)
+$$
+
+However, when an LLM is tasked with solving complex problems (writing a 100-line Python script, proving a geometry theorem, or navigating an interactive dialogue), three mathematical barriers make supervised backpropagation impossible:
+
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>Table 29.1:</strong> The three mathematical barriers preventing standard backpropagation in autonomous generation.</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left" width="22%">Barrier</th>
+      <th align="left" width="38%">What Breaks in Calculus</th>
+      <th align="left" width="40%">Concrete LLM Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>1. Discrete Sampling</strong></td>
+      <td>Sampling a token ($y_t \sim \operatorname{Categorical}(\mathbf{p}_t)$) is a discrete step. The mathematical derivative of a discrete choice $\frac{\partial \text{token}}{\partial \mathbf{W}}$ is <strong>undefined</strong> (or zero almost everywhere).</td>
+      <td>Picking token index <kbd>4821</kbd> ("def") instead of <kbd>102</kbd> ("class") is a jump, not a smooth curve.</td>
+    </tr>
+    <tr>
+      <td><strong>2. Black-Box Judges</strong></td>
+      <td>The environment evaluating the output (a Python compiler, unit tests, a math verifier, or a human judge) is not a neural network. You cannot backpropagate gradients through a compiler's `if/else` checks!</td>
+      <td>Running `pytest` returns Pass ($R=1$) or Fail ($R=0$). No gradient vector flows out of a terminal command.</td>
+    </tr>
+    <tr>
+      <td><strong>3. Absence of Answer Keys</strong></td>
+      <td>For an open-ended math proof or code design, there are millions of valid paths. Forcing the model to copy one fixed human demonstration prevents it from discovering simpler or better solutions.</td>
+      <td>A proof can use induction, contradiction, or algebra. SFT penalizes valid methods if they differ from the human label!</td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+
+The central bridging question is:
+$$\text{How do we calculate the exact gradient of expected reward } \nabla_{\boldsymbol{\theta}} \mathbb{E}[R] \text{ when actions are discrete and the reward function is a non-differentiable black box?}$$
 
 ---
 
@@ -67,26 +103,32 @@ $$\text{How do we mathematically calculate the exact gradient of an expected rew
 
 ### 1. Language Generation as a Markov Decision Process (MDP)
 
-We formulate autoregressive sequence generation as a discrete-time, finite-horizon <abbr title="Markov Decision Process">MDP</abbr> defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$:
+To study text generation mathematically, we formulate autoregressive language modeling as a discrete-time, finite-horizon <dfn id="def-mdp">Markov Decision Process (MDP)</dfn> defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$:
 
-- **State Space ($\mathcal{S}$)**: At time step $t$, the state $s_t$ consists of the initial prompt $x$ and all generated tokens up to step $t-1$:
+<fieldset>
+<legend><strong>Why Is Language Modeling an MDP? (The Markov Property)</strong></legend>
+<p>In physics and mathematics, the <em>Markov Property</em> states that <strong>the future depends only upon the present state, not on the path taken to reach it</strong>: $P(s_{t+1} \mid s_t, s_{t-1}, \dots, s_0) = P(s_{t+1} \mid s_t)$.</p>
+<p>In a language model, does the choice of the next word depend on earlier words? Absolutely! But we define the <strong>state</strong> $s_t$ as the <em>entire prompt plus all words generated so far</em>: $s_t = (x, y_1, y_2, \dots, y_{t-1})$. Because $s_t$ already holds the full history, conditioned on $s_t$, the next token depends on nothing else! Thus, autoregressive text generation satisfies the Markov property completely and rigorously.</p>
+</fieldset>
+
+- **State Space ($\mathcal{S}$)**: At time step $t$, the state $s_t$ is the concatenation of prompt $x$ and all tokens generated up to step $t-1$:
   $$
   s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t}) \in \mathcal{S}
   $$
-- **Action Space ($\mathcal{A}$)**: The action $a_t$ is the choice of the next token from the discrete vocabulary $\mathcal{V}$:
+- **Action Space ($\mathcal{A}$)**: The action $a_t$ is selecting the next token from the discrete vocabulary $\mathcal{V}$:
   $$
   a_t = y_t \in \mathcal{V} \quad (|\mathcal{V}| \approx 32{,}000 \text{ to } 128{,}000)
   $$
-- **Transition Dynamics ($\mathcal{P}$)**: The state transition is deterministic string concatenation:
+- **Transition Dynamics ($\mathcal{P}$)**: Adding the selected token to the state is deterministic string concatenation:
   $$
   s_{t+1} = [s_t, a_t] = (x, y_1, \dots, y_t)
   $$
-  with probability $\mathcal{P}(s_{t+1} \mid s_t, a_t) = 1$.
+  with probability $\mathcal{P}(s_{t+1} \mid s_t, a_t) \equiv 1$.
 - **Policy ($\pi_{\boldsymbol{\theta}}$)**: The language model parameterized by weights $\boldsymbol{\theta} \in \mathbb{R}^D$ outputs a categorical probability distribution over all tokens in $\mathcal{V}$ given state $s_t$:
   $$
   \pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \operatorname{softmax}\left(\mathbf{z}_t\right)_{a_t} = \frac{\exp\left(z_{t, a_t}\right)}{\sum_{v \in \mathcal{V}} \exp\left(z_{t, v}\right)}
   $$
-- **Trajectory ($\tau$) and Return ($R(\tau)$)**: A full generation episode produces a complete trajectory $\tau = (s_1, a_1, s_2, a_2, \dots, s_T, a_T)$. The scalar reward $R(\tau) \in \mathbb{R}$ is assigned upon terminal token generation (e.g., EOS token).
+- **Trajectory ($\tau$) and Return ($R(\tau)$)**: A full generation episode produces a complete trajectory $\tau = (s_1, a_1, s_2, a_2, \dots, s_T, a_T)$. The scalar reward $R(\tau) \in \mathbb{R}$ is assigned upon terminal token generation (e.g. producing the `<|endoftext|>` token).
 
 The total probability of generating trajectory $\tau$ under policy $\boldsymbol{\theta}$ is:
 
@@ -96,45 +138,76 @@ $$
 
 ---
 
-### 2. The Expected Objective and the Score Function Trick
+### 2. The Expectation Gradient Paradox & The Score Function Trick
 
-The optimization objective is to maximize the expected return over all possible sampled trajectories:
+The optimization objective in reinforcement learning is to maximize the expected reward over all possible sampled trajectories:
 
 $$
 J(\boldsymbol{\theta}) = \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}}[R(\tau)] = \sum_{\tau} P(\tau; \boldsymbol{\theta}) R(\tau)
 $$
 
-Taking the gradient with respect to model parameters $\boldsymbol{\theta}$:
+<fieldset>
+<legend><strong>The Fundamental Calculus Paradox: Where Are the Parameters $\boldsymbol{\theta}$?</strong></legend>
+<p>Look closely at where $\boldsymbol{\theta}$ appears in the equation:</p>
+<ul>
+  <li>In standard Supervised Learning: $\mathcal{L}(\boldsymbol{\theta}) = \mathbb{E}_{x \sim \mathcal{D}} [f_{\boldsymbol{\theta}}(x)]$. The dataset $\mathcal{D}$ is static (it does not change when the model learns). The parameters $\boldsymbol{\theta}$ sit <em>inside</em> the function $f_{\boldsymbol{\theta}}$. You can slide the derivative directly inside the expectation: $\nabla_{\boldsymbol{\theta}} \mathbb{E}[f_{\boldsymbol{\theta}}] = \mathbb{E}[\nabla_{\boldsymbol{\theta}} f_{\boldsymbol{\theta}}]$.</li>
+  <li>In Reinforcement Learning: The reward $R(\tau)$ is an external judge (e.g., did the Python tests pass?). <strong>The reward function $R(\tau)$ does not contain $\boldsymbol{\theta}$ at all!</strong></li>
+  <li>Instead, the parameters $\boldsymbol{\theta}$ live in the <em>subscript</em> &mdash; they govern the <strong>probability distribution $P(\tau; \boldsymbol{\theta})$</strong> that chooses which trajectories get generated!</li>
+</ul>
+</fieldset>
+
+Taking the gradient with respect to $\boldsymbol{\theta}$:
 
 $$
 \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \nabla_{\boldsymbol{\theta}} \sum_{\tau} P(\tau; \boldsymbol{\theta}) R(\tau) = \sum_{\tau} \nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) R(\tau)
 $$
 
-Notice that we cannot approximate this sum via Monte Carlo sampling because it contains $\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})$, which is not a valid probability distribution!
+Now we face a massive computational barrier:
+1. **The Trillion-Sentence Universe**: The sum $\sum_{\tau}$ spans every possible sentence the model could write. For a modest sequence length of $T = 500$ and vocabulary $|\mathcal{V}| = 100{,}000$, there are $100{,}000^{500} = 10^{2500}$ possible trajectories &mdash; vastly more than the total number of atoms in the observable universe ($10^{80}$)! No computer can sum over all $\tau$.
+2. **We Need an Expectation**: In machine learning, whenever a sum over an impossible universe appears, we convert it into an expectation $\sum_u P(u) g(u) = \mathbb{E}_{u \sim P}[g(u)]$. An expectation can be approximated on a GPU using **Monte Carlo sampling** (simply sample $N$ trajectories and compute their average).
+3. **The Obstacle**: The sum contains $\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})$, which is **not** a valid probability distribution! $\nabla P$ contains negative numbers and does not sum to 1. You cannot sample from $\nabla P$.
 
-To fix this, we apply the foundational **Log-Derivative Trick** (also known as the **Score Function Estimator**):
-Recall from basic calculus that $\frac{d}{dx} \ln f(x) = \frac{f'(x)}{f(x)}$, which implies:
+To solve this, we perform the foundational **Log-Derivative Trick** (also known as the **Score Function Estimator**) in three algebraic steps:
+
+#### Step A: Multiply and Divide by $P(\tau; \boldsymbol{\theta})$
+Since $P(\tau; \boldsymbol{\theta}) > 0$ for all valid trajectories, we multiply and divide the gradient by $P(\tau; \boldsymbol{\theta})$:
+
+$$
+\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) = P(\tau; \boldsymbol{\theta}) \cdot \frac{\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})}{P(\tau; \boldsymbol{\theta})}
+$$
+
+#### Step B: Apply the Derivative of the Natural Logarithm
+Recall from elementary calculus that $\frac{d}{dx} \ln f(x) = \frac{f'(x)}{f(x)}$. Applying this in reverse:
+
+$$
+\frac{\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})}{P(\tau; \boldsymbol{\theta})} \equiv \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})
+$$
+
+Therefore:
 
 $$
 \nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) = P(\tau; \boldsymbol{\theta}) \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})
 $$
 
-Substituting this identity back into our gradient equation:
+#### Step C: Re-establish the Expectation
+Substituting this identity back into our gradient sum:
 
 $$
 \begin{aligned}
-\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) &= \sum_{\tau} P(\tau; \boldsymbol{\theta}) \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \\
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) &= \sum_{\tau} P(\tau; \boldsymbol{\theta}) \left[ \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \right] \\
 &= \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \right]
 \end{aligned}
 $$
 
-Now look at the term $\nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})$:
+Because $P(\tau; \boldsymbol{\theta})$ is back on the outside, this is once again a genuine expectation! We can now approximate the true gradient on our computer by simply generating sample trajectories using our LLM and averaging them!
+
+Now expand the trajectory log-probability:
 
 $$
 \log P(\tau; \boldsymbol{\theta}) = \log \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \sum_{t=1}^T \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
 $$
 
-Taking the gradient eliminates the product and converts it into a clean sum over tokens:
+Taking the gradient distributes across the sum of tokens:
 
 $$
 \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) = \sum_{t=1}^T \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
@@ -147,49 +220,89 @@ $$
 $$
 
 <fieldset>
-<legend><strong>Why This Formula Is Magic</strong></legend>
-<p>Look carefully at what just happened: We took the derivative of an expectation over a non-differentiable reward $R(\tau)$, and transformed it into the standard gradient of the model's own log-probabilities $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}$ multiplied by a scalar number $R(\tau)$!</p>
-<p>The term $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)$ is identical to the gradient of the standard cross-entropy loss from Chapter 15. The only difference is that instead of pushing probability toward a fixed ground-truth token, we scale the push by the magnitude of the reward $R(\tau)$!</p>
+<legend><strong>The Grand Unification: Policy Gradient Is Weighted Cross-Entropy!</strong></legend>
+<p>Look at the mathematical structure of the policy gradient side-by-side with Supervised Fine-Tuning (SFT):</p>
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left" width="30%">Paradigm</th>
+      <th align="left" width="40%">Parameter Update Formula</th>
+      <th align="left" width="30%">What It Does</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Supervised Fine-Tuning (SFT)</strong></td>
+      <td>$\Delta \boldsymbol{\theta} \propto + \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(y_t^* \mid s_t)$</td>
+      <td>Pulls parameters towards the human teacher's word $y^*$ with fixed weight $+1$.</td>
+    </tr>
+    <tr>
+      <td><strong>Policy Gradient (RL)</strong></td>
+      <td>$\Delta \boldsymbol{\theta} \propto + \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \cdot \mathbf{R(\tau)}$</td>
+      <td>Pulls parameters towards the model's <em>own self-generated word</em> $a_t$, scaled by the reward volume knob $R(\tau)$!</td>
+    </tr>
+  </tbody>
+</table>
+<p>If $R(\tau) = +10$, the model performs standard cross-entropy on its own words with 10 times the normal strength! If $R(\tau) = 0$, nothing happens. If $R(\tau) < 0$, it pushes probability <em>away</em> from those words!</p>
+<p><strong>Reinforcement learning does not require a magical new gradient engine; it is literally weighted supervised learning on the model's own self-generated attempts!</strong></p>
 </fieldset>
 
 ---
 
 ### 3. The Baseline Subtraction Theorem (Slashing Variance)
 
-The raw REINFORCE estimator has a devastating defect: **extreme sample variance**.
-If all rewards are positive (e.g. $R \in [10, 100]$), *every single sampled trajectory* gets pushed upward! Even bad outputs get their probabilities increased, just slightly less than good outputs.
+While raw REINFORCE is mathematically correct, in practice it suffers from a catastrophic flaw: **extreme sample variance**.
 
-To solve this, we subtract a **baseline** $b(s_t)$ that does not depend on the selected action $a_t$:
+<fieldset>
+<legend><strong>The Catastrophe of All-Positive Rewards</strong></legend>
+<p>Suppose an LLM is solving math problems, and the reward score ranges from 0 to 100 points. The model samples three different solution attempts:</p>
+<ul>
+  <li>Attempt 1 gets a mediocre score: $R = 90$</li>
+  <li>Attempt 2 gets a good score: $R = 95$</li>
+  <li>Attempt 3 gets a flawless score: $R = 100$</li>
+</ul>
+<p>Without a baseline, look at what REINFORCE does: It updates the weights with $+90$, $+95$, and $+100$! <strong>All three attempts get massive probability increases!</strong> Even Attempt 1 &mdash; which was the worst in the cohort &mdash; has its bad habits strongly reinforced. The model barely learns that Attempt 3 was superior.</p>
+<p>Now introduce an average baseline $b = 95$ (the cohort mean):</p>
+<ul>
+  <li>Attempt 1 receives advantage: $A_1 = 90 - 95 = \mathbf{-5}$ (penalized!)</li>
+  <li>Attempt 2 receives advantage: $A_2 = 95 - 95 = \mathbf{0}$ (neutral)</li>
+  <li>Attempt 3 receives advantage: $A_3 = 100 - 95 = \mathbf{+5}$ (rewarded!)</li>
+</ul>
+<p>Suddenly, the learning signal is sharp, centered, and high-contrast! Good moves are reinforced, bad moves are suppressed, and gradient variance collapses.</p>
+</fieldset>
+
+To implement this, we subtract a **baseline** $b(s_t)$ that depends only on state $s_t$, but does not depend on the selected action $a_t$:
 
 $$
 \nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) = \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}} \left[ \sum_{t=1}^T \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \left( R(\tau) - b(s_t) \right) \right]
 $$
 
-#### Mathematical Proof of Zero Bias:
-We must prove that subtracting $b(s_t)$ does not change the expected gradient.
-Consider the expectation over actions at step $t$:
+#### Step-by-Step Proof of Zero Bias:
+We must prove that subtracting $b(s_t)$ does not distort or bias the true gradient direction.
+Consider the expectation of the baseline term over all possible actions at step $t$:
 
 $$
 \begin{aligned}
-\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] &= \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \frac{\nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)}{\pi_{\boldsymbol{\theta}}(a_t \mid s_t)} b(s_t) \\
-&= b(s_t) \sum_{a_t \in \mathcal{V}} \nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \\
-&= b(s_t) \nabla_{\boldsymbol{\theta}} \left( \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \right)
+\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] &= \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \left( \frac{\nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)}{\pi_{\boldsymbol{\theta}}(a_t \mid s_t)} \right) b(s_t) && \text{[Expand expectation and log-derivative]} \\
+&= b(s_t) \sum_{a_t \in \mathcal{V}} \nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) && \text{[Cancel } \pi \text{ and factor out } b(s_t)\text{]} \\
+&= b(s_t) \nabla_{\boldsymbol{\theta}} \left( \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \right) && \text{[Gradient of a finite sum is sum of gradients]}
 \end{aligned}
 $$
 
-Because probabilities over the entire vocabulary must sum to exactly 1 by definition of the softmax function:
+Now observe the term inside the parenthesis: $\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)$.
+Because $\pi_{\boldsymbol{\theta}}$ is a valid probability distribution produced by softmax, the sum of probabilities over the entire vocabulary must equal 1:
 
 $$
-\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \equiv 1 \implies \nabla_{\boldsymbol{\theta}}(1) = 0
+\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \equiv 1.0
 $$
 
-Therefore:
+The derivative of a constant is strictly zero: $\nabla_{\boldsymbol{\theta}}(1.0) = \mathbf{0}$. Therefore:
 
 $$
-\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] = b(s_t) \cdot \mathbf{0} = \mathbf{0}
+\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] = b(s_t) \cdot \mathbf{0} \equiv \mathbf{0}
 $$
 
-Subtracting any baseline $b(s_t)$ has **strictly zero bias** on the gradient direction, but it centers the reward signal, drastically reducing the variance $\operatorname{Var}(\hat{\mathbf{g}})$!
+Subtracting any baseline $b(s_t)$ has **strictly zero bias** on the expected gradient! The expectation remains 100% mathematically exact, while the variance drops by orders of magnitude!
 
 ---
 

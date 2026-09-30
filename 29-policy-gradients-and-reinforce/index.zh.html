@@ -122,14 +122,15 @@
 
 <hr />
 <h2 id="step-1">步骤 1：3 岁小孩直觉（蒙眼射箭手与耳语教练）</h2>
-<p>想象你站在一片白茫茫的大雾草地上，眼睛上蒙着厚厚的黑布，手里握着一把玩具弓箭：</p>
+<p>想象你在学习射箭，但你之前从来没摸过弓箭：</p>
 <ol>
-<li><strong>蒙眼射箭手（语言模型自身）</strong>：</li>
+<li><strong>手把手教的幼儿园老师 vs. 蒙眼射箭手</strong>：</li>
 </ol>
 <ul>
-<li>你根本看不见远处的靶子在哪里。</li>
-<li>你只能凭着手感把弓拉满，把箭射向迷雾中。</li>
-<li>当大模型生成文本时，它就像是在迷雾中接连射出一支支箭 &mdash; 根据自己内心的感觉（模型内部的词表概率分布）依次挑选下一个词元。</li>
+<li>在<strong>监督学习（SFT）</strong>中（就像第 00 章到第 18 章所学），老师一直站在你身后，双手紧紧握着你的手，手把手把你瞄准的箭头直接对准靶心正中。每一次出手，你都能看到唯一正确的人类参考答案。</li>
+<li>而在<strong>强化学习（RL）</strong>中，老师走出了房间。你被蒙上一块厚厚的黑布，带到了一片白茫茫的迷雾草地上。你手里握着弓和箭，但完全看不见靶子在哪里。</li>
+<li>你只能凭着手感把弓拉满，把箭射向大雾中，然后松开手指。</li>
+<li>当大模型生成文本时，它就像是在迷雾中接连射出一支支箭 &mdash; 根据自己当前的内心概率，依次挑选下一个词元。</li>
 </ul>
 <ol start="2">
 <li><strong>教练的大喇叭（外部奖励评分）</strong>：</li>
@@ -140,7 +141,8 @@
 <li>或者 <em>“脱靶偏了十米！0 分！”</em></li>
 </ul>
 </li>
-<li>请注意最关键的一点：裁判<strong>绝不会</strong>走过来教你如何微调肌肉动作，他不会说<em>“把你的左手肘抬高两厘米”</em>。他给你的只有一个冷冰冰的最终总分。</li>
+<li>请注意最关键的一点：裁判<strong>绝不会</strong>走过来教你如何微调肌肉动作，他不会说<em>“把你的左手肘抬高两厘米”</em>或<em>“把弓弦拉得更紧一些”</em>。他给你的只有一个冷冰冰的最终总分。</li>
+<li>你必须完全依靠自己去琢磨：刚才到底哪几个细微的肌肉颤动促成了这记高分？</li>
 </ul>
 <ol start="3">
 <li><strong>记分员的历史小本子（平均基线 Baseline）</strong>：</li>
@@ -182,9 +184,44 @@ $$
 $$
 
 
-<p>然而，在将大语言模型投入真实任务强化学习（如写 Python 代码、做多步数学推导、回答复杂指令）时，反向传播链条遭遇了物理阻断：
-1. <strong>采样过程不可导（离散性鸿沟）</strong>：模型将 logits 转化为离散词元时，使用的是离散多项分布采样（$y_t \sim \operatorname{Categorical}(\mathbf{p}_t)$）或 $\operatorname{argmax}$ 贪心选取。离散选择的导数根本不存在：$\frac{\partial \text{token}}{\partial \mathbf{W}}$ 在数学上无意义！
-2. <strong>外部环境是黑盒判别器</strong>：一个 Python 编译器或人类评审员在评价输出时，只能给出离散评判：要么单元测试全部通过（$R=1$），要么报错崩溃（$R=0$）。我们根本无法将梯度反向穿透一个外部编译器。</p>
+<p>在标准的监督微调（<abbr title="Supervised Fine-Tuning">SFT</abbr>）中，每个训练样本都附带人类专家提供的唯一参考答案 $y^*$，损失函数是标准的交叉熵：</p>
+
+
+$$
+\mathcal{L}_{\text{SFT}}(\boldsymbol{\theta}) = -\log \pi_{\boldsymbol{\theta}}(y^* \mid x)
+$$
+
+
+<p>然而，当让大模型去自主解决复杂任务（例如写一段 100 行的 Python 代码、求解多步数学几何证明、进行开放式逻辑推理）时，微积分的反向传播链条遭遇了三重物理阻断：</p>
+<table border="1" cellpadding="8" cellspacing="0" width="100%">
+  <caption><strong>表 29.1：</strong> 阻止标准反向传播直接应用于自主文本生成的三大数学壁垒。</caption>
+  <thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left" width="22%">数学壁垒</th>
+      <th align="left" width="38%">微积分断裂的根本原因</th>
+      <th align="left" width="40%">大语言模型具体体现</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>1. 离散采样不可导</strong></td>
+      <td>从概率分布中选取词元（$y_t \sim \operatorname{Categorical}(\mathbf{p}_t)$）是阶跃式的离散操作。离散选择对参数的导数 $\frac{\partial \text{token}}{\partial \mathbf{W}}$ <strong>处处不存在（或处处为 0）</strong>。</td>
+      <td>模型选中了词元编号 <kbd>4821</kbd>（"def"）而不是 <kbd>102</kbd>（"class"），这是一种跳变，不是光滑曲面。</td>
+    </tr>
+    <tr>
+      <td><strong>2. 外部环境是黑盒判别器</strong></td>
+      <td>评估代码或解题正确性的外部环境（Python 解释器、单元测试、数学验算器或人类评分员）不是神经网络。你根本无法对代码中的 `if/else` 或终端报错信息反向传导梯度向量！</td>
+      <td>终端运行 `pytest` 给出全部通过（$R=1$）或崩溃报错（$R=0$），终端命令无法向模型回传反向导数。</td>
+    </tr>
+    <tr>
+      <td><strong>3. 缺乏唯一标准答案</strong></td>
+      <td>一道复杂的编程或数学题可能有成千上万种完全正确的解答路径。如果强行用 SFT 去拟合某个人类写的步骤，模型反而会惩罚自己发现的更简短、更新颖的解法。</td>
+      <td>可以用代数法、几何法、反证法。SFT 强行要求逐字模仿，限制了模型的自主解题潜能！</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><br></p>
 <p>这就是承前启后的核心难题：</p>
 
 
@@ -196,9 +233,15 @@ $$
 <hr />
 <h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
 <h3>1. 将语言自回归生成建模为马尔可夫决策过程（MDP）</h3>
-<p>我们将自回归文本序列生成严格建模为离散时间、有限步长马尔可夫决策过程 $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$：</p>
+<p>为了在数学上严谨研究文本生成，我们将大模型的自回归生成形式化为离散时间、有限步长的<dfn id="def-mdp">马尔可夫决策过程（MDP）</dfn>，记为四元组 $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$：</p>
+<fieldset>
+<legend><strong>为什么文本生成可以被视作 MDP？（马尔可夫性的本质）</strong></legend>
+<p>物理学与概率论中的<em>马尔可夫性质（Markov Property）</em>指的是：<strong>未来只取决于现在的状态，而与过去的到达路径无关</strong>：$P(s_{t+1} \mid s_t, s_{t-1}, \dots, s_0) = P(s_{t+1} \mid s_t)$。</p>
+<p>很多初学者会疑惑：语言模型预测下一个词明明极度依赖前面的上文，怎么可能是马尔可夫过程？
+关键在于<strong>状态的定义</strong>！我们将时间步 $t$ 的状态 $s_t$ 直接定义为<em>原始提示词加上目前为止生成的所有历史词元</em>：$s_t = (x, y_1, y_2, \dots, y_{t-1})$。因为 $s_t$ 已经完全打包了截至目前的所有上下文，所以在给定 $s_t$ 的前提下，下一个词元不再依赖任何外部历史！自回归生成严格满足马尔可夫性。</p>
+</fieldset>
 <ul>
-<li><strong>状态空间（$\mathcal{S}$）</strong>：在生成第 $t$ 步时，状态 $s_t$ 由原始 Prompt $x$ 与截至当前生成的所有历史词元组成：</li>
+<li><strong>状态空间（$\mathcal{S}$）</strong>：在生成第 $t$ 步时，状态 $s_t$ 由原始 Prompt $x$ 与截至当前生成的所有历史词元拼接而成：</li>
 </ul>
 
 
@@ -227,7 +270,7 @@ s_{t+1} = [s_t, a_t] = (x, y_1, \dots, y_t)
 $$
 
 
-<p>其确定性转移概率为 $\mathcal{P}(s_{t+1} \mid s_t, a_t) = 1$。</p>
+<p>其确定性转移概率为 $\mathcal{P}(s_{t+1} \mid s_t, a_t) \equiv 1$。</p>
 <ul>
 <li><strong>策略网络（$\pi_{\boldsymbol{\theta}}$）</strong>：参数为 $\boldsymbol{\theta} \in \mathbb{R}^D$ 的语言模型在给定状态 $s_t$ 下输出词表上的多项式分布：</li>
 </ul>
@@ -250,7 +293,7 @@ $$
 
 
 <hr />
-<h3>2. 期望目标与对数导数技巧（Score Function Trick）</h3>
+<h3>2. 期望求导悖论与对数导数技巧（Score Function Trick）</h3>
 <p>强化学习的总体优化目标是最大化在所有可能生成轨迹上的期望收益：</p>
 
 
@@ -259,7 +302,16 @@ J(\boldsymbol{\theta}) = \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}}[R(\tau
 $$
 
 
-<p>我们对模型权重参数 $\boldsymbol{\theta}$ 求梯度：</p>
+<fieldset>
+<legend><strong>微积分的核心困境：参数 $\boldsymbol{\theta}$ 到底在哪里？</strong></legend>
+<p>仔细对比监督学习与强化学习在微积分结构上的根本区别：</p>
+<ul>
+<li>在普通监督学习中：$\mathcal{L}(\boldsymbol{\theta}) = \mathbb{E}_{x \sim \mathcal{D}} [f_{\boldsymbol{\theta}}(x)]$。数据集 $\mathcal{D}$ 是固定的静态语料，参数 $\boldsymbol{\theta}$ 位于函数内部。求导算子可以直接穿透期望符号：$\nabla_{\boldsymbol{\theta}} \mathbb{E}[f_{\boldsymbol{\theta}}] = \mathbb{E}[\nabla_{\boldsymbol{\theta}} f_{\boldsymbol{\theta}}]$。</li>
+<li>但在强化学习中：奖励函数 $R(\tau)$ 是外部裁判（如 Python 单元测试）。<strong>$R(\tau)$ 的计算逻辑里根本不包含模型权重 $\boldsymbol{\theta}$！</strong></li>
+<li>相反，参数 $\boldsymbol{\theta}$ 隐藏在期望的<em>下标</em>中 &mdash; 它决定的是<strong>采样概率分布 $P(\tau; \boldsymbol{\theta})$</strong>！</li>
+</ul>
+</fieldset>
+<p>对目标函数求梯度：</p>
 
 
 $$
@@ -267,9 +319,30 @@ $$
 $$
 
 
-<p>请注意：这个式子不能直接用蒙特卡洛随机采样来估计，因为 $\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})$ 本身不是概率分布！</p>
-<p>为了把它重新变回数学期望形式，我们引入最为核心的<strong>对数导数技巧（Log-Derivative Trick / 分数函数估计器）</strong>。
-由微积分基本公式 $\frac{d}{dx} \ln f(x) = \frac{f'(x)}{f(x)}$ 可知：</p>
+<p>现在我们面临极大的计算障碍：
+1. <strong>千亿文本的组合爆炸</strong>：求和符号 $\sum_{\tau}$ 需要遍历所有可能的句子。哪怕生成仅 500 个词、词表大小为 100,000，可能的句子总数也有 $100{,}000^{500} = 10^{2500}$ 种，远超全宇宙原子总数（$10^{80}$）！没有任何计算机能直接遍历。
+2. <strong>必须转回期望形式</strong>：在机器学习中，当无法遍历整个宇宙时，唯一的出路是把它写成期望形式 $\sum_u P(u) g(u) = \mathbb{E}_{u \sim P}[g(u)]$，然后利用 <strong>蒙特卡洛随机采样</strong>（在 GPU 上采样几段文本求平均）来无偏估计它。
+3. <strong>关键阻碍</strong>：当前求和式里是 $\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})$，它<strong>不是</strong>一个合法的概率分布（导数有正有负，且加和不为 1）。我们无法从 $\nabla P$ 中抽样！</p>
+<p>为了解决这个难题，我们通过三步代数变换完成著名的<strong>对数导数技巧（Log-Derivative Trick / 分数函数估计器）</strong>：</p>
+<h4>步骤 A：同乘以并同除以 $P(\tau; \boldsymbol{\theta})$</h4>
+<p>在概率大于 0 的前提下，做恒等变形：</p>
+
+
+$$
+\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) = P(\tau; \boldsymbol{\theta}) \cdot \frac{\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})}{P(\tau; \boldsymbol{\theta})}
+$$
+
+
+<h4>步骤 B：利用自然对数的导数法则</h4>
+<p>回忆微积分基本求导公式 $\frac{d}{dx} \ln f(x) = \frac{f'(x)}{f(x)}$。反向运用该恒等式：</p>
+
+
+$$
+\frac{\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})}{P(\tau; \boldsymbol{\theta})} \equiv \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})
+$$
+
+
+<p>由此得到核心恒等式：</p>
 
 
 $$
@@ -277,18 +350,20 @@ $$
 $$
 
 
-<p>将该等式代回梯度公式中：</p>
+<h4>步骤 C：重构期望形式</h4>
+<p>将恒等式代回梯度式中：</p>
 
 
 $$
 \begin{aligned}
-\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) &= \sum_{\tau} P(\tau; \boldsymbol{\theta}) \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \\
+\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}) &= \sum_{\tau} P(\tau; \boldsymbol{\theta}) \left[ \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \right] \\
 &= \mathbb{E}_{\tau \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta}) R(\tau) \right]
 \end{aligned}
 $$
 
 
-<p>展开轨迹对数概率 $\log P(\tau; \boldsymbol{\theta})$：</p>
+<p>因为 $P(\tau; \boldsymbol{\theta})$ 重新回到了最外层，式子成功变回了一个标准的数学期望！现在我们完全可以在显卡上用自己的大模型生成若干候选文本，直接计算均值来估计梯度！</p>
+<p>进一步展开整条轨迹的对数概率：</p>
 
 
 $$
@@ -296,7 +371,7 @@ $$
 $$
 
 
-<p>由于求导与求和可以交换顺序，连乘积神奇地化解为了各个单步词元对数概率梯度的累加：</p>
+<p>求导与求和交换顺序：</p>
 
 
 $$
@@ -313,15 +388,53 @@ $$
 
 
 <fieldset>
-<legend><strong>为什么这个公式是一座数学奇迹？</strong></legend>
-<p>仔细观察这个公式：原本对完全不可导的黑盒奖励期望 $\mathbb{E}[R]$ 求梯度，被完美转化成了对模型自己生成的词元计算 $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}$ 并乘以标量奖励值 $R(\tau)$！</p>
-<p>项 $\nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t)$ 与第 15 章交叉熵损失函数关于模型参数的梯度形式完全一致。唯一区别是：监督微调是无条件把概率推向固定的人类参考答案，而强化学习则是把梯度方向按照环境给出的奖励大小进行动态缩放！</p>
+<legend><strong>大一统视角：策略梯度就是自产文本上的加权监督微调！</strong></legend>
+<p>把策略梯度的参数更新公式与第 15 章的监督微调（SFT）放在一起对比：</p>
+<table border="1" cellpadding="6" cellspacing="0" width="100%">
+<thead>
+    <tr bgcolor="#eae9e1">
+      <th align="left" width="28%">学习范式</th>
+      <th align="left" width="42%">参数梯度更新公式</th>
+      <th align="left" width="30%">物理行为本质</th>
+    </tr>
+  </thead>
+<tbody>
+    <tr>
+      <td><strong>监督微调（SFT）</strong></td>
+      <td>$\Delta \boldsymbol{\theta} \propto + \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(y_t^* \mid s_t)$</td>
+      <td>以固定的权重 $+1$，把模型参数拉向人类专家给出的标准答案 $y^*$。</td>
+    </tr>
+    <tr>
+      <td><strong>策略梯度（RL）</strong></td>
+      <td>$\Delta \boldsymbol{\theta} \propto + \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \cdot \mathbf{R(\tau)}$</td>
+      <td>把模型参数拉向<em>模型自己生成的动作 $a_t$</em>，但拉力的强度由奖励值 $R(\tau)$ 动态决定！</td>
+    </tr>
+  </tbody>
+</table>
+<p>如果 $R(\tau) = +10$，模型就会以常规 SFT 10 倍的力度强化刚才自己说过的词！如果 $R(\tau) = 0$，什么都不做。如果 $R(\tau) < 0$，模型就会反向排斥那些词！</p>
+<p><strong>强化学习并没有发明一套全新的梯度运算系统，它本质上就是拿模型自己探索出来的文本做加权交叉熵，而奖励值就是那个动态调节音量大小的旋钮！</strong></p>
 </fieldset>
 <hr />
 <h3>3. 基线消除方差定理（Baseline Subtraction）</h3>
-<p>朴素 REINFORCE 估计器存在致命缺陷：<strong>采样方差极大</strong>。
-如果所有采样的奖励值都是正数（例如得分都在 50 到 100 分之间），那么<em>每一个采样的输出其概率都会被正向推高</em>，导致糟糕的输出仅仅是因为得到了 50 分也被模型盲目鼓励。</p>
-<p>为了解决这个问题，我们在公式中引入一个与当前动作无关的<strong>状态基线</strong> $b(s_t)$：</p>
+<p>虽然原始 REINFORCE 在数学上推导严谨，但在实际工程中却极难收敛，根本原因在于其<strong>灾难性的采样方差</strong>。</p>
+<fieldset>
+<legend><strong>全正数奖励带来的灾难</strong></legend>
+<p>假设大模型在做数学题，奖励分值范围在 0 到 100 分之间。模型尝试了 3 种解法：</p>
+<ul>
+<li>解法 1 得分平平：$R = 90$</li>
+<li>解法 2 表现不错：$R = 95$</li>
+<li>解法 3 完美解出：$R = 100$</li>
+</ul>
+<p>如果没有基线，看看 REINFORCE 会做什么：它会用 $+90$、$+95$ 和 $+100$ 的权重同时更新网络参数！<strong>这三种解法的概率全都被大幅推高了！</strong> 即使是组内最差的解法 1，其不良解题习惯也会被强烈鼓励。模型根本无法鲜明地意识到解法 3 才是胜利者。</p>
+<p>现在我们引入一个平均基线 $b = 95$（组内平均分）：</p>
+<ul>
+<li>解法 1 得到的优势：$A_1 = 90 - 95 = \mathbf{-5}$（受到惩罚！）</li>
+<li>解法 2 得到的优势：$A_2 = 95 - 95 = \mathbf{0}$（不奖不罚）</li>
+<li>解法 3 得到的优势：$A_3 = 100 - 95 = \mathbf{+5}$（受到正向奖励！）</li>
+</ul>
+<p>学习信号瞬间变得黑白分明、高度居中！优秀的做法被强化，落后的做法被抑制，梯度的震荡方差急剧下降。</p>
+</fieldset>
+<p>为此，我们在公式中引入一个只依赖于状态 $s_t$、与具体动作 $a_t$ 无关的<strong>状态基线</strong> $b(s_t)$：</p>
 
 
 $$
@@ -329,37 +442,38 @@ $$
 $$
 
 
-<h4>严格数学证明：减去基线带来零偏差（Zero Bias）</h4>
-<p>我们需要证明：引入 $b(s_t)$ 绝不会改变梯度的数学期望。
-考察在时间步 $t$ 对动作取期望的内部项：</p>
+<h4>零偏差（Zero Bias）严格逐步数学证明：</h4>
+<p>我们必须证明：从奖励中减去 $b(s_t)$ 绝不会歪曲真实的梯度方向。
+考察在时间步 $t$ 对动作取期望的基线项：</p>
 
 
 $$
 \begin{aligned}
-\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] &= \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \frac{\nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)}{\pi_{\boldsymbol{\theta}}(a_t \mid s_t)} b(s_t) \\
-&= b(s_t) \sum_{a_t \in \mathcal{V}} \nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \\
-&= b(s_t) \nabla_{\boldsymbol{\theta}} \left( \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \right)
+\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] &= \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \left( \frac{\nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)}{\pi_{\boldsymbol{\theta}}(a_t \mid s_t)} \right) b(s_t) && \text{［按期望定义展开并代入对数导数］} \\
+&= b(s_t) \sum_{a_t \in \mathcal{V}} \nabla_{\boldsymbol{\theta}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) && \text{［消去分子分母中的 } \pi \text{ 并提纯 } b(s_t)\text{］} \\
+&= b(s_t) \nabla_{\boldsymbol{\theta}} \left( \sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \right) && \text{［有限项和的求导等于求导的和］}
 \end{aligned}
 $$
 
 
-<p>由于概率在整个词表上的累加和恒等于 1：</p>
+<p>观察括号内部的项：$\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t)$。
+由于 Softmax 输出的概率分布在整个词表上的累加和恒等于 1：</p>
 
 
 $$
-\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \equiv 1 \implies \nabla_{\boldsymbol{\theta}}(1) = \mathbf{0}
+\sum_{a_t \in \mathcal{V}} \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \equiv 1.0
 $$
 
 
-<p>因此：</p>
+<p>常数的导数严格为零：$\nabla_{\boldsymbol{\theta}}(1.0) = \mathbf{0}$。因此：</p>
 
 
 $$
-\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] = b(s_t) \cdot \mathbf{0} = \mathbf{0}
+\mathbb{E}_{a_t \sim \pi_{\boldsymbol{\theta}}} \left[ \nabla_{\boldsymbol{\theta}} \log \pi_{\boldsymbol{\theta}}(a_t \mid s_t) b(s_t) \right] = b(s_t) \cdot \mathbf{0} \equiv \mathbf{0}
 $$
 
 
-<p>减去基线在数学上<strong>严格保持无偏</strong>，但它将原本均为正数的奖励中心化，大幅削减了在数万维词表上采样的方差 $\operatorname{Var}(\hat{\mathbf{g}})$！</p>
+<p>减去任意与当前动作无关的基线 $b(s_t)$ 对梯度期望的影响<strong>严格为零偏差</strong>！数学期望 100% 保持精准，但梯度的采样方差却得到了数量级级别的缩减！</p>
 <hr />
 <h2 id="step-4">步骤 4：历史渊源与技术演进</h2>
 <dl>

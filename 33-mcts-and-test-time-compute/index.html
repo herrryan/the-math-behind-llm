@@ -237,6 +237,33 @@ P_N(\text{Majority Correct}) = \sum_{k=\frac{N+1}{2}}^N \binom{N}{k} p^k (1-p)^{
 $$
 
 
+<fieldset>
+<legend><strong>Concrete Example: The Condorcet Amplification Effect</strong></legend>
+<p>Suppose an LLM has single-pass accuracy $p = 0.60$ (60% chance of success). Sample $N = 3$ independent reasoning paths:</p>
+<ul>
+<li>Majority correct means either 2 or 3 paths succeed:
+
+
+
+
+$$
+\begin{aligned}
+    P_3(\ge 2) &= \binom{3}{2} p^2 (1-p) + \binom{3}{3} p^3 \\
+    &= 3 \times (0.6)^2 \times (0.4) + 1 \times (0.6)^3 \\
+    &= 3 \times 0.36 \times 0.4 + 0.216 \\
+    &= 0.432 + 0.216 = \mathbf{0.648} \quad (64.8\%)
+    \end{aligned}
+$$
+
+
+
+
+  </li>
+<li>By simply sampling 3 times and voting, accuracy jumped from <strong>60.0% to 64.8%</strong> with zero parameter changes!</li>
+<li>At $N = 101$, the majority vote accuracy soars above <strong>97.8%</strong>!</li>
+<li><strong>The Dark Warning</strong>: If $p < 0.5$ (e.g. $p = 0.40$), the math inverts: $P_3(\ge 2) = 0.352$ (35.2%). Majority voting amplifies confident hallucinations if the base model is worse than a coin flip!</li>
+</ul>
+</fieldset>
 <p>By the Condorcet Jury Theorem, as $N \to \infty$:</p>
 
 
@@ -282,7 +309,23 @@ U(s, a) = c_{\text{puct}} P(s, a) \frac{\sqrt{\sum_{b} N(s, b)}}{1 + N(s, a)}
 $$
 
 
-<p>where $c_{\text{puct}} \approx 1.5$ balances exploitation (high $Q$) and exploration (high prior $P$, low visits $N$).</p>
+<fieldset>
+<legend><strong>Deconstructing the Three Mathematical Forces in PUCT</strong></legend>
+<ol>
+<li><strong>$Q(s, a)$ (Exploitation: Past Success)</strong>:
+    The historical average reward along this path. High $Q$ tells the search algorithm: <em>"This move has consistently led to winning proofs in previous simulations. Exploit it!"</em>
+  </li>
+<li><strong>$P(s, a)$ (Prior Policy Bias: Linguistic Plausibility)</strong>:
+    The base Transformer's unconditional confidence in generating step $a$. This acts as a protective shield: it prevents MCTS from wasting search compute on syntactically nonsensical or irrelevant steps.
+  </li>
+<li><strong>$\frac{\sqrt{\sum_b N(s, b)}}{1 + N(s, a)}$ (Curiosity with Diminishing Returns)</strong>:
+    <ul>
+      <li><strong>Numerator $\sqrt{\sum_b N(s, b)}$</strong>: Measures total parent visits. As we spend more time at state $s$, our curiosity grows to inspect unvisited alternatives.</li>
+      <li><strong>Denominator $1 + N(s, a)$</strong>: Every time branch $a$ is explored, $N(s, a)$ increments by 1. This crushes the exploration bonus toward 0. Once an action has been thoroughly tested, curiosity vanishes and decision-making is 100% governed by the empirical outcome $Q(s, a)$!</li>
+    </ul>
+  </li>
+</ol>
+</fieldset>
 <h4>Phase 2: Expansion</h4>
 <p>Upon reaching a leaf node $s_L$, generate $K$ candidate next reasoning steps using the policy model:</p>
 

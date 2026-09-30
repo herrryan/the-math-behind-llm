@@ -196,9 +196,24 @@ $$
 $$
 
 
-<p>尽管数学原理十分优美，但直接在大语言模型上运行纯粹的 REINFORCE 会遭遇两大灾难性的工程瓶颈：
-1. <strong>信用分配滞后瓶颈（Delayed Credit）</strong>：在长达 1,000 个词元的长文本回复中，模型直到输出完毕才拿到一个总奖励 $R(\tau)$。如果第 20 个词元极具创造力，但在第 995 个词元发生幻觉编造了错误事实，最终奖励变成 0。REINFORCE 会将整个文本里的 1,000 个词元全部打入冷宫！我们急需一个能够在中间步骤评估部分进展的细粒度词元级奖励信号。
-2. <strong>步长悬崖崩溃（Policy Collapse）</strong>：在深度神经网络中，权重空间极其微小的更新 $\Delta \boldsymbol{\theta}$ 都会在输出概率空间引发剧烈非线性震荡。如果单次梯度更新迈出的步幅过大，模型概率分布就会突变为胡言乱语。而一旦语言模型跌入崩溃悬崖，后续采样出的全是无意义乱码，模型将彻底丧失恢复能力。</p>
+<p>尽管数学原理十分优美，但直接在大语言模型上运行纯粹的 REINFORCE 会遭遇两大灾难性的工程瓶颈：</p>
+<ol>
+<li><strong>信用分配滞后瓶颈（第 995 个词元的拼写失误）</strong>：</li>
+</ol>
+<ul>
+<li>在长达 1,000 个词元的长篇推导或 Python 代码生成中，模型只有在输出完最终的 <code>&lt;|endoftext|&gt;</code> 结束符后，才能拿到唯一的标量总奖励 $R(\tau)$。</li>
+<li>假设从第 1 到第 994 个词元展现了极其精妙的数学推理，但在第 995 个词元，模型粗心漏掉了一个闭括号 <code>)</code>。Python 解释器报错崩溃，环境返回总分 $R = 0$。</li>
+<li>原始 REINFORCE 对该轨迹中的每一个词元一视同仁：它会用完全相同的负向惩罚把前 994 个神来之笔与第 995 个失误词元一同打压！</li>
+<li>我们急需一个能够在句子中间步骤评估<em>局部阶段性进展</em>的细粒度裁判，即使后续发生失误，也能精准鼓励前面的正确逻辑。</li>
+</ul>
+<ol start="2">
+<li><strong>步长悬崖崩溃（策略坍塌）</strong>：</li>
+</ol>
+<ul>
+<li>在深度神经网络中，由于 Softmax 函数具有天然的指数放大效应（$\exp(z_i)$），模型权重空间极其微小的更新 $\Delta \boldsymbol{\theta}$ 都可能在输出概率空间引发剧烈震荡。</li>
+<li>一次未加约束的梯度更新，可能让某个词元的输出概率在一夜之间从 $0.01$ 暴增到 $0.99$。</li>
+<li>一旦语言模型跌入崩溃悬崖，它就会陷入不可逆的退化循环：不断重复输出毫无意义的单词（例如无限循环输出 <samp>"the the the"</samp>），导致后续所有采样全部拿 0 分，梯度彻底消失或爆炸，模型永远无法恢复。</li>
+</ul>
 <p>这就是承前启后的关键问题：</p>
 
 
@@ -212,14 +227,32 @@ $$
 <h3>1. 经典 RLHF 的 4 模型系统</h3>
 <p>在大语言模型经典强化学习对齐中，需要同时协同 4 个独立模型：</p>
 <ol>
-<li><strong>演员策略（Actor $\pi_{\boldsymbol{\theta}}$）</strong>：当前负责生成文本的大语言模型，其参数 $\boldsymbol{\theta} \in \mathbb{R}^D$ 持续接受梯度更新以迎合人类偏好。</li>
-<li><strong>评论家（Critic / 价值模型 $V_{\boldsymbol{\phi}}$）</strong>：与语言模型具有相似主干架构，但顶层将词表投影层替换为标量回归头的价值网络，参数 $\boldsymbol{\phi}$ 负责拟合期望折现累计回报：$V_{\boldsymbol{\phi}}(s_t) \approx \mathbb{E}\left[ \sum_{k=0}^\infty \gamma^k r_{t+k} \mid s_t \right]$。</li>
+<li><strong>演员策略（Actor $\pi_{\boldsymbol{\theta}}$）</strong>：当前负责生成文本的大语言模型，其参数 $\boldsymbol{\theta} \in \mathbb{R}^D$ 持续接受梯度更新以迎合人类偏好与解题正确率。</li>
+<li><strong>评论家（Critic / 价值模型 $V_{\boldsymbol{\phi}}$）</strong>：估计从文本生成的任意中间阶段出发，预计最终能拿到的未来总回报期望值。</li>
 <li><strong>参考模型（Reference Policy $\pi_{\text{ref}}$）</strong>：初始监督微调（SFT）模型的完全冻结副本，充当防漂移基准锚点。</li>
 <li><strong>奖励模型（Reward Model $R_{\boldsymbol{\psi}}$）</strong>：在人类成对偏好数据 $(y_w \succ y_l)$ 上预先训练并冻结的打分模型（第 19 章）。</li>
 </ol>
+<fieldset>
+<legend><strong>代码中评论家网络（Critic）到底长什么样？</strong></legend>
+<p>很多初学者好奇：<em>评论家是一个结构截然不同的神经网络吗？</em></p>
+<p>不是！评论家物理上就是演员模型（Transformer）的克隆体！两者唯一的结构区别在于<strong>最顶层的输出层</strong>：</p>
+<ul>
+<li>演员模型使用反嵌入投影矩阵 $\mathbf{W}_{\text{unembed}} \in \mathbb{R}^{d \times |\mathcal{V}|}$，为词表中的 100,000 个候选词元各输出一个打分 logit。</li>
+<li>评论家模型则将这一层替换为了一个极其简单的单向量线性层 $\mathbf{w}_V \in \mathbb{R}^{d \times 1}$。</li>
+</ul>
+<p>给定任意前缀状态 $s_t = (x, y_1, \dots, y_{t-1})$，评论家读取 Transformer 输出的最终隐藏状态向量 $\mathbf{h}_t \in \mathbb{R}^d$，并输出<strong>一个单一标量数值</strong>：</p>
+
+
+$$
+V_{\boldsymbol{\phi}}(s_t) = \mathbf{w}_V^\top \mathbf{h}_t + b_V \in \mathbb{R}
+$$
+
+
+<p>这个数字回答的核心问题是：<em>“从当前生成的这个词元位置出发，我预计整场对话最终平均能拿多少分？”</em></p>
+</fieldset>
 <hr />
-<h3>2. 带 KL 散度惩罚的词元级奖励</h3>
-<p>为了防止演员模型钻奖励模型的漏洞（即<dfn id="def-reward-hacking-zh">奖励黑客攻击 / 刷分作弊</dfn>），并保留原有的泛化表达能力，我们对偏离参考模型的每个词元施加 KL 散度惩罚：</p>
+<h3>2. 带 KL 散度安全绳的词元级奖励</h3>
+<p>为了防止演员模型钻奖励模型的漏洞（即<dfn id="def-reward-hacking-zh">奖励黑客攻击 / 刷分套路</dfn>），并保护原有的语言通顺度，我们对偏离参考模型的每个词元施加 KL 散度惩罚：</p>
 
 
 $$
@@ -230,27 +263,78 @@ R_{\boldsymbol{\psi}}(x, y) - \beta \log \left( \frac{\pi_{\boldsymbol{\theta}}(
 $$
 
 
-<p>其中 $\beta > 0$ 为 KL 惩罚系数。若演员大幅抬高某词元概率导致远超参考模型分布，则对数比值大于 0，从而扣除奖励分数。</p>
+<p>其中 $\beta > 0$ 为 KL 惩罚系数（通常取 $\beta \approx 0.01 \sim 0.1$）。</p>
+<ul>
+<li>如果演员模型保持在参考模型附近（$\pi_{\boldsymbol{\theta}} \approx \pi_{\text{ref}}$），比率约为 1，$\log(1) = 0$（零惩罚）。</li>
+<li>如果演员试图钻空子，将某个奇怪用词的概率推得奇高（$\pi_{\boldsymbol{\theta}} \gg \pi_{\text{ref}}$），对数比值大于 0，就会被严厉扣分。</li>
+<li>这就形成了一条<strong>弹性安全绳</strong>：模型可以自由探索更好的解法，但绝不能彻底丧失人类说话的语法规范。</li>
+</ul>
 <hr />
-<h3>3. 广义优势估计（GAE）</h3>
-<p>为了评估在状态 $s_t$ 下采纳动作 $a_t$ 到底比预期好多少，我们首先计算<strong>时间差分（TD）残差</strong> $\delta_t^V$：</p>
+<h3>3. 时间差分（TD）残差的本质解析</h3>
+<p>为了评估在状态 $s_t$ 下采纳词元 $a_t$ 到底比预期好多少，我们计算<strong>时间差分（TD）残差</strong> $\delta_t^V$：</p>
 
 
 $$
-\delta_t^V = r_t + \gamma V_{\boldsymbol{\phi}}(s_{t+1}) - V_{\boldsymbol{\phi}}(s_t)
+\delta_t^V = \underbrace{r_t + \gamma V_{\boldsymbol{\phi}}(s_{t+1})}_{\text{新现实 + 修正后的未来预期}} - \underbrace{V_{\boldsymbol{\phi}}(s_t)}_{\text{旧有的初始预期}}
 $$
 
 
-<p>其中 $\gamma \in (0, 1]$ 为折现因子（在有限步长语言生成中通常设 $\gamma = 1.0$）。
-为了在偏差（较小的 $\lambda$）与方差（较大的 $\lambda$）之间求得最优数学平衡，我们采用<dfn id="def-gae-zh">广义优势估计（Generalized Advantage Estimation, GAE）</dfn>：</p>
+<p>其中 $\gamma \in (0, 1]$ 为折现因子（在有限步长语言生成中通常设 $\gamma = 1.0$）。</p>
+<fieldset>
+<legend><strong>一个关于 TD 残差的直观数字故事</strong></legend>
+<p>假设给模型的输入提示词是：<code>"求解方程 2x + 6 = 14"</code>。</p>
+<ol>
+<li><strong>初始状态 $s_0$</strong>：评论家读取题目，预测 $V(s_0) = 0.50$（它判断模型有 50% 的初始解题成功率）。</li>
+<li><strong>步骤 1（绝佳推导）</strong>：模型生成词元 <kbd>"两边同时减 6 得：2x = 8"</kbd>。</li>
+</ol>
+<ul>
+<li>即时奖励 $r_1 = 0$。</li>
+<li>形成新状态 $s_1$。评论家评估当前式子，将胜率预期上调至：$V(s_1) = 0.95$（95% 的把握！）。</li>
+<li>计算 TD 惊喜程度：</li>
+</ul>
 
 
 $$
-\hat{A}_t^{\text{GAE}(\gamma, \lambda)} = \sum_{l=0}^{T - t - 1} (\gamma \lambda)^l \delta_{t+l}^V
+\delta_1 = r_1 + V(s_1) - V(s_0) = 0 + 0.95 - 0.50 = \mathbf{+0.45}
 $$
 
 
-<p>其递推展开形式极为紧凑：</p>
+<ul>
+<li>
+<p><strong>结果</strong>：仅仅这一个词元，就让成功概率暴涨了 $+0.45$！该词元得到强烈的正向奖赏！
+3. <strong>步骤 2（算术失误）</strong>：模型接着生成词元 <kbd>"两边同时除以 2 得：x = 5"</kbd>（出现算术粗心失误！）。</p>
+</li>
+<li>
+<p>即时奖励 $r_2 = 0$。</p>
+</li>
+<li>形成新状态 $s_2$。评论家敏锐察觉算术错误，胜率预期断崖式暴跌至：$V(s_2) = 0.05$（只剩 5% 希望！）。</li>
+<li>计算 TD 惊喜程度：</li>
+</ul>
+
+
+$$
+\delta_2 = r_2 + V(s_2) - V(s_1) = 0 + 0.05 - 0.95 = \mathbf{-0.90}
+$$
+
+
+<ul>
+<li><strong>结果</strong>：该失误词元当场遭到 $-0.90$ 的重罚！</li>
+</ul>
+<p><strong>看清 TD 残差的神奇威力</strong>：即使整场解题最终因算错而宣告失败（最终总分 $R=0$），模型<strong>也不会</strong>惩罚步骤 1！TD 残差精准表彰了步骤 1 的优秀推导（$+0.45$），并将责任精确锁定在发生错误的步骤 2（$-0.90$）。长文本信用分配难题迎刃而解！</p>
+</fieldset>
+<hr />
+<h3>4. 广义优势估计（GAE）</h3>
+<p>1 步 TD 残差 $\delta_t^V$ 虽解决了信用分配，但它高度依赖评论家的预估值 $V(s_{t+1})$。若评论家网络本身预测不准，优势估计就会存在<strong>偏差（Bias）</strong>。
+反之，若一直等到全文本结束再结算回报（蒙特卡洛回报），虽然绝对无偏，但在长序列上的<strong>方差（Variance）极大</strong>。</p>
+<p>为了在两者之间取得最优平衡，<dfn id="def-gae-zh">广义优势估计（GAE-$\lambda$）</dfn>对未来的 TD 残差进行了指数加权求和：</p>
+
+
+$$
+\hat{A}_t^{\text{GAE}(\gamma, \lambda)} = \sum_{l=0}^{T - t - 1} (\gamma \lambda)^l \delta_{t+l}^V = \delta_t^V + (\gamma \lambda) \delta_{t+1}^V + (\gamma \lambda)^2 \delta_{t+2}^V + \dots
+$$
+
+
+<p>其紧凑递推形式为：</p>
 
 
 $$
@@ -258,14 +342,15 @@ $$
 $$
 
 
+<p>超参数 $\lambda \in [0, 1]$ 充当连续平衡旋钮：</p>
 <ul>
-<li>当 $\lambda = 0$ 时：$\hat{A}_t = \delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$（方差极低，但完全依赖评论家预测准确度，偏差较高）。</li>
-<li>当 $\lambda = 1$ 时：$\hat{A}_t = \sum_{k=t}^T \gamma^{k-t} r_k - V(s_t)$（无偏的蒙特卡洛经验回报减去基线，方差较高）。</li>
-<li>在现代大模型强化学习对齐中，标准参数通常选取 $\gamma = 1.0, \lambda = 0.95$。</li>
+<li><strong>$\lambda = 0$（纯 1 步 TD）</strong>：$\hat{A}_t = \delta_t^V = r_t + \gamma V(s_{t+1}) - V(s_t)$。方差极小，但若评论家有偏差，梯度更新就会被误导。</li>
+<li><strong>$\lambda = 1$（纯蒙特卡洛全轨迹回报）</strong>：$\hat{A}_t = \sum_{k=t}^T \gamma^{k-t} r_k - V(s_t)$。无评论家偏差，但长文本累积方差极高。</li>
+<li><strong>$\lambda = 0.95$（大模型工程黄金标准）</strong>：当天的 TD 惊喜占 $100\%$，明天的占 $95\%$，后天的占 $(0.95)^2 \approx 90\%$，以平滑的几何衰减将局部精细归因与长期全局收益完美融合。</li>
 </ul>
 <hr />
-<h3>4. PPO 裁剪替代目标函数（Clipped Surrogate Objective）</h3>
-<p>定义当前策略 $\pi_{\boldsymbol{\theta}}$ 与采集数据时的旧策略 $\pi_{\boldsymbol{\theta}_{\text{旧}}}$ 在生成词元 $a_t$ 时的概率比率：</p>
+<h3>5. PPO 裁剪替代目标函数（Clipped Surrogate Objective）</h3>
+<p>定义当前策略 $\pi_{\boldsymbol{\theta}}$ 与采集数据时的旧策略 $\pi_{\boldsymbol{\theta}_{\text{旧}}}$ 在生成词元 $a_t$ 时的重要性采样概率比率：</p>
 
 
 $$
@@ -281,9 +366,34 @@ $$
 $$
 
 
-<p>其中 $\epsilon$ 为裁剪阈值超参数（通常设 $\epsilon = 0.2$，将比率严格限制在 $[0.8, 1.2]$ 区间）。</p>
+<p>其中 $\epsilon$ 为裁剪阈值（通常设 $\epsilon = 0.2$，将比率严格限制在 $[0.8, 1.2]$ 区间）。</p>
+<fieldset>
+<legend><strong>拆解四大象限：为什么目标函数中要取最小值（$\min$）？</strong></legend>
+<p>很多同学疑惑：<em>为什么公式要在未裁剪项与裁剪项之间取最小值？</em></p>
+<p>这个 $\min$ 操作构建了一个<strong>悲观下界（Pessimistic Lower Bound）</strong>，确保优化器在面对任何更新时都采取审慎防御姿态：</p>
+<ol>
+<li><strong>情况 1：正优势（$\hat{A}_t > 0$，优秀动作）</strong></li>
+</ol>
+<ul>
+<li>我们希望增大这个动作的概率（$r_t > 1$）。</li>
+<li>如果 $r_t$ 增长过猛，超过了 $1 + \epsilon$（例如 $r_t = 1.4$，而上限是 $1.2$）：</li>
+<li>未裁剪项为 $1.4 \hat{A}_t$，裁剪项为 $1.2 \hat{A}_t$。</li>
+<li>
+<p>$\min(1.4 \hat{A}_t, 1.2 \hat{A}_t) = 1.2 \hat{A}_t$。目标函数被封顶截断！导数在此处变为<strong>零</strong>，防止模型过度贪婪地将参数全押在这一个词元上。
+2. <strong>情况 2：负优势（$\hat{A}_t < 0$，失误动作）</strong></p>
+</li>
+<li>
+<p>我们希望压低这个动作的概率（$r_t < 1$）。</p>
+</li>
+<li><em>注意负号反转了大小关系！</em> 因为 $\hat{A}_t$ 是负数，乘以更小的数反而得到<strong>更大的值</strong>（例如 $0.1 \times (-10) = -1.0$，而 $0.8 \times (-10) = -8.0$）。</li>
+<li>如果模型过激地打压该词元，使 $r_t$ 暴跌低于 $1 - \epsilon$（例如 $r_t = 0.1$，而下限是 $0.8$）：</li>
+<li>未裁剪项为 $-1.0$，裁剪项为 $-8.0$。</li>
+<li>$\min(-1.0, -8.0) = -8.0$。最小值选择了更悲观的裁剪项！因为 $-8.0$ 对参数 $\boldsymbol{\theta}$ 是水平常数线，其导数严格为<strong>零</strong>！</li>
+<li><strong>结果</strong>：一旦某个错误词元已经被充分打压（$r_t < 0.8$），PPO 绝不对其“穷追猛打”！它立即停止惩罚，防止概率下溢崩溃，保留未来的探索空间。</li>
+</ul>
+</fieldset>
 <table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>表 30.1：</strong> PPO 裁剪在不同优势与比率区间下的数学响应行为。</caption>
+  <caption><strong>表 30.1：</strong> PPO 裁剪在不同优势与比率区间下的完整数学响应行为。</caption>
   <thead>
     <tr bgcolor="#eae9e1">
       <th align="left" width="20%">优势值区间</th>
@@ -315,7 +425,7 @@ $$
       <td><strong>负优势（$\hat{A}_t < 0$）</strong><br>该动作表现低于预期</td>
       <td>$r_t(\boldsymbol{\theta}) < 1 - \epsilon$<br>概率已被大幅打压</td>
       <td>$(1 - \epsilon) \hat{A}_t$</td>
-      <td><strong>导数归零</strong>：阻止将概率过激打压至绝对零度。</td>
+      <td><strong>导数归零</strong>：停止追打已打压词元，防止概率下溢。</td>
     </tr>
   </tbody>
 </table>
