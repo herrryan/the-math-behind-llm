@@ -101,40 +101,43 @@ $$\text{How do we calculate the exact gradient of expected reward } \nabla_{\bol
 
 ## Step 3: The Exact Math & Formula
 
-### 1. Language Generation as a Markov Decision Process (MDP)
+### 1. From Marbles and Paper Strips to Language Generation (Demystifying the Markov Property)
 
-To study text generation mathematically, we formulate autoregressive language modeling as a discrete-time, finite-horizon <dfn id="def-mdp">Markov Decision Process (MDP)</dfn> defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$:
+In standard textbooks, authors often intimidate students by declaring: *"Let text generation be defined as a discrete-time Markov Decision Process tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$."*
 
-<fieldset>
-<legend><strong>Why Is Language Modeling an MDP? (The Markov Property)</strong></legend>
-<p>In physics and mathematics, the <em>Markov Property</em> states that <strong>the future depends only upon the present state, not on the path taken to reach it</strong>: $P(s_{t+1} \mid s_t, s_{t-1}, \dots, s_0) = P(s_{t+1} \mid s_t)$.</p>
-<p>In a language model, does the choice of the next word depend on earlier words? Absolutely! But we define the <strong>state</strong> $s_t$ as the <em>entire prompt plus all words generated so far</em>: $s_t = (x, y_1, y_2, \dots, y_{t-1})$. Because $s_t$ already holds the full history, conditioned on $s_t$, the next token depends on nothing else! Thus, autoregressive text generation satisfies the Markov property completely and rigorously.</p>
-</fieldset>
+Let's discard the academic jargon and look at what is physically happening on the desk:
 
-- **State Space ($\mathcal{S}$)**: At time step $t$, the state $s_t$ is the concatenation of prompt $x$ and all tokens generated up to step $t-1$:
-  $$
-  s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t}) \in \mathcal{S}
-  $$
-- **Action Space ($\mathcal{A}$)**: The action $a_t$ is selecting the next token from the discrete vocabulary $\mathcal{V}$:
-  $$
-  a_t = y_t \in \mathcal{V} \quad (|\mathcal{V}| \approx 32{,}000 \text{ to } 128{,}000)
-  $$
-- **Transition Dynamics ($\mathcal{P}$)**: Adding the selected token to the state is deterministic string concatenation:
-  $$
-  s_{t+1} = [s_t, a_t] = (x, y_1, \dots, y_t)
-  $$
-  with probability $\mathcal{P}(s_{t+1} \mid s_t, a_t) \equiv 1$.
-- **Policy ($\pi_{\boldsymbol{\theta}}$)**: The language model parameterized by weights $\boldsymbol{\theta} \in \mathbb{R}^D$ outputs a categorical probability distribution over all tokens in $\mathcal{V}$ given state $s_t$:
-  $$
-  \pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \operatorname{softmax}\left(\mathbf{z}_t\right)_{a_t} = \frac{\exp\left(z_{t, a_t}\right)}{\sum_{v \in \mathcal{V}} \exp\left(z_{t, v}\right)}
-  $$
-- **Trajectory ($\tau$) and Return ($R(\tau)$)**: A full generation episode produces a complete trajectory $\tau = (s_1, a_1, s_2, a_2, \dots, s_T, a_T)$. The scalar reward $R(\tau) \in \mathbb{R}$ is assigned upon terminal token generation (e.g. producing the `<|endoftext|>` token).
+1. **The Paper Strip (The State $s_t$)**:
+   - Imagine a paper strip rolling out of a printer.
+   - At the beginning, the prompt $x$ is printed on the strip: e.g. <samp>"What is 2 + 2?"</samp>.
+   - Every time the model generates a word, it prints that word onto the end of the strip.
+   - At step $t$, the state $s_t$ is simply **everything currently written on the paper strip**:
+     $$
+     s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t})
+     $$
+   - You don't need an abstract state space $\mathcal{S}$ &mdash; the state is literally just the readable text on the paper tape!
 
-The total probability of generating trajectory $\tau$ under policy $\boldsymbol{\theta}$ is:
+2. **The Vocabulary Jar (The Action $a_t$)**:
+   - Inside the machine is a glass jar containing $|\mathcal{V}|$ marbles (where $|\mathcal{V}| \approx 32{,}000$ to $128{,}000$ words).
+   - Taking an "action" $a_t$ simply means **reaching into the jar and pulling out one word $y_t$** to print onto the paper strip.
 
-$$
-P(\tau; \boldsymbol{\theta}) = P(s_1) \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \mathcal{P}(s_{t+1} \mid s_t, a_t) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
-$$
+3. **Demystifying the "Markov Property" (No History Amnesia)**:
+   - In physics, a process is called *Markovian* if the next event depends **only on the current state, not on how you reached it**.
+   - Students often ask: *"Doesn't the next word depend heavily on what was said 10 words ago? How can that be Markovian?"*
+   - Look at your paper strip: **All 10 past words are already printed right there on the strip!**
+   - Because the strip $s_t$ already contains the complete history, the machine does not need any hidden time machine or external memory. Everything it needs to know is printed on the tape in front of it right now. Conditioned on $s_t$, the next marble depends on nothing else.
+
+4. **The Probability of an Entire Sentence (Multiplying Marbles)**:
+   - The model has internal knobs $\boldsymbol{\theta}$. Given the paper strip $s_t$, the machine outputs a probability for each marble in the jar via softmax:
+     $$
+     \pi_{\boldsymbol{\theta}}(y_t \mid s_t) = \frac{\exp(z_{t, y_t})}{\sum_{v \in \mathcal{V}} \exp(z_{t, v})}
+     $$
+   - When the model writes a full sentence $\tau = (y_1, y_2, \dots, y_T)$, what is the chance of rolling that exact sequence of marbles?
+   - From basic counting, you simply multiply the chances of each individual marble drawn:
+     $$
+     P(\tau; \boldsymbol{\theta}) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(y_t \mid s_t)
+     $$
+   - At the end of the sentence, an external evaluator (a Python runner, math checker, or human) awards a scalar score $R(\tau) \in \mathbb{R}$ on the number line.
 
 ---
 

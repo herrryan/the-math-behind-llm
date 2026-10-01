@@ -29,41 +29,213 @@
 
 ---
 
-<h2 id="primer">Gentle Primer: Transitioning from Pre-Training to Reinforcement Learning</h2>
+<h2 id="primer">The Feynman Primer: Six Easy Pieces from the Number Line to Reinforcement Learning</h2>
 
-<p>Many students find the mathematics of reinforcement learning intimidating because the equations look drastically different from standard deep learning. In pre-training and supervised fine-tuning, every mathematical step revolves around a simple, deterministic goal: <em>given an input, match the teacher's target word</em>. In reinforcement learning, that safety net disappears.</p>
+<p>Richard Feynman famously taught that if you cannot explain a concept from first principles without hiding behind textbook jargon and abstract definitions, you do not truly understand it. In this primer, we throw away dry academic tuples like $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$ and build the entire mathematics of reinforcement learning from scratch &mdash; starting with a chalk line on the sidewalk and counting pebbles, and building an unbroken chain of physical logic all the way up to autonomous reasoning models like DeepSeek-R1.</p>
 
-<p>To ease your journey, this primer breaks down the three foundational paradigm shifts that govern all LLM reinforcement learning mathematics.</p>
+---
 
-<table border="1" cellpadding="8" cellspacing="0" width="100%">
-  <caption><strong>Table R.0:</strong> The three fundamental shifts from Supervised Learning (SFT) to Reinforcement Learning (RL).</caption>
-  <thead>
-    <tr bgcolor="#eae9e1">
-      <th align="left" width="22%">Dimension</th>
-      <th align="left" width="38%">Supervised Learning (SFT / Pre-training)</th>
-      <th align="left" width="40%">Reinforcement Learning (RL / Reasoning)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>1. The Training Signal</strong></td>
-      <td><strong>The Golden Answer Key</strong>: A human expert provides the exact ground-truth token $y_t^*$. The loss is standard Cross-Entropy: $-\log \pi_{\boldsymbol{\theta}}(y_t^* \mid x)$.</td>
-      <td><strong>The Scorecard</strong>: Nobody provides the exact words. The model generates an entire sequence, and an external evaluator (Python interpreter, math grader, human) gives a single score $R$.</td>
-    </tr>
-    <tr>
-      <td><strong>2. The Gradient Path</strong></td>
-      <td><strong>Direct Backpropagation</strong>: The loss function is a smooth, continuous mathematical function of the model's logits: $\frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \mathbf{p} - \mathbf{1}_{y^*}$. Gradients flow smoothly backwards.</td>
-      <td><strong>The Discrete Wall</strong>: Words are selected via discrete sampling ($y_t \sim \operatorname{Categorical}(\mathbf{p})$) or $\operatorname{argmax}$. You cannot take the derivative of a sampled word or a Python test runner!</td>
-    </tr>
-    <tr>
-      <td><strong>3. The Optimization Mechanism</strong></td>
-      <td><strong>Imitation</strong>: Pull model parameters in the exact direction that increases the likelihood of the human demonstrator's words.</td>
-      <td><strong>Trial, Error &amp; Dynamic Weighting</strong>: Model explores autonomously. The <em>Score Function Trick</em> turns the policy gradient into <strong>weighted cross-entropy on self-generated text</strong>, scaled by how much better the outcome was than expected.</td>
-    </tr>
-  </tbody>
-</table>
+### Piece 1: Counting, The Number Line, and Wiggling Knobs
 
-<br>
+Imagine you are standing on a sidewalk with a piece of chalk:
+
+1. **Counting Pebbles (The Natural Numbers)**:
+   - You drop 1 pebble on the ground. Then another: 2 pebbles. Then another: 3 pebbles.
+   - Counting is the primal root of all mathematics.
+
+2. **The Number Line (Walking Left and Right)**:
+   - Now draw a straight chalk line on the sidewalk. Make a mark where you are standing right now. That mark is **$0$**.
+   - Take one normal stride forward. Make a mark: **$+1$**. Another stride forward: **$+2$**.
+   - What if you take one stride backward? Make a mark behind you: **$-1$**. Another stride backward: **$-2$**.
+   - *Addition* is just walking forward. *Subtraction* is just walking backward.
+   - What if you take half a stride? You land on $0.5$. By slicing strides into finer pieces, every physical point on that continuous line has an exact address: a real number.
+
+3. **A Machine with a Knob (Weights and Parameters)**:
+   - Now imagine a wooden box with a volume knob on the front.
+   - The position of the knob is just a number on our chalk line: let's call the knob's position $\theta$. Right now, the pointer is sitting at $\theta = 2.0$.
+   - When you turn the knob, the box produces an electrical hum of loudness $y$. Suppose the loudness is connected to the knob by the simple rule: $y = 3\theta$. When $\theta = 2$, loudness is $y = 6$.
+
+4. **What is a "Nudge"? (The Rate of Change, No Definitions Needed)**:
+   - Suppose you give the knob a tiny physical nudge to the right by $\Delta \theta = 0.01$.
+   - The loudness hum changes from $6.00$ to $6.03$, a shift of $\Delta y = 0.03$.
+   - Now ask the most natural question in the world: *How sensitive is the loudness to a nudge on the knob?*
+     $$
+     \frac{\text{wobble in loudness}}{\text{wobble in knob}} = \frac{\Delta y}{\Delta \theta} = \frac{0.03}{0.01} = 3
+     $$
+   - That number &mdash; $3$ &mdash; is what mathematicians call a "derivative" or a "gradient" ($\nabla$).
+   - Strip away the fancy Latin words: **a gradient is nothing more than a sensitivity number that tells you: if you nudge a knob to the right, does the output move up or down, and by how much?**
+   - If the sensitivity is positive ($+3$), turning the knob to the right turns the volume up. If it is negative ($-3$), turning the knob to the right turns the volume down.
+
+---
+
+### Piece 2: The Jar of Marbles (Probability as Counting)
+
+1. **A Machine That Rolls Dice**:
+   - A language model does not just produce a single loudness hum. It chooses words.
+   - How does a machine choose words? Imagine a glass jar filled with $100$ colored marbles:
+     - $70$ marbles are blue, stamped with the word <kbd>"the"</kbd>.
+     - $20$ marbles are green, stamped with the word <kbd>"cat"</kbd>.
+     - $10$ marbles are red, stamped with the word <kbd>"apple"</kbd>.
+
+2. **What is Probability? (Just Counting!)**:
+   - You reach your hand in blindfolded and pull out one marble.
+   - What is the chance of pulling out <kbd>"cat"</kbd>?
+   - You don't need measure theory or axioms. You simply count: there are $20$ green marbles out of $100$ total marbles:
+     $$
+     P(\text{"cat"}) = \frac{20}{100} = 0.20 \quad (20\%)
+     $$
+   - A "probability" is just counting how many winning marbles you have divided by the total pile. It is a location on the number line strictly between $0$ (impossible) and $1$ (guaranteed).
+
+3. **Connecting the Knob to the Jar**:
+   - Inside the machine, our knob $\theta$ is connected to a mechanical lever inside the jar.
+   - If you turn knob $\theta$ slightly to the right, the lever swaps $5$ red marbles for $5$ green marbles.
+   - The chance of <kbd>"cat"</kbd> increases from $0.20$ to $0.25$.
+   - How sensitive was the chance of <kbd>"cat"</kbd> to knob $\theta$?
+     $$
+     \frac{\Delta P}{\Delta \theta} = \frac{+0.05}{1} = +0.05
+     $$
+   - That is the gradient of the probability: it tells us which way to twist the knob to put more <kbd>"cat"</kbd> marbles into the jar.
+
+---
+
+### Piece 3: The Secret of the Percentage (Where the Logarithm Comes From)
+
+In almost every reinforcement learning paper, you suddenly see the symbol $\nabla \log \pi$. Students panic: *Where did the natural logarithm come from? Why did researchers inject $\ln(x)$ into the formula?*
+
+Here is the secret that textbooks never tell you:
+
+1. **The Two Words Experiment**:
+   - Suppose the jar contains two words:
+     - Word A is an ultra-common word (<kbd>"is"</kbd>): its current probability is $P_A = 0.500$ ($500$ marbles out of $1{,}000$).
+     - Word B is a rare, delicate mathematical word (<kbd>"hypotenuse"</kbd>): its current probability is $P_B = 0.001$ ($1$ marble out of $1{,}000$).
+   - Now suppose you nudge a knob, and in both cases, you drop in exactly **$1$ extra marble** ($\Delta P = +0.001$):
+     - For Word A: $P_A$ grows from $0.500 \to 0.501$. Its chance grew by a tiny **$0.2\%$**.
+     - For Word B: $P_B$ grows from $0.001 \to 0.002$. Its chance **doubled** &mdash; a staggering **$100\%$ relative increase**!
+
+2. **The Absolute Change Illusion**:
+   - If you only look at the absolute change on the number line, both words gained the exact same $\Delta P = 0.001$.
+   - But in the real world of language and discovery, taking a rare word from $1$-in-a-thousand to $2$-in-a-thousand is a monumental breakthrough, whereas nudging a common word by $0.2\%$ is imperceptible noise!
+   - What measures this real-world impact? The **relative percentage change**:
+     $$
+     \text{Relative Nudge} = \frac{\text{change in probability}}{\text{current probability}} = \frac{\Delta P}{P}
+     $$
+
+3. **Why the Natural Logarithm Appears**:
+   - Ask any calculus student: *What function has a slope equal to $\frac{1}{x}$?*
+   - There is only one such function in all of mathematics: **the natural logarithm**:
+     $$
+     \frac{d}{dx} \ln(x) = \frac{1}{x}
+     $$
+   - By the chain rule, if you take the derivative of the logarithm of a probability:
+     $$
+     \nabla_\theta \ln P = \frac{1}{P} \cdot \nabla_\theta P = \frac{\nabla_\theta P}{P}
+     $$
+   - Look at that right-hand side: **$\frac{\nabla_\theta P}{P}$ is literally just the relative percentage nudge!**
+   - **The Core Takeaway**: The logarithm $\nabla \log \pi$ was not invented to confuse students. It is simply the mathematical shorthand for **percentage growth**!
+
+---
+
+### Piece 4: The Discrete Wall & Policy Gradients (REINFORCE)
+
+Now we can see the grand difference between ordinary deep learning and reinforcement learning:
+
+1. **Supervised Learning (The Kindergarten Teacher)**:
+   - When training a model on text, a human teacher provides the exact target marble: *"The next word must be 'cat'!"*
+   - Because we know the target marble, we know exactly which knob to turn to add more 'cat' marbles. Gradients flow smoothly.
+
+2. **The Teacher Leaves the Room (Reinforcement Learning)**:
+   - Now ask the model to solve a novel math proof or write a 50-line program.
+   - Nobody knows the exact sequence of words ahead of time. There is no human teacher.
+   - The model reaches into its jar, draws a marble, places it on the table, and repeats this for $100$ steps:
+     $$
+     \text{"Let"} \to \text{"x"} \to \text{"="} \to \text{"5"} \dots
+     $$
+   - At the very end, a Python interpreter runs the code. A referee shouts:
+     $$
+     \text{"Correct! Score } R = +100 \text{ points!"}
+     $$
+
+3. **The Crisis of the Discrete Wall**:
+   - When the machine pulled out the marble <kbd>"="</kbd>, that was a discrete, physical choice. You cannot take a derivative of a marble! A marble is a hard pebble; there is no such thing as a "fractional marble".
+   - Furthermore, the Python interpreter is a black-box wall. You cannot backpropagate through an `if/else` statement in Python.
+   - How can you update the internal knobs when you cannot push gradients through the choices?
+
+4. **The Common-Sense Solution (Policy Gradient)**:
+   - Think like a human coach:
+     - Did the model draw a sequence of marbles that won $+100$ points?
+     - Yes!
+     - What do you want to happen tomorrow?
+     - You want the machine to be **more likely to draw those exact same winning marbles**!
+   - How much should you twist each knob?
+     $$
+     \text{Knob Adjustment } \Delta \theta = \text{Score } R \times (\text{Percentage nudge for that winning marble})
+     $$
+     $$
+     \Delta \theta \propto R \times \frac{\nabla_\theta P}{P} = R \times \nabla_\theta \ln P
+     $$
+   - **That is the entire Policy Gradient Theorem (REINFORCE)!**
+   - It is not an abstract piece of measure theory. It is the only sensible way to adjust dials when all you have is a scorecard: **increase the probability of every choice you made, scaled by the score you earned!**
+
+---
+
+### Piece 5: The Center of the Number Line (Subtracting the Average)
+
+1. **The Positive Points Disaster**:
+   - Suppose the referee gives scores from $0$ to $100$.
+   - The model tries three different math attempts:
+     - Attempt 1 gets $20$ points (bad mistakes).
+     - Attempt 2 gets $50$ points (mediocre).
+     - Attempt 3 gets $90$ points (brilliant).
+   - Look at the scores: $+20$, $+50$, $+90$. All three numbers are positive!
+   - If you use our naive rule, you will twist the knobs to increase the chance of Attempt 1, AND increase Attempt 2, AND increase Attempt 3!
+   - But the jar can only hold $100\%$ of the marbles! If you try to increase the probability of every word, they violently fight for space. The knobs jerk back and forth, and learning becomes chaotic and unstable (high variance).
+
+2. **Centering on the Number Line (The Baseline)**:
+   - What is the natural center on the number line? **The Average!**
+   - Add up the three scores and divide by $3$:
+     $$
+     \text{Average Score } b = \frac{20 + 50 + 90}{3} = \frac{160}{3} \approx 53.3 \text{ points}
+     $$
+   - Now, instead of rewarding by the raw score $R$, reward by **how much better or worse you were than average ($R - b$)**:
+     - Attempt 1: $20 - 53.3 = \mathbf{-33.3}$ &mdash; **Negative! Twist knobs to suppress these mistakes!**
+     - Attempt 2: $50 - 53.3 = \mathbf{-3.3}$ &mdash; **Slight penalty.**
+     - Attempt 3: $90 - 53.3 = \mathbf{+36.7}$ &mdash; **Positive! Enthusiastically reward these brilliant steps!**
+
+3. **The Zero-Sum Magic**:
+   - Look what happens when you sum the three adjusted scores:
+     $$
+     (-33.3) + (-3.3) + (+36.7) \equiv 0
+     $$
+   - The nudges are strictly balanced on the number line! Exactly half the attempts are pushed down, and the best attempts are lifted up.
+   - This simple act of subtracting the average is called **Baseline Subtraction**. It stabilizes reinforcement learning without introducing any mathematical bias whatsoever.
+
+---
+
+### Piece 6: The Modern Frontier (GRPO, PRMs, and Tree Search)
+
+Now you possess the complete intuitive machinery to understand every modern reasoning breakthrough in AI:
+
+1. **PPO vs. DeepSeek's GRPO (Firing the Expensive Private Tutor)**:
+   - In classic PPO (Chapter 30), researchers trained a second, massive $70$-billion parameter neural network called the "Critic" just to guess what the average baseline $b$ should be at every word. It consumed half the GPU cluster and often hallucinated.
+   - DeepSeek (Chapter 31) asked: *Why build a second giant neural network just to guess the average?*
+   - Just take the prompt, roll the dice $4$ times to write $4$ answers on the chalkboard, compute the simple average of those $4$ scores, and subtract it!
+   - That chalkboard average is your baseline. Zero extra neural network. Zero GPU memory waste. That is **Group Relative Policy Optimization (GRPO)**!
+
+2. **Process Reward Models (Tasting the Soup at Every Step)**:
+   - If an apprentice chef cooks a $20$-step French soup and accidentally drops in a teaspoon of sand at step $19$, the final bowl scores $0$ points.
+   - Outcome models punish all $20$ steps equally.
+   - A **Process Reward Model (PRM, Chapter 32)** stands by the pot and tastes the broth after *every single step*: Step 1 passed ($+1$), Step 2 passed ($+1$)... Step 19 failed ($0$). We keep the winning recipe up to step 18 and fix only step 19!
+
+3. **Monte Carlo Tree Search (Counting Footsteps in a Maze)**:
+   - Instead of picking words blindfolded, the model builds a tree of possibilities before speaking (Chapter 33).
+   - At every fork in the road, it keeps track of two simple counters:
+     - $N$: *How many times have I walked down this corridor?*
+     - $Q$: *What was my average score down this corridor?*
+   - If a corridor has a high average score $Q$, walk down it more (exploitation).
+   - If a corridor has rarely been explored ($N \approx 0$), peek down it out of curiosity (exploration).
+   - That balance is the **PUCT formula**. It allows models to spend "thinking compute" at test time to solve complex Olympiad math problems.
+
+---
 
 <figure>
 <pre>

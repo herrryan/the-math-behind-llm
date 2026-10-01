@@ -232,65 +232,71 @@ $$
 
 <hr />
 <h2 id="step-3">Step 3: The Exact Math &amp; Formula</h2>
-<h3>1. Language Generation as a Markov Decision Process (MDP)</h3>
-<p>To study text generation mathematically, we formulate autoregressive language modeling as a discrete-time, finite-horizon <dfn id="def-mdp">Markov Decision Process (MDP)</dfn> defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$:</p>
-<fieldset>
-<legend><strong>Why Is Language Modeling an MDP? (The Markov Property)</strong></legend>
-<p>In physics and mathematics, the <em>Markov Property</em> states that <strong>the future depends only upon the present state, not on the path taken to reach it</strong>: $P(s_{t+1} \mid s_t, s_{t-1}, \dots, s_0) = P(s_{t+1} \mid s_t)$.</p>
-<p>In a language model, does the choice of the next word depend on earlier words? Absolutely! But we define the <strong>state</strong> $s_t$ as the <em>entire prompt plus all words generated so far</em>: $s_t = (x, y_1, y_2, \dots, y_{t-1})$. Because $s_t$ already holds the full history, conditioned on $s_t$, the next token depends on nothing else! Thus, autoregressive text generation satisfies the Markov property completely and rigorously.</p>
-</fieldset>
+<h3>1. From Marbles and Paper Strips to Language Generation (Demystifying the Markov Property)</h3>
+<p>In standard textbooks, authors often intimidate students by declaring: <em>"Let text generation be defined as a discrete-time Markov Decision Process tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$."</em></p>
+<p>Let's discard the academic jargon and look at what is physically happening on the desk:</p>
+<ol>
+<li><strong>The Paper Strip (The State $s_t$)</strong>:</li>
+</ol>
 <ul>
-<li><strong>State Space ($\mathcal{S}$)</strong>: At time step $t$, the state $s_t$ is the concatenation of prompt $x$ and all tokens generated up to step $t-1$:</li>
+<li>Imagine a paper strip rolling out of a printer.</li>
+<li>At the beginning, the prompt $x$ is printed on the strip: e.g. <samp>"What is 2 + 2?"</samp>.</li>
+<li>Every time the model generates a word, it prints that word onto the end of the strip.</li>
+<li>At step $t$, the state $s_t$ is simply <strong>everything currently written on the paper strip</strong>:</li>
 </ul>
 
 
 $$
-s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t}) \in \mathcal{S}
+s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t})
 $$
 
 
 <ul>
-<li><strong>Action Space ($\mathcal{A}$)</strong>: The action $a_t$ is selecting the next token from the discrete vocabulary $\mathcal{V}$:</li>
+<li>You don't need an abstract state space $\mathcal{S}$ &mdash; the state is literally just the readable text on the paper tape!</li>
+</ul>
+<ol start="2">
+<li><strong>The Vocabulary Jar (The Action $a_t$)</strong>:</li>
+</ol>
+<ul>
+<li>Inside the machine is a glass jar containing $|\mathcal{V}|$ marbles (where $|\mathcal{V}| \approx 32{,}000$ to $128{,}000$ words).</li>
+<li>Taking an "action" $a_t$ simply means <strong>reaching into the jar and pulling out one word $y_t$</strong> to print onto the paper strip.</li>
+</ul>
+<ol start="3">
+<li><strong>Demystifying the "Markov Property" (No History Amnesia)</strong>:</li>
+</ol>
+<ul>
+<li>In physics, a process is called <em>Markovian</em> if the next event depends <strong>only on the current state, not on how you reached it</strong>.</li>
+<li>Students often ask: <em>"Doesn't the next word depend heavily on what was said 10 words ago? How can that be Markovian?"</em></li>
+<li>Look at your paper strip: <strong>All 10 past words are already printed right there on the strip!</strong></li>
+<li>Because the strip $s_t$ already contains the complete history, the machine does not need any hidden time machine or external memory. Everything it needs to know is printed on the tape in front of it right now. Conditioned on $s_t$, the next marble depends on nothing else.</li>
+</ul>
+<ol start="4">
+<li><strong>The Probability of an Entire Sentence (Multiplying Marbles)</strong>:</li>
+</ol>
+<ul>
+<li>The model has internal knobs $\boldsymbol{\theta}$. Given the paper strip $s_t$, the machine outputs a probability for each marble in the jar via softmax:</li>
 </ul>
 
 
 $$
-a_t = y_t \in \mathcal{V} \quad (|\mathcal{V}| \approx 32{,}000 \text{ to } 128{,}000)
+\pi_{\boldsymbol{\theta}}(y_t \mid s_t) = \frac{\exp(z_{t, y_t})}{\sum_{v \in \mathcal{V}} \exp(z_{t, v})}
 $$
 
 
 <ul>
-<li><strong>Transition Dynamics ($\mathcal{P}$)</strong>: Adding the selected token to the state is deterministic string concatenation:</li>
+<li>When the model writes a full sentence $\tau = (y_1, y_2, \dots, y_T)$, what is the chance of rolling that exact sequence of marbles?</li>
+<li>From basic counting, you simply multiply the chances of each individual marble drawn:</li>
 </ul>
 
 
 $$
-s_{t+1} = [s_t, a_t] = (x, y_1, \dots, y_t)
-$$
-
-
-<p>with probability $\mathcal{P}(s_{t+1} \mid s_t, a_t) \equiv 1$.</p>
-<ul>
-<li><strong>Policy ($\pi_{\boldsymbol{\theta}}$)</strong>: The language model parameterized by weights $\boldsymbol{\theta} \in \mathbb{R}^D$ outputs a categorical probability distribution over all tokens in $\mathcal{V}$ given state $s_t$:</li>
-</ul>
-
-
-$$
-\pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \operatorname{softmax}\left(\mathbf{z}_t\right)_{a_t} = \frac{\exp\left(z_{t, a_t}\right)}{\sum_{v \in \mathcal{V}} \exp\left(z_{t, v}\right)}
+P(\tau; \boldsymbol{\theta}) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(y_t \mid s_t)
 $$
 
 
 <ul>
-<li><strong>Trajectory ($\tau$) and Return ($R(\tau)$)</strong>: A full generation episode produces a complete trajectory $\tau = (s_1, a_1, s_2, a_2, \dots, s_T, a_T)$. The scalar reward $R(\tau) \in \mathbb{R}$ is assigned upon terminal token generation (e.g. producing the <code>&lt;|endoftext|&gt;</code> token).</li>
+<li>At the end of the sentence, an external evaluator (a Python runner, math checker, or human) awards a scalar score $R(\tau) \in \mathbb{R}$ on the number line.</li>
 </ul>
-<p>The total probability of generating trajectory $\tau$ under policy $\boldsymbol{\theta}$ is:</p>
-
-
-$$
-P(\tau; \boldsymbol{\theta}) = P(s_1) \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \mathcal{P}(s_{t+1} \mid s_t, a_t) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
-$$
-
-
 <hr />
 <h3>2. The Expectation Gradient Paradox &amp; The Score Function Trick</h3>
 <p>The optimization objective in reinforcement learning is to maximize the expected reward over all possible sampled trajectories:</p>

@@ -232,66 +232,68 @@ $$
 
 <hr />
 <h2 id="step-3">步骤 3：严谨数学公式与推导</h2>
-<h3>1. 将语言自回归生成建模为马尔可夫决策过程（MDP）</h3>
-<p>为了在数学上严谨研究文本生成，我们将大模型的自回归生成形式化为离散时间、有限步长的<dfn id="def-mdp">马尔可夫决策过程（MDP）</dfn>，记为四元组 $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$：</p>
-<fieldset>
-<legend><strong>为什么文本生成可以被视作 MDP？（马尔可夫性的本质）</strong></legend>
-<p>物理学与概率论中的<em>马尔可夫性质（Markov Property）</em>指的是：<strong>未来只取决于现在的状态，而与过去的到达路径无关</strong>：$P(s_{t+1} \mid s_t, s_{t-1}, \dots, s_0) = P(s_{t+1} \mid s_t)$。</p>
-<p>很多初学者会疑惑：语言模型预测下一个词明明极度依赖前面的上文，怎么可能是马尔可夫过程？
-关键在于<strong>状态的定义</strong>！我们将时间步 $t$ 的状态 $s_t$ 直接定义为<em>原始提示词加上目前为止生成的所有历史词元</em>：$s_t = (x, y_1, y_2, \dots, y_{t-1})$。因为 $s_t$ 已经完全打包了截至目前的所有上下文，所以在给定 $s_t$ 的前提下，下一个词元不再依赖任何外部历史！自回归生成严格满足马尔可夫性。</p>
-</fieldset>
+<h3>1. 从纸带与玻璃弹珠谈起：文本自回归的极简本质（破除马尔可夫神话）</h3>
+<p>在传统教科书中，很多作者喜欢用一堆枯燥抽象的学术定义震慑初学者：<em>“设自回归文本生成为一个离散时间有限步长的马尔可夫决策过程四元组 $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R})$……”</em></p>
+<p>让我们彻底丢掉这套空洞的学术行话，回归书桌前正在发生的真实物理过程：</p>
+<ol>
+<li><strong>不断延长的纸带（状态 $s_t$）</strong>：</li>
+</ol>
 <ul>
-<li><strong>状态空间（$\mathcal{S}$）</strong>：在生成第 $t$ 步时，状态 $s_t$ 由原始 Prompt $x$ 与截至当前生成的所有历史词元拼接而成：</li>
+<li>想象一台打字机正在吐出一条长长的纸带。</li>
+<li>一开始，纸带上印着用户输入的提示词 $x$（例如：<samp>“请问 2 + 2 等于几？”</samp>）。</li>
+<li>模型每产生一个词，就在纸带末尾打印出来。</li>
+<li>在第 $t$ 步时，所谓的状态 $s_t$ 根本不需要什么高深的拓扑空间，它<strong>就是此刻纸带上印出的全部文字</strong>：</li>
 </ul>
 
 
 $$
-s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t}) \in \mathcal{S}
+s_t = (x, y_1, y_2, \dots, y_{t-1}) = (x, y_{\lt t})
 $$
 
 
+<ol start="2">
+<li><strong>装满词元的玻璃罐（动作 $a_t$）</strong>：</li>
+</ol>
 <ul>
-<li><strong>动作空间（$\mathcal{A}$）</strong>：动作 $a_t$ 即为从离散词表 $\mathcal{V}$ 中挑选中下一个词元：</li>
+<li>机器内部有一个巨大的玻璃罐，里面装有 $|\mathcal{V}|$ 颗弹珠（词表大小，约 $32{,}000 \sim 128{,}000$ 个词）。</li>
+<li>所谓的“采取动作” $a_t$，无非就是<strong>伸手从罐子里摸出一颗弹珠 $y_t$</strong>，印在纸带末尾。</li>
+</ul>
+<ol start="3">
+<li><strong>破除“马尔可夫性”的神秘感（为什么不需要记住整个过去？）</strong>：</li>
+</ol>
+<ul>
+<li>物理学中所谓的<em>马尔可夫性</em>，用大白话讲就是：<strong>下一步发生什么，只取决于此刻眼前的状态，与过去是怎么一步步走过来的无关</strong>。</li>
+<li>很多同学会困惑：“大模型生成下一个词明明极度依赖上文，怎么可能是马尔可夫的？”</li>
+<li>请低头看看你桌上的纸带：<strong>过去的每一个词，此刻不都已经清清楚楚地印在纸带上了吗！</strong></li>
+<li>因为纸带 $s_t$ 已经原原本本地记录了完整的历史，模型只需要看着眼前的纸带即可，根本不需要额外设计任何时空回溯机制。条件概率完全由 $s_t$ 决定，自回归生成极其纯粹地满足马尔可夫性。</li>
+</ul>
+<ol start="4">
+<li><strong>一整句话的概率（相乘的弹珠）</strong>：</li>
+</ol>
+<ul>
+<li>模型内部有数以亿计的旋钮 $\boldsymbol{\theta}$。给定纸带 $s_t$，机器通过 Softmax 计算罐中每颗弹珠的抽取概率：</li>
 </ul>
 
 
 $$
-a_t = y_t \in \mathcal{V} \quad (|\mathcal{V}| \approx 32{,}000 \sim 128{,}000)
+\pi_{\boldsymbol{\theta}}(y_t \mid s_t) = \frac{\exp(z_{t, y_t})}{\sum_{v \in \mathcal{V}} \exp(z_{t, v})}
 $$
 
 
 <ul>
-<li><strong>状态转移函数（$\mathcal{P}$）</strong>：在语言生成中，状态转移是确定性的字符串追加：</li>
+<li>当模型写完一整句话 $\tau = (y_1, y_2, \dots, y_T)$，抽中这串弹珠的联合概率是多少？</li>
+<li>依据最朴素的计数与乘法原理，就是把每一步摸出那颗弹珠的概率连乘起来：</li>
 </ul>
 
 
 $$
-s_{t+1} = [s_t, a_t] = (x, y_1, \dots, y_t)
-$$
-
-
-<p>其确定性转移概率为 $\mathcal{P}(s_{t+1} \mid s_t, a_t) \equiv 1$。</p>
-<ul>
-<li><strong>策略网络（$\pi_{\boldsymbol{\theta}}$）</strong>：参数为 $\boldsymbol{\theta} \in \mathbb{R}^D$ 的语言模型在给定状态 $s_t$ 下输出词表上的多项式分布：</li>
-</ul>
-
-
-$$
-\pi_{\boldsymbol{\theta}}(a_t \mid s_t) = \operatorname{softmax}\left(\mathbf{z}_t\right)_{a_t} = \frac{\exp\left(z_{t, a_t}\right)}{\sum_{v \in \mathcal{V}} \exp\left(z_{t, v}\right)}
+P(\tau; \boldsymbol{\theta}) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(y_t \mid s_t)
 $$
 
 
 <ul>
-<li><strong>完整轨迹（$\tau$）与累积收益（$R(\tau)$）</strong>：生成一段完整文本构成一条轨迹 $\tau = (s_1, a_1, \dots, s_T, a_T)$。在文本终结（输出结束符 EOS）时，环境给出一个标量总奖励 $R(\tau) \in \mathbb{R}$。</li>
+<li>句子生成完毕后，外部裁判（Python 解释器、数学验算器或人类评估员）在数轴上给出唯一的总得分 $R(\tau) \in \mathbb{R}$。</li>
 </ul>
-<p>在参数 $\boldsymbol{\theta}$ 控制下，生成特定完整轨迹 $\tau$ 的联合概率为：</p>
-
-
-$$
-P(\tau; \boldsymbol{\theta}) = P(s_1) \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t) \mathcal{P}(s_{t+1} \mid s_t, a_t) = \prod_{t=1}^T \pi_{\boldsymbol{\theta}}(a_t \mid s_t)
-$$
-
-
 <hr />
 <h3>2. 期望求导悖论与对数导数技巧（Score Function Trick）</h3>
 <p>强化学习的总体优化目标是最大化在所有可能生成轨迹上的期望收益：</p>
