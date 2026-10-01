@@ -143,11 +143,32 @@ $$
 When problems require dozens of sequential deductive steps, independent sampling wastes enormous compute regenerating identical prefixes.
 We structure test-time search as a tree $(\mathcal{V}, \mathcal{E})$ where each node represents a partial reasoning state $s_t = (x, s_1, \dots, s_t)$ and each edge represents a reasoning step $a_t = s_{t+1}$.
 
+<fieldset>
+<legend><strong>The Feynman View: Counting Pebbles at the Maze Entrances</strong></legend>
+<p>Imagine walking through a massive hedge maze full of mysterious corridors:</p>
+<ul>
+  <li>At the entrance to every corridor $(s, a)$, there is an empty wooden bucket and a chalkboard.</li>
+  <li>Every time you walk down a corridor, you drop a pebble into the bucket: <strong>$N(s, a) \leftarrow N(s, a) + 1$ (Visit Count)</strong>.</li>
+  <li>When you return from the corridor carrying treasure or dust ($V$), you add that score to the chalkboard total: <strong>$W(s, a) \leftarrow W(s, a) + V$ (Total Accumulated Treasure)</strong>.</li>
+  <li>The average treasure per trip is simple grade-school division:
+    $$
+    Q(s, a) = \frac{W(s, a)}{N(s, a)} = \frac{\text{total points on chalkboard}}{\text{number of pebbles in bucket}}
+    $$
+  </li>
+</ul>
+<p>Whenever you stand at a fork in the maze, two competing human impulses fight inside your mind:</p>
+<ol>
+  <li><strong>Greed ($Q$)</strong>: <em>"Corridor 1 yielded an average of 9 points in past trips! Let me go there again!"</em></li>
+  <li><strong>Curiosity ($U$)</strong>: <em>"Wait! Corridor 3 has only 1 pebble in its bucket! What if there is a giant dragon's horde of 100 points hidden behind that door?"</em></li>
+</ol>
+<p>The famous <strong>PUCT formula</strong> is nothing more than a mathematical seesaw that balances Greed against Curiosity!</p>
+</fieldset>
+
 Each state-action edge $(s, a)$ maintains four statistics:
-- **$N(s, a)$**: Visit count.
-- **$W(s, a)$**: Total accumulated value.
+- **$N(s, a)$**: Visit count (pebbles in the bucket).
+- **$W(s, a)$**: Total accumulated value (sum of points).
 - **$Q(s, a)$**: Mean state-action value: $Q(s, a) = \frac{W(s, a)}{N(s, a)}$.
-- **$P(s, a)$**: Prior policy probability: $P(s, a) = \pi_{\boldsymbol{\theta}}(a \mid s)$.
+- **$P(s, a)$**: Prior policy probability: $P(s, a) = \pi_{\boldsymbol{\theta}}(a \mid s)$ (the language model's initial intuition).
 
 MCTS iterates through four fundamental phases:
 
@@ -155,7 +176,7 @@ MCTS iterates through four fundamental phases:
 Starting at root node $s_0$, descend the tree by choosing action $a^*$ that maximizes the **Predictor Upper Confidence Bound applied to Trees (<abbr title="Predictor Upper Confidence Bound applied to Trees">PUCT</abbr>)**:
 
 $$
-a^* = \arg\max_a \left[ Q(s, a) + U(s, a) \right]
+a^* = \arg\max_a \left[ \underbrace{Q(s, a)}_{\text{Greed (Past Success)}} + \underbrace{U(s, a)}_{\text{Curiosity (Unexplored Promise)}} \right]
 $$
 
 where the exploration bonus $U(s, a)$ is defined as:
@@ -165,9 +186,9 @@ U(s, a) = c_{\text{puct}} P(s, a) \frac{\sqrt{\sum_{b} N(s, b)}}{1 + N(s, a)}
 $$
 
 <fieldset>
-<legend><strong>Deconstructing the Three Mathematical Forces in PUCT</strong></legend>
+<legend><strong>Deconstructing the Seesaw: How Curiosity Naturally Fades Away</strong></legend>
 <ol>
-  <li><strong>$Q(s, a)$ (Exploitation: Past Success)</strong>:
+  <li><strong>$Q(s, a)$ (Greed: Past Success)</strong>:
     The historical average reward along this path. High $Q$ tells the search algorithm: <em>"This move has consistently led to winning proofs in previous simulations. Exploit it!"</em>
   </li>
   <li><strong>$P(s, a)$ (Prior Policy Bias: Linguistic Plausibility)</strong>:
@@ -176,7 +197,7 @@ $$
   <li><strong>$\frac{\sqrt{\sum_b N(s, b)}}{1 + N(s, a)}$ (Curiosity with Diminishing Returns)</strong>:
     <ul>
       <li><strong>Numerator $\sqrt{\sum_b N(s, b)}$</strong>: Measures total parent visits. As we spend more time at state $s$, our curiosity grows to inspect unvisited alternatives.</li>
-      <li><strong>Denominator $1 + N(s, a)$</strong>: Every time branch $a$ is explored, $N(s, a)$ increments by 1. This crushes the exploration bonus toward 0. Once an action has been thoroughly tested, curiosity vanishes and decision-making is 100% governed by the empirical outcome $Q(s, a)$!</li>
+      <li><strong>Denominator $1 + N(s, a)$</strong>: Look at the denominator! Every time corridor $a$ is explored, a pebble is dropped ($N(s, a) \leftarrow N(s, a) + 1$). The denominator grows larger and larger ($1, 2, 5, 20, 100\dots$), crushing the curiosity bonus toward <strong>zero</strong>! Once an action has been thoroughly tested, curiosity completely vanishes, and choices are 100% governed by the cold empirical track record $Q(s, a)$!</li>
     </ul>
   </li>
 </ol>

@@ -2,28 +2,38 @@
 
 ---
 
-## Step 1: 3-Year-Old Intuition (The Blindfolded Archer and the Whispering Coach)
+## Step 1: 3-Year-Old Intuition (The Chalk Line, Wiggling Knobs, and the Blindfolded Archer)
 
-Imagine you are learning archery, but you have never held a bow before:
+Let's start where all mathematics began: with counting and a piece of sidewalk chalk:
 
-1. **The Kindergarten Teacher vs. The Blindfolded Archer**:
-   - In **Supervised Learning** (like pre-training and fine-tuning in Chapters 00 to 18), your teacher stands right behind you, holds your hands, and physically guides your fingers to point directly at the gold bullseye. For every single shot, you are shown the exact right move.
+1. **The Number Line on the Sidewalk**:
+   - Draw a straight line on the ground. Make a mark where you stand: **$0$**.
+   - Walk strides forward: $+1, +2, \dots, +100$ (rewards and points). Walk strides backward: $-1, -2$ (penalties).
+   - In reinforcement learning, our entire goal in life is very simple: **we want our machine's average score to walk further to the right on this chalk line.**
+
+2. **The Box with Knobs and the Jar of Marbles**:
+   - The language model is a wooden box with millions of volume knobs ($\boldsymbol{\theta}$).
+   - Inside the box is a glass jar filled with $100{,}000$ marbles, each labeled with a word.
+   - When you wiggle a knob, you change how many marbles of each word are packed into the jar. A "gradient" ($\nabla$) is simply asking: *If I twist this knob a tiny fraction to the right, how many more winning marbles fall into the jar?*
+
+3. **The Kindergarten Teacher vs. The Blindfolded Archer**:
+   - In **Supervised Learning** (Chapters 00 to 18), your teacher stands right behind you, holds your hands, and physically guides your fingers to point directly at the gold bullseye. For every single shot, you are shown the exact right move.
    - In **Reinforcement Learning**, your teacher leaves the room. You are handed a thick blindfold and spun around in a misty field. In your hands is a bow and a quiver of arrows.
    - You cannot see the target at all. You can only pull the string, point into the fog, and let go.
-   - When an LLM generates text during RL, it is firing words into the fog &mdash; selecting one token after another based on its current internal probabilities.
+   - When an LLM generates text during RL, it is firing words into the fog &mdash; drawing one marble after another based on its current internal probabilities.
 
-2. **The Coach's Whistle (The Reward)**:
+4. **The Coach's Whistle (The Black-Box Reward)**:
    - After your arrow lands with a *thud*, an invisible judge across the field shouts a single score through a megaphone:
      - *"Bullseye! 100 points!"*
      - or *"Missed the haystack entirely! 0 points!"*
-   - Notice something vital: The judge does **not** tell you *how* to aim. The judge does not say *"raise your left elbow by two inches"* or *"pull the string harder"*. They only announce how good the final result was.
+   - Notice something vital: The judge does **not** tell you *how* to aim. The judge does not say *"raise your left elbow by two inches"*. They only announce how good the final result was.
    - You must figure out on your own which tiny muscle twitches were responsible for that high score.
 
-3. **The Scorekeeper's Notebook (The Average Baseline)**:
+5. **The Scorekeeper's Notebook (The Average Baseline)**:
    - If the judge shouts *"50 points!"*, is that great or terrible? You have no idea unless you know what you usually get!
-   - If your historical average score is only 10 points, then 50 points is fantastic! You want to remember the exact arm position that produced that shot.
-   - But if your historical average is 90 points, then 50 points is a huge disappointment! You want to steer away from whatever stance you just used.
-   - By **subtracting your historical average score** from every shot, you only adjust your muscles when a shot was *better than your everyday expectation*.
+   - If your historical average score is only 10 points, then 50 points is fantastic ($+40$ steps forward on the number line)! You want to remember the exact arm position that produced that shot.
+   - But if your historical average is 90 points, then 50 points is a huge disappointment ($-40$ steps backward)! You want to steer away from whatever stance you just used.
+   - By **subtracting your historical average score** from every shot, you center your scores around zero: bad shots become negative nudges backward, and good shots become positive nudges forward.
 
 <figure>
 <pre>
@@ -179,12 +189,29 @@ $$
 \nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta}) = P(\tau; \boldsymbol{\theta}) \cdot \frac{\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})}{P(\tau; \boldsymbol{\theta})}
 $$
 
-#### Step B: Apply the Derivative of the Natural Logarithm
+#### Step B: Apply the Derivative of the Natural Logarithm (The Relative Percentage Nudge)
+
 Recall from elementary calculus that $\frac{d}{dx} \ln f(x) = \frac{f'(x)}{f(x)}$. Applying this in reverse:
 
 $$
 \frac{\nabla_{\boldsymbol{\theta}} P(\tau; \boldsymbol{\theta})}{P(\tau; \boldsymbol{\theta})} \equiv \nabla_{\boldsymbol{\theta}} \log P(\tau; \boldsymbol{\theta})
 $$
+
+<fieldset>
+<legend><strong>Feynman's Secret: Why Does the Logarithm Appear? (Relative Percentage Growth)</strong></legend>
+<p>Students often wonder: <em>Why did researchers inject a logarithm into policy gradients?</em></p>
+<p>Think about two words in your vocabulary:</p>
+<ul>
+  <li><strong>Common Word A (<kbd>"the"</kbd>)</strong>: Current probability $P = 0.500$ ($500$ marbles out of $1{,}000$). If a knob adds $1$ marble ($\Delta P = +0.001$), its probability shifts to $0.501$. That is a tiny <strong>$+0.2\%$</strong> relative change &mdash; imperceptible noise.</li>
+  <li><strong>Rare Reasoning Word B (<kbd>"hypotenuse"</kbd>)</strong>: Current probability $P = 0.001$ ($1$ marble out of $1{,}000$). If a knob adds $1$ marble ($\Delta P = +0.001$), its probability doubles to $0.002$. That is a massive <strong>$+100\%$</strong> surge &mdash; a genuine mathematical breakthrough!</li>
+</ul>
+<p>On the chalk number line, both words gained the exact same absolute step ($\Delta P = 0.001$). But in reality, discovering a rare reasoning token is vastly more meaningful than nudging a common article. What naturally measures this real-world impact?</p>
+<p>The <strong>relative percentage change</strong>:</p>
+$$
+\frac{\text{change in probability}}{\text{current probability}} = \frac{\nabla_{\boldsymbol{\theta}} P}{P} \equiv \nabla_{\boldsymbol{\theta}} \log P
+$$
+<p><strong>The natural logarithm was not chosen out of mathematical vanity. It is simply the exact calculus expression for relative percentage growth!</strong></p>
+</fieldset>
 
 Therefore:
 

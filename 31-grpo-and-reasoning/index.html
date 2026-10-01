@@ -279,7 +279,7 @@ $$
 <p>When training against a human preference reward model, LLMs learn that writing pleasant, repetitive filler phrases tricks the evaluator. But under RLVR, the evaluator is a cold, deterministic Python script (e.g., checking if <code>assert solve() == 42</code> or parsing LaTeX <code>\boxed{...}</code>). You cannot flatter a compiler! Either the mathematical logic works, or it fails.</p>
 </fieldset>
 <hr />
-<h3>3. Group-Relative Advantage Normalization</h3>
+<h3>3. Group-Relative Advantage Normalization (The Chalkboard Average)</h3>
 <p>For prompt $q$, let $\{R_1, R_2, \dots, R_G\}$ be the scalar rewards assigned to the $G$ sampled completions.
 The empirical mean $\mu_q$ and standard deviation $\sigma_q$ of the group are:</p>
 
@@ -299,11 +299,30 @@ $$
 
 
 <fieldset>
-<legend><strong>The Mathematics of Why Group Normalization Eliminates the Critic</strong></legend>
-<p>Connect this directly back to Chapter 29's baseline theorem: $\nabla J = \mathbb{E}[ \nabla \log \pi \cdot (R - b) ]$.</p>
-<p>In GRPO, <strong>the group mean $\mu_q$ serves as the exact empirical baseline $b(q)$!</strong></p>
+<legend><strong>Feynman's View: How Four Chalk Marks Slayed the 70B Critic Robot</strong></legend>
+<p>Recall Piece 5 from our Feynman primer: In Chapter 30, we spent half our GPU memory building a second giant 70-billion-parameter neural network (the Critic) just to guess what the baseline score should be!</p>
+<p>DeepSeek's insight was almost laughably simple: <strong>Instead of guessing what the baseline is, just generate 4 answers to the exact same prompt and look at them on the number line!</strong></p>
+<pre>
+                                           Group Mean (μ = 50)
+                                                    ▼
+&lt;───────────┼───────────────────┼───────────────────┼───────────────────┼───────────────────┼───────────&gt;
+           R_4 = 0             R_3 = 20            μ = 50              R_2 = 80            R_1 = 100
+         (A_4 = -1.26)       (A_3 = -0.76)        (Baseline)          (A_2 = +0.76)       (A_1 = +1.26)
+</pre>
 <ol>
-<li><strong>Zero-Sum Property</strong>: Notice what happens when you sum the unnormalized advantages:
+<li><strong>The Zero-Sum Center</strong>: Look at what happens when you sum the differences:
+
+
+
+
+$$
+(+50) + (+30) + (-30) + (-50) = 0
+$$
+
+
+
+
+    By definition:
 
 
 
@@ -315,7 +334,10 @@ $$
 
 
 
-    The advantages are strictly zero-centered! Exactly those outputs that performed better than the group's current average receive positive updates ($A_i > 0$), while those below average are suppressed ($A_i < 0$).
+    The group creates its own perfectly balanced zero-sum pivot on the number line. Winning solutions get positive nudges ($A_i > 0$); losing solutions get negative nudges ($A_i < 0$).
+  </li>
+<li><strong>Dividing by $\sigma$: Measuring in Universal Strides</strong>:
+    Subtracting $\mu$ centers the marks at zero. Dividing by the standard deviation $\sigma_q$ standardizes the scale: an advantage of $+1.26$ means this attempt was $1.26$ full standard deviations better than its classmates.
   </li>
 <li><strong>Self-Tuning Gradient Attenuation</strong>:
     <ul>
@@ -325,6 +347,7 @@ $$
     </ul>
   </li>
 </ol>
+<p>Zero extra parameters. Zero extra GPU memory. Two lines of chalk on the board replaced a 70-billion-parameter Critic model!</p>
 </fieldset>
 <hr />
 <h3>4. The Full GRPO Objective Function</h3>

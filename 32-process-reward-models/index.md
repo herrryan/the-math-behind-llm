@@ -103,16 +103,33 @@ $$
 ### 3. Automated Step Annotation via Monte Carlo Rollouts (Math-Shepherd)
 
 Hiring human mathematicians to annotate millions of individual intermediate steps is prohibitively expensive.
-The **Math-Shepherd** algorithm automates step supervision using Monte Carlo rollouts:
+The **Math-Shepherd** algorithm automates step supervision using pure counting and Monte Carlo rollouts:
 
-For a given problem $x$ and prefix $s_{1:k} = (s_1, \dots, s_k)$, the system samples $M$ independent rollouts to completion using base generator $\pi_{\text{gen}}$:
+For a given problem $x$ and prefix $s_{1:k} = (s_1, \dots, s_k)$, the system freezes the first $k$ steps on the chalkboard. It then asks the generator model to sample $M$ independent completions to the very end:
 
 $$
 \{c_1, c_2, \dots, c_M\} \sim \pi_{\text{gen}}\left(\cdot \mid x, s_{1:k}\right)
 $$
 
-Each completed rollout is checked by an automated deterministic verifier $v(c_m) \in \{0, 1\}$ (e.g. SymPy or Python unit tests).
-The true empirical value of state $s_{1:k}$ is the fraction of rollouts that yield the correct answer:
+Each completed rollout is checked by an automated deterministic verifier $v(c_m) \in \{0, 1\}$ (such as Python's `math` module or SymPy checking the boxed integer).
+
+<fieldset>
+<legend><strong>The Feynman View: Counting Winning Marbles from Where You Stand</strong></legend>
+<p>Imagine you are hiking up a mountain trail and reach a fork in the road (Step $k$):</p>
+<ul>
+  <li>You freeze where you stand and send $M = 10$ scouts running down the mountain from your exact location.</li>
+  <li>If $8$ scouts successfully reach the summit, then $8$ out of $10$ paths succeeded! The empirical quality of your current location on the number line is:
+    $$
+    V^*(x, s_{1:k}) = \frac{8}{10} = 0.80
+    $$
+  </li>
+  <li>Now take one step forward along Fork A ($s_{k+1}$). Send $10$ scouts again. $9$ scouts reach the summit ($V^* = 0.90$). The path is healthy!</li>
+  <li>Take one step forward along Fork B ($s'_{k+1}$, where you wrote $2x = 8 \implies x = 5$). Send $10$ scouts. <strong>$0$ out of $10$ scouts can ever reach the summit</strong> because the arithmetic is mathematically broken! Its empirical value collapses: $V^* = \frac{0}{10} = 0.00$.</li>
+</ul>
+<p>The difference $\Delta V^* = 0.00 - 0.80 = -0.80$ immediately exposes the fatal blunder. No human expert is needed &mdash; just simple counting of successful arrivals!</p>
+</fieldset>
+
+The empirical value of state $s_{1:k}$ is the fraction of winning rollouts:
 
 $$
 V^*(x, s_{1:k}) = \frac{1}{M} \sum_{m=1}^M v(c_m) \in [0, 1]

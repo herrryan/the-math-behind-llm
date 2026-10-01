@@ -195,7 +195,7 @@ The hyperparameter $\lambda \in [0, 1]$ acts as a continuous tuning dial:
 
 ---
 
-### 5. The PPO Clipped Surrogate Objective
+### 5. The PPO Clipped Surrogate Objective (Boundary Fences on the Number Line)
 
 Now that we have computed advantage $\hat{A}_t$, how do we update the Actor model without causing catastrophic policy collapse?
 
@@ -204,6 +204,23 @@ Let the probability ratio between the current candidate policy $\pi_{\boldsymbol
 $$
 r_t(\boldsymbol{\theta}) = \frac{\pi_{\boldsymbol{\theta}}(a_t \mid s_t)}{\pi_{\boldsymbol{\theta}_{\text{old}}}(a_t \mid s_t)} \quad \text{with } r_t(\boldsymbol{\theta}_{\text{old}}) = 1.0
 $$
+
+<fieldset>
+<legend><strong>Visualizing the Ratio on the Chalk Number Line</strong></legend>
+<p>Look at this ratio $r_t(\boldsymbol{\theta})$ on our sidewalk chalk line:</p>
+<pre>
+       Left Fence                                  Where You Stand                            Right Fence
+       (1 - ε = 0.8)                                   (r = 1.0)                             (1 + ε = 1.2)
+<───────────┼──────────────────────────────────────────────┼──────────────────────────────────────┼───────────>
+           0.8                                            1.0                                    1.2
+</pre>
+<ul>
+  <li>At the start of the day, your knobs are unchanged: $r = 1.0$ (you stand right in the middle).</li>
+  <li>If you nudge a knob to make an action more likely, $r$ walks to the right ($r > 1.0$). If it reaches $1.10$, you gave that word a $10\%$ boost.</li>
+  <li>If you make an action less likely, $r$ walks to the left ($r < 1.0$).</li>
+</ul>
+<p>In deep neural networks, an unconstrained gradient step can yank a knob so violently that $r$ leaps from $1.0$ all the way to $50.0$! Once a model takes that giant leap, its output degenerates into repetitive gibberish and it collapses. To stop this, we plant two sturdy <strong>boundary fences</strong> in the chalk at $1 - \epsilon = 0.8$ and $1 + \epsilon = 1.2$.</p>
+</fieldset>
 
 The PPO Clipped Surrogate Objective is:
 
