@@ -1,12 +1,9 @@
-name: Deploy Concepts to GitHub Pages
+name: Deploy All Curriculum Tracks to GitHub Pages
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'concepts/**'
-      - '.github/workflows/deploy-concepts.yml'
   workflow_dispatch:
 
 permissions:
@@ -33,9 +30,31 @@ jobs:
         with:
           version: "latest"
 
-      - name: Build MkDocs Concepts Site
+      - name: Build All MkDocs Tracks & Assemble Unified Pages Directory
         run: |
-          uv run --with mkdocs-material mkdocs build -f concepts/mkdocs.yml
+          mkdir -p _pages
+
+          # 1. Copy root index.html and all chapter/lab HTML directories (00..33)
+          cp index.html _pages/
+          for dir in [0-9]*; do
+            if [ -d "$dir" ]; then
+              mkdir -p "_pages/$dir"
+              cp "$dir"/*.html "_pages/$dir/" 2>/dev/null || true
+            fi
+          done
+
+          # 2. Copy standalone HTML books if present
+          if [ -d "pdf_build" ]; then
+            mkdir -p _pages/pdf_build
+            cp pdf_build/*.html _pages/pdf_build/ 2>/dev/null || true
+          fi
+
+          # 3. Build all 5 MkDocs tracks into their respective subpaths
+          for track in concepts math engineering coding-guide reading-guide; do
+            if [ -f "$track/mkdocs.yml" ]; then
+              uv run --with mkdocs-material mkdocs build -f "$track/mkdocs.yml" -d "../_pages/$track"
+            fi
+          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -45,7 +64,7 @@ jobs:
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: concepts/site
+          path: _pages
 
       - name: Deploy to GitHub Pages
         id: deployment
